@@ -1,0 +1,10 @@
+*.pyc
+*.mat
+exp/
+data/
+.vscode/
+__pycache__
+*.txt
+*.csv
+*.DS_Store
+paint/
