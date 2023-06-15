@@ -18,7 +18,7 @@ DESCRIPTION = 'Multi-fidelity fusion toolbox of most GP-based mtehod'
 README_FILE = os.path.join(os.path.dirname(__file__), 'README.md')
 LONG_DESCRIPTION = open(README_FILE, encoding='UTF8').read()
 
-REQUIREMENTS = ['numpy', 'torch', 'scikit-learn']
+REQUIREMENTS = ['numpy', 'torch', 'scikit-learn', 'scipy', 'tensorly', 'yaml', 'h5py']
 URL = "https://github.com/IceLab-X/MF-Fusion"
 AUTHOR = 'Wei Xing, Zen Xingle '
 AUTHOR_EMAIL = ''

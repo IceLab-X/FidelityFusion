@@ -11,7 +11,6 @@ __update_date__ = '2023/06/15 09:48:05'
 
 import unittest
 from copy import deepcopy
-import numpy as np
 
 import torch
 
@@ -33,8 +32,15 @@ class CustomTestCase(unittest.TestCase):
 class TestSubset(CustomTestCase):
     
     def setUp(self):
+        torch.manual_seed(0)
+        
+        # # subset 不能处理重复项
+        # _x = torch.randn(25, 50, 50)
+        # self.x = torch.cat((_x, _x, _x, _x), dim=0)
+        # print(self.x.shape)
+        
         self.x = torch.randn(100, 50, 50)
-    
+        
     def run_data(self, _tt):
         if _tt == 'numpy':
             self.x = self.x.numpy()
