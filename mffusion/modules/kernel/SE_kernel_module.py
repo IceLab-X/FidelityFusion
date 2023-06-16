@@ -2,13 +2,8 @@ import torch
 import os
 import sys
 
-realpath=os.path.abspath(__file__)
-_sep = os.path.sep
-realpath = realpath.split(_sep)
-realpath = _sep.join(realpath[:realpath.index('ML_gp')+1])
-sys.path.append(realpath)
+from mffusion.utils.mlgp_decorator import *
 
-from utils.mlgp_decorator import *
 
 @class_init_param_check
 class SE_kernel(torch.nn.Module):

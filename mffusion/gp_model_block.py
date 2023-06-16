@@ -1,5 +1,5 @@
 import torch
-from utils.type_define import GP_val_with_var
+from mffusion.utils.type_define import GP_val_with_var
 
 '''
 # DOC: 动态注册类的操作, 有利于兼容性, 但是不利于代码可读性, 对初学者不友好, 目前不启用
@@ -23,6 +23,7 @@ def register_standard_operation(self):
         self._register_func('post_process', 'post_process_block', 'post_process')
     return
 '''
+
 
 class GP_model_block(torch.nn.Module):
     # ======= forward step =======
@@ -83,7 +84,7 @@ class GP_model_block(torch.nn.Module):
             subset_outputs = None
 
         nonsubset_inputs = [_v[nonsubset_index] for _v in gp_inputs]
-        if nonsubset_inputs[0].shape[0]!= 0:
+        if nonsubset_inputs[0].shape[0] != 0:
             nonsubset_outputs = self.gp_model.predict(nonsubset_inputs)
         else:
             nonsubset_outputs = None
@@ -142,7 +143,5 @@ class GP_model_block(torch.nn.Module):
         return params_dict
 
 
-
 if __name__ == '__main__':
-
     pass

@@ -14,7 +14,7 @@ from copy import deepcopy
 
 import torch
 
-from ..subset_tools import shuffle, Subset_check
+from mffusion.utils.subset_tools import shuffle, Subset_check
 
 
 class CustomTestCase(unittest.TestCase):

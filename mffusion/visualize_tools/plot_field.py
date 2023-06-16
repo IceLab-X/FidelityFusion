@@ -6,13 +6,7 @@ from mpl_toolkits.axes_grid1 import make_axes_locatable
 import numpy as np
 import torch
 
-realpath=os.path.abspath(__file__)
-_sep = os.path.sep
-realpath = realpath.split(_sep)
-realpath = _sep.join(realpath[:realpath.index('ML_gp')+1])
-sys.path.append(realpath)
-
-from utils.mlgp_log import mlgp_log
+from mffusion.utils.mlgp_log import mlgp_log
 
 
 class plot_container:

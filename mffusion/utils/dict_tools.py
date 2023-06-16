@@ -1,5 +1,5 @@
 from copy import deepcopy
-from utils.mlgp_log import mlgp_log
+from mffusion.utils.mlgp_log import mlgp_log
 
 def smart_update(dict_base, dict_update):
     if dict_update is None:

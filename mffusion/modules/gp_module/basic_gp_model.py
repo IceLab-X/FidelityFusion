@@ -1,5 +1,5 @@
 import torch
-from utils.type_define import *
+from mffusion.utils.type_define import *
 
 default_config = {
     'noise': 1.,
