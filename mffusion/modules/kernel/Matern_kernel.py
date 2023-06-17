@@ -2,23 +2,19 @@ import torch
 import os
 import sys
 
-realpath=os.path.abspath(__file__)
-_sep = os.path.sep
-realpath = realpath.split(_sep)
-realpath = _sep.join(realpath[:realpath.index('ML_gp')+1])
-sys.path.append(realpath)
+from mffusion.utils.mlgp_decorator import *
 
-from utils.mlgp_decorator import *
 
 @class_init_param_check
-class SE_kernel(torch.nn.Module):
+class Matern_kernel(torch.nn.Module):
     # Squared Exponential Kernel
-    def __init__(self, noise_exp_format, length_scale=1., scale=1.) -> None:
+    def __init__(self, noise_exp_format, length_scale=1., scale=1., const_item=torch.tensor(3.).sqrt()) -> None:
         super().__init__()
         self.noise_exp_format = noise_exp_format
 
         length_scale = torch.tensor(length_scale)
         scale = torch.tensor(scale)
+        self.const_item = const_item
 
         if noise_exp_format is True:
             self.length_scale = torch.nn.Parameter(torch.log(length_scale))
@@ -37,26 +33,15 @@ class SE_kernel(torch.nn.Module):
             length_scale = self.length_scale.view(1, -1)
             scale = self.scale.view(1, -1)
 
-        # optimize for multi dim.
-        if len(X.shape)>2 :
-            assert len(X2.shape)>2, "X and X2 should be same dim"
-            X = X.reshape(X.size(0), -1)
-            X2 = X2.reshape(X2.size(0), -1)
-
         X = X / length_scale.expand(X.size(0), length_scale.size(1))
         X2 = X2 / length_scale.expand(X2.size(0), length_scale.size(1))
 
-        X_norm2 = torch.sum(X * X, dim=1).view(-1, 1)
-        X2_norm2 = torch.sum(X2 * X2, dim=1).view(-1, 1)
+        #! error on torch.dist, shape not match
+        # distance = self.const_item* torch.dist(X, X2, p=2)
+        distance = self.const_item*(X @ X2.t())
 
-        # compute effective distance
-        K = -2.0 * X @ X2.t() + X_norm2.expand(X.size(0), X2.size(0)) + X2_norm2.t().expand(X.size(0), X2.size(0))
-        K = scale * torch.exp(-0.5 * K)
-
-        return K
-
-    # def get_param(self):
-    #     return self.length_scale, self.log_scale
+        k_matern3 = scale * (1. + distance) * torch.exp(-distance)
+        return k_matern3
 
     def get_param(self, optimize_param_list):
         optimize_param_list.append(self.length_scale)
@@ -87,10 +72,10 @@ class SE_kernel(torch.nn.Module):
 
 if __name__ == '__main__':
     print('test1')
-    ke = SE_kernel(True)
+    ke = Matern_kernel(True)
 
     print('test2')
-    ke = SE_kernel(False, 2.)
+    ke = Matern_kernel(False, 2.)
 
     print('test3')
-    ke = SE_kernel(False, 2., 3.)
+    ke = Matern_kernel(False, 2., 3.)

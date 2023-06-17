@@ -1,22 +1,10 @@
 # import gpytorch
 import torch
 import numpy as np
-import os
-import sys
 
-from copy import deepcopy
-
-realpath=os.path.abspath(__file__)
-_sep = os.path.sep
-realpath = realpath.split(_sep)
-realpath = _sep.join(realpath[:realpath.index('ML_gp')+1])
-sys.path.append(realpath)
-
-from utils import *
-from modules.kernel import kernel_utils
-from utils.data_utils import data_register
-from utils.mlgp_hook import set_function_as_module_to_catch_error
-from modules.gp_module.basic_gp_model import BASE_GP_MODEL
+from mffusion.utils import *
+from mffusion.modules.kernel import kernel_utils
+from mffusion.modules.gp_module.basic_gp_model import BASE_GP_MODEL
 
 
 default_config = {

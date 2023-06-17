@@ -1,7 +1,7 @@
 import os
 import torch
 import numpy as np
-from utils.mlgp_log import mlgp_log
+from mffusion.utils.mlgp_log import mlgp_log
 
 def nan_hook(self, inp, output):
     if not isinstance(output, tuple):

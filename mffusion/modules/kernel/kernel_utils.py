@@ -1,14 +1,14 @@
 import torch
 
-from modules.kernel.Linear_kernel import Linear_kernel
-from modules.kernel.SE_kernel_module import SE_kernel
-from modules.kernel.RQ_kernel import RQ_kernel
-from modules.kernel.Combine_kernel import Combine_kernel
-from modules.kernel.Periodic_kernel import Periodic_kernel
-from modules.kernel.Matern_kernel import Matern_kernel
-from modules.kernel.MCMC_res_kernel import Kernel_res
+from mffusion.modules.kernel.Linear_kernel import Linear_kernel
+from mffusion.modules.kernel.SE_kernel_module import SE_kernel
+from mffusion.modules.kernel.RQ_kernel import RQ_kernel
+from mffusion.modules.kernel.Combine_kernel import Combine_kernel
+from mffusion.modules.kernel.Periodic_kernel import Periodic_kernel
+from mffusion.modules.kernel.Matern_kernel import Matern_kernel
+from mffusion.modules.kernel.MCMC_res_kernel import Kernel_res
 
-from utils import *
+from mffusion.utils import *
 
 
 KERNEL_AVAILABLE = {

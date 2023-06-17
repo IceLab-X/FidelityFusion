@@ -1,4 +1,4 @@
-from utils.mlgp_log import mlgp_log
+from mffusion.utils.mlgp_log import mlgp_log
 
 def class_init_param_check(func):
     def inner(*args, **kwargs):

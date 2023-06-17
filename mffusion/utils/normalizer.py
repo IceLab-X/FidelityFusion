@@ -1,5 +1,5 @@
 import torch
-from utils.type_define import *
+from mffusion.utils.type_define import *
 
 class Normalizer:
     def __init__(self, inputs, dim=0) -> None:
