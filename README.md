@@ -4,7 +4,11 @@ FidelityFusion is a library for data-driven surrogate model with multi-fidelity 
 
 By leveraging the multi-fidelity data, the surrogate model can be trained with many low-fidelity data, which is cheap to generate, and a few high-fidelity data to predict the output of the high-fidelity simulation accurately.
 
-FidelityFusion includes the following algorithms:
+FidelityFusion focus on tractable multi-fidelity fusion methods, which can be easily optimized and scaled to high-dimensional output with strong generalization and robustness.
+
+<!-- In many scientific research and engineering applications where repeated simulations of complex systems are conducted, a surrogate is commonly adopted to quickly estimate the whole system. To reduce the expensive cost of generating training examples, it has become a promising approach to combine the results of low-fidelity (fast but inaccurate) and high-fidelity (slow but accurate) simulations. Despite the fast developments of multi-fidelity fusion techniques, most existing methods require particular data structures and do not scale well to high-dimensional output. To resolve these issues, we generalize the classic autoregression (AR), which is wildly used due to its simplicity, robustness, accuracy, and tractability, and propose generalized autoregression (GAR) using tensor formulation and latent features. GAR can deal with arbitrary dimensional outputs and arbitrary multi- fidelity data structure to satisfy the demand of multi-fidelity fusion for complex problems; it admits a fully tractable likelihood and posterior requiring no approxi- mate inference and scales well to high-dimensional problems. Furthermore, we prove the autokrigeability theorem based on GAR in the multi-fidelity case and develop CIGAR, a simplified GAR with the exact predictive mean accuracy with computation reduction by a factor of $ d^3 $ , where $ d $  is the dimensionality of the output. The empirical assessment includes many canonical PDEs and real scientific examples and demonstrates that the proposed method consistently outperforms the SOTA methods with a large margin (up to 6x improvement in RMSE) with only a couple high-fidelity training samples. -->
+
+**FidelityFusion includes the following algorithms:**
 - [AR0](https://www.jstor.org/stable/2673557): the classic autoregression  model by M. C. Kennedy and A. O'Hagan. `Tractable model` applicable to `single-output` and `subset-structured` multi-fidelity data.
 
 - [NAR](https://royalsocietypublishing.org/doi/10.1098/rspa.2016.0751): the classic nonstationary autoregression model by G. E. Karniadakis' team. 
@@ -24,7 +28,9 @@ A simplified version of GAR by leveraging the *Autokrigeability*. `Tractable mod
 
 
 
-
+<!-- ![](./figures/FF.png)  -->
+<!-- <img src="./figures/FF.png" width="100" height="100"> -->
+<img src="./figures/FF.png" width="600" position="center">
 
  <!-- less high-fidelity data, which is expensive to generate. The surrogate model can be used to predict the output of the high-fidelity simulation. -->
  <!-- It is developed based on the [GAR](https://openreview.net/forum?id=aLNWp0pn1Ij) method, which is a generalized autoregression model for multi-fidelity fusion. FidelityFusion is designed to be easy to use and easy to extend. It is built on top of [PyTorch](https://pytorch.org/) and [GPyTorch](https://gpytorch.ai/), and is intended to enable fast and flexible experimentation with multi-fidelity fusion models. FidelityFusion is developed by [IceLab-X](https://imshibo.com) and [W. W. Xing](http://wxing.me) at [Beihang University](https://ev.buaa.edu.cn/), and [Mike Kirby](https://www.cs.utah.edu/~kirby/) and [Shandian Zhe](https://www.cs.utah.edu/~zhe/) at [University of Utah](https://www.utah.edu/). -->
@@ -36,7 +42,7 @@ A simplified version of GAR by leveraging the *Autokrigeability*. `Tractable mod
 <!-- [Mike Kirby](https://www.cs.utah.edu/~kirby/) and [Shandian Zhe](https://www.cs.utah.edu/~zhe/) -->
 
 
-<!-- In many scientific research and engineering applications where repeated simulations of complex systems are conducted, a surrogate is commonly adopted to quickly estimate the whole system. To reduce the expensive cost of generating training examples, it has become a promising approach to combine the results of low-fidelity (fast but inaccurate) and high-fidelity (slow but accurate) simulations. Despite the fast developments of multi-fidelity fusion techniques, most existing methods require particular data structures and do not scale well to high-dimensional output. To resolve these issues, we generalize the classic autoregression (AR), which is wildly used due to its simplicity, robustness, accuracy, and tractability, and propose generalized autoregression (GAR) using tensor formulation and latent features. GAR can deal with arbitrary dimensional outputs and arbitrary multi- fidelity data structure to satisfy the demand of multi-fidelity fusion for complex problems; it admits a fully tractable likelihood and posterior requiring no approxi- mate inference and scales well to high-dimensional problems. Furthermore, we prove the autokrigeability theorem based on GAR in the multi-fidelity case and develop CIGAR, a simplified GAR with the exact predictive mean accuracy with computation reduction by a factor of $ d^3 $ , where $ d $  is the dimensionality of the output. The empirical assessment includes many canonical PDEs and real scientific examples and demonstrates that the proposed method consistently outperforms the SOTA methods with a large margin (up to 6x improvement in RMSE) with only a couple high-fidelity training samples. -->
+
 
 
 # Packaging and Installing
