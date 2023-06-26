@@ -5,31 +5,33 @@
 import os
 import sys
 
+import datetime
+import time
 import torch
 import numpy as np
 
 realpath=os.path.abspath(__file__)
 _sep = os.path.sep
 realpath = realpath.split(_sep)
-realpath = _sep.join(realpath[:realpath.index('ML_gp')+1])
+realpath = _sep.join(realpath[:realpath.index('FidelityFusion')+1])
 sys.path.append(realpath)
 
-from modules.gp_module.hogp import HOGP_MODULE
-from modules.gp_module.cigp import CIGP_MODULE
+from mffusion.modules.gp_module.hogp import HOGP_MODULE
+from mffusion.modules.gp_module.cigp import CIGP_MODULE
 
-def prepare_data():
+def prepare_data(_num):
     # prepare data
-    x = np.load('./data/sample/input.npy')
-    yl = np.load('./data/sample/output_fidelity_1.npy')
-    yh = np.load('./data/sample/output_fidelity_2.npy')
+    x = np.load('./mffusion/data/sample/input.npy')
+    yl = np.load('./mffusion/data/sample/output_fidelity_1.npy')
+    yh = np.load('./mffusion/data/sample/output_fidelity_2.npy')
     source_shape = [-1, *yh.shape[1:]]
 
     x = torch.tensor(x).float()
     yl = torch.tensor(yl).float()
     yh = torch.tensor(yh).float()
 
-    train_inputs = [x[:128,:], yl[:128,:]]
-    train_outputs = [yh[:128,:]]
+    train_inputs = [x[:_num,:], yl[:_num,:]]
+    train_outputs = [yh[:_num,:]]
     eval_inputs = [x[128:,:], yl[128:,:]]
     eval_outputs = [yh[128:,:]]
     return train_inputs, train_outputs, eval_inputs, eval_outputs, source_shape
@@ -37,7 +39,7 @@ def prepare_data():
 
 def plot_result(ground_true_y, predict_y, src_shape):
     # plot result
-    from visualize_tools.plot_field import plot_container
+    from mffusion.visualize_tools.plot_field import plot_container
     data_list = [ground_true_y, predict_y[0].get_mean(), (ground_true_y - predict_y[0].get_mean()).abs()]
     data_list = [_d.reshape(src_shape) for _d in data_list]
     label_list = ['groundtruth', 'predict', 'diff']
@@ -45,12 +47,16 @@ def plot_result(ground_true_y, predict_y, src_shape):
     pc.plot()
 
 
-def gp_model_block_test():
+def gp_model_block_test(_num, exp_config):
+    # setting record
+    recorder = exp_config['recorder']
+    start_time = time.time()
+
     # get dataset
-    train_inputs, train_outputs, eval_inputs, eval_outputs, source_shape = prepare_data()
+    train_inputs, train_outputs, eval_inputs, eval_outputs, source_shape = prepare_data(_num)
 
     # normalizer now is outsider of the model
-    from utils.normalizer import Dateset_normalize_manager
+    from mffusion.utils.normalizer import Dateset_normalize_manager
     data_norm_manager = Dateset_normalize_manager(train_inputs, train_outputs)
 
     # init model
@@ -58,14 +64,14 @@ def gp_model_block_test():
     test_config['output_shape'] = train_outputs[0][0,...].shape
     hogp = HOGP_MODULE(test_config)
 
-    from modules.l2h_module.matrix import Matrix_l2h
+    from mffusion.modules.l2h_module.matrix import Matrix_l2h
     matrix_config = {}
     matrix_config['l_shape'] = train_inputs[1][0,...].shape
     matrix_config['h_shape'] = train_outputs[0][0,...].shape
     matrix_l2h_modules = Matrix_l2h(matrix_config)
 
     # init gp_model_block
-    from gp_model_block import GP_model_block
+    from mffusion.gp_model_block import GP_model_block
     gp_model_block = GP_model_block()
     gp_model_block.dnm = data_norm_manager
     gp_model_block.gp_model = hogp
@@ -91,9 +97,30 @@ def gp_model_block_test():
     print('\n')
     gp_model_block.eval()
     predict_y = gp_model_block.predict(eval_inputs)
-    plot_result(eval_outputs[0], predict_y, source_shape)
+    # plot_result(eval_outputs[0], predict_y, source_shape)
+
+    from mffusion.utils.performance_evaluator import performance_evaluator
+    eval_result = performance_evaluator(eval_outputs[0], predict_y[0].mean, ['rmse', 'r2'])
+    eval_result['time'] = time.time() - start_time
+    eval_result['train_sample_num'] = train_inputs[0].shape[0]
+    recorder.record(eval_result)
 
 
 
 if __name__ == '__main__':
-    gp_model_block_test()
+    exp_name = os.path.join('mffusion', 'exp', 'gar', 'toy_data', str(datetime.date.today()), 'result.txt')
+
+    from mffusion.utils.mlgp_result_record import MLGP_recorder
+    recorder = MLGP_recorder(exp_name, overlap=True)
+    recorder.register(['train_sample_num','rmse', 'r2', 'time'])
+    exp_config = {
+        'max_epoch': 100,
+        'recorder': recorder,
+    }
+    
+    train_sample_num = [4, 8, 16, 32]
+    for _num in train_sample_num:
+        # last one is shape
+        gp_model_block_test(_num, exp_config)
+
+    recorder.to_csv()
