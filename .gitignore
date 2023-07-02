@@ -33,3 +33,6 @@ POSCAR*
 .idea/
 .DS_Store
 
+# others
+mffusion/exp/
+mffusion/demo/exp/

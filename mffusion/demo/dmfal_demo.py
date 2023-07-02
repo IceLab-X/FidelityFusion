@@ -6,23 +6,18 @@ import datetime
 import torch
 import numpy as np
 
-realpath=os.path.abspath(__file__)
-_sep = os.path.sep
-realpath = realpath.split(_sep)
-realpath = _sep.join(realpath[:realpath.index('ML_gp')+1])
-sys.path.append(realpath)
-
-from modules.nn_net.dmfal.dmfal import DeepMFnet
-from utils import *
-from utils.mlgp_result_record import MLGP_recorder, MLGP_record_parser
+from mffusion.modules.nn_net.dmfal.dmfal import DeepMFnet
+from mffusion.utils import *
+from mffusion.utils.mlgp_result_record import MLGP_recorder, MLGP_record_parser
 
 
 def prepare_data():
     # prepare data
-    x = np.load('./data/sample/input.npy')
-    y0 = np.load('./data/sample/output_fidelity_0.npy')
-    y1 = np.load('./data/sample/output_fidelity_1.npy')
-    y2 = np.load('./data/sample/output_fidelity_2.npy')
+    head_data_dir = lambda dfp: os.path.join('..', 'data', 'sample', dfp)
+    x = np.load(head_data_dir('input.npy'))
+    y0 = np.load(head_data_dir('output_fidelity_0.npy'))
+    y1 = np.load(head_data_dir('output_fidelity_1.npy'))
+    y2 = np.load(head_data_dir('output_fidelity_2.npy'))
     data_len = x.shape[0]
     source_shape = [-1, *y0.shape[1:]]
 
@@ -40,8 +35,8 @@ def prepare_data():
 
 def plot_result(ground_true_y, predict_y, src_shape):
     # plot result
-    from visualize_tools.plot_field import plot_container
-    from utils.type_define import GP_val_with_var
+    from mffusion.visualize_tools.plot_field import plot_container
+    from mffusion.utils.type_define import GP_val_with_var
     if isinstance(predict_y[0], GP_val_with_var):
         data_list = [ground_true_y, predict_y[0].get_mean(), (ground_true_y - predict_y[0].get_mean()).abs()]
     else:
@@ -60,7 +55,7 @@ def dmfal_test(dataset, exp_config):
     # get dataset
     train_inputs, train_outputs, eval_inputs, eval_outputs, source_shape = dataset
 
-    from utils.normalizer import Dateset_normalize_manager
+    from mffusion.utils.normalizer import Dateset_normalize_manager
     data_norm_manager = Dateset_normalize_manager(train_inputs, train_outputs)
     train_inputs, train_outputs = data_norm_manager.normalize_all(train_inputs, train_outputs)
     eval_inputs, _ = data_norm_manager.normalize_all(eval_inputs, eval_outputs)
@@ -115,7 +110,7 @@ def dmfal_test(dataset, exp_config):
     predict_y = data_norm_manager.denormalize_output(predict_y, -1)
     # plot_result(eval_outputs[-1], predict_y, source_shape)
 
-    from utils.performance_evaluator import performance_evaluator
+    from mffusion.utils.performance_evaluator import performance_evaluator
     eval_result = performance_evaluator(eval_outputs[-1], predict_y, ['rmse', 'r2'])
     eval_result['time'] = time.time()-start_time
     eval_result['train_sample_num'] = train_inputs[0].shape[0]

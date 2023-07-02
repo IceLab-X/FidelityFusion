@@ -4,14 +4,8 @@ import sys
 import matplotlib.pyplot as plt
 import numpy as np
 
-realpath=os.path.abspath(__file__)
-_sep = os.path.sep
-realpath = realpath.split(_sep)
-realpath = _sep.join(realpath[:realpath.index('ML_gp')+1])
-sys.path.append(realpath)
-
-from utils.mlgp_log import mlgp_log
-from utils.mlgp_result_record import MLGP_record_parser
+from mffusion.utils.mlgp_log import mlgp_log
+from mffusion.utils.mlgp_result_record import MLGP_record_parser
 
 
 if __name__ == '__main__':

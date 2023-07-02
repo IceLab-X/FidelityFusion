@@ -4,8 +4,8 @@ import copy
 import math
 
 from tensorly import tucker_to_tensor
-from utils.eigen import eigen_pairs
-from utils.mlgp_log import mlgp_log
+from mffusion.utils.eigen import eigen_pairs
+from mffusion.utils.mlgp_log import mlgp_log
 tensorly.set_backend('pytorch')
 
 def mask_map_2_single_vector_index(mask_map):

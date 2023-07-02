@@ -10,20 +10,15 @@ import time
 import torch
 import numpy as np
 
-realpath=os.path.abspath(__file__)
-_sep = os.path.sep
-realpath = realpath.split(_sep)
-realpath = _sep.join(realpath[:realpath.index('FidelityFusion')+1])
-sys.path.append(realpath)
-
 from mffusion.modules.gp_module.hogp import HOGP_MODULE
 from mffusion.modules.gp_module.cigp import CIGP_MODULE
 
 def prepare_data(_num):
     # prepare data
-    x = np.load('./mffusion/data/sample/input.npy')
-    yl = np.load('./mffusion/data/sample/output_fidelity_1.npy')
-    yh = np.load('./mffusion/data/sample/output_fidelity_2.npy')
+    head_data_dir = lambda dfp: os.path.join('..', 'data', 'sample', dfp)
+    x = np.load(head_data_dir('input.npy'))
+    yl = np.load(head_data_dir('output_fidelity_1.npy'))
+    yh = np.load(head_data_dir('output_fidelity_2.npy'))
     source_shape = [-1, *yh.shape[1:]]
 
     x = torch.tensor(x).float()

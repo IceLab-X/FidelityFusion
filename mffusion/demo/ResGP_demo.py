@@ -7,18 +7,12 @@ import sys
 import torch
 import numpy as np
 
-realpath=os.path.abspath(__file__)
-_sep = os.path.sep
-realpath = realpath.split(_sep)
-realpath = _sep.join(realpath[:realpath.index('ML_gp')+1])
-sys.path.append(realpath)
-
-
 def prepare_data():
     # prepare data
-    x = np.load('./data/sample/input.npy')
-    y_low = np.load('./data/sample/output_fidelity_1.npy')
-    y_high = np.load('./data/sample/output_fidelity_2.npy')
+    head_data_dir = lambda dfp: os.path.join('..', 'data', 'sample', dfp)
+    x = np.load(head_data_dir('input.npy'))
+    y_low = np.load(head_data_dir('output_fidelity_1.npy'))
+    y_high = np.load(head_data_dir('output_fidelity_2.npy'))
     
     x = torch.tensor(x).float()
     y_low = torch.tensor(y_low).float()
@@ -40,7 +34,7 @@ def prepare_data():
 
 def plot_result(ground_true_y, predict_y, src_shape):
     # plot result
-    from visualize_tools.plot_field import plot_container
+    from mffusion.visualize_tools.plot_field import plot_container
     data_list = [ground_true_y, predict_y[0], (ground_true_y - predict_y[0]).abs()]
     data_list = [_d.reshape(src_shape) for _d in data_list]
     label_list = ['groundtruth', 'predict', 'diff']
@@ -53,15 +47,15 @@ def gp_model_block_test():
     train_inputs, train_outputs, eval_inputs, eval_outputs, source_shape = prepare_data()
 
     # normalizer now is outsider of the model
-    from utils.normalizer import Dateset_normalize_manager
+    from mffusion.utils.normalizer import Dateset_normalize_manager
     dateset_normalize_manager = Dateset_normalize_manager(train_inputs, train_outputs)
 
     # init model
-    from modules.gp_module.cigp import CIGP_MODULE
+    from mffusion.modules.gp_module.cigp import CIGP_MODULE
     cigp = CIGP_MODULE()
 
     # init l2h modules
-    from modules.l2h_module.rho import Res_rho_l2h
+    from mffusion.modules.l2h_module.rho import Res_rho_l2h
     Res_rho_l2h_config = {
         'rho_value_init': 1.,
         'trainable': False,
@@ -69,7 +63,7 @@ def gp_model_block_test():
     rho_modules = Res_rho_l2h(Res_rho_l2h_config)
 
     # init gp_model_block
-    from gp_model_block import GP_model_block
+    from mffusion.gp_model_block import GP_model_block
     gp_model_block = GP_model_block()
     gp_model_block.dnm = dateset_normalize_manager
     gp_model_block.gp_model = cigp

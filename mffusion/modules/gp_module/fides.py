@@ -6,15 +6,9 @@ import sys
 
 from copy import deepcopy
 
-realpath=os.path.abspath(__file__)
-_sep = os.path.sep
-realpath = realpath.split(_sep)
-realpath = _sep.join(realpath[:realpath.index('ML_gp')+1])
-sys.path.append(realpath)
-
-from utils import *
-from modules.kernel import kernel_utils
-from modules.gp_module.basic_gp_model import BASE_GP_MODEL
+from mffusion.utils import *
+from mffusion.modules.kernel import kernel_utils
+from mffusion.modules.gp_module.basic_gp_model import BASE_GP_MODEL
 
 default_config = {
     'noise': 1.,

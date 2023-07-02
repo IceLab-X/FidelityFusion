@@ -1,16 +1,9 @@
 import os
 import sys
 
-
-realpath=os.path.abspath(__file__)
-_sep = os.path.sep
-realpath = realpath.split(_sep)
-realpath = _sep.join(realpath[:realpath.index('ML_gp')+1])
-sys.path.append(realpath)
-
-from utils.mlgp_log import mlgp_log
-from utils.data_utils.data_preprocess import Data_preprocess
-from utils.data_utils.data_loader import SP_DataLoader, Standard_mat_DataLoader, Custom_mat_DataLoader
+from mffusion.utils.mlgp_log import mlgp_log
+from mffusion.utils.data_utils.data_preprocess import Data_preprocess
+from mffusion.utils.data_utils.data_loader import SP_DataLoader, Standard_mat_DataLoader, Custom_mat_DataLoader
 
 
 def data_regist(module_calsee, dataset_config, cuda=False):

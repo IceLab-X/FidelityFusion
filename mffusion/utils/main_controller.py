@@ -6,17 +6,10 @@ from copy import deepcopy
 import sys
 import datetime
 
-
-realpath=os.path.abspath(__file__)
-_sep = os.path.sep
-realpath = realpath.split(_sep)
-realpath = _sep.join(realpath[:realpath.index('ML_gp')+1])
-sys.path.append(realpath)
-
-from utils import mlgp_result_record
-from utils.dict_tools import smart_update
-from utils.mlgp_hook import register_nan_hook
-from utils.path_tools import get_available_name, deep_mkdir
+from mffusion.utils import mlgp_result_record
+from mffusion.utils.dict_tools import smart_update
+from mffusion.utils.mlgp_hook import register_nan_hook
+from mffusion.utils.path_tools import get_available_name, deep_mkdir
 
 default_controller_config = {
     'batch_size': 1, # not implement

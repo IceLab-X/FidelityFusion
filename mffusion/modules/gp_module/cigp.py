@@ -96,8 +96,8 @@ class CIGP_MODULE(BASE_GP_MODEL):
 
 def basic_test():
     # prepare data
-    x = np.load('./data/sample/input.npy')
-    y = np.load('./data/sample/output_fidelity_2.npy')
+    x = np.load(head_data_dir('input.npy'))
+    y = np.load(head_data_dir('output_fidelity_2.npy'))
     x = torch.tensor(x).float()
     y = torch.tensor(y).float()
 
@@ -144,8 +144,8 @@ def basic_test():
 
 def gp_model_block_test():
     # prepare data
-    x = np.load('./data/sample/input.npy')
-    y = np.load('./data/sample/output_fidelity_2.npy')
+    x = np.load(head_data_dir('input.npy'))
+    y = np.load(head_data_dir('output_fidelity_2.npy'))
     x = torch.tensor(x).float()
     y = torch.tensor(y).float()
     data_len = x.shape[0]

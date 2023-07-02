@@ -6,8 +6,8 @@ import torch
 from scipy.io import loadmat
 
 # sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
-from utils.data_loader import Standard_mat_DataLoader
-from utils.data_loader import SP_DataLoader
+from mffusion.utils.data_loader import Standard_mat_DataLoader
+from mffusion.utils.data_loader import SP_DataLoader
 
 def w_h(t):
     w=t**2+0.1*torch.sin(10*torch.pi*t)

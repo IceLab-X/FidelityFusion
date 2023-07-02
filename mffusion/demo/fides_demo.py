@@ -6,23 +6,18 @@ import time
 import torch
 import numpy as np
 
-realpath=os.path.abspath(__file__)
-_sep = os.path.sep
-realpath = realpath.split(_sep)
-realpath = _sep.join(realpath[:realpath.index('ML_gp')+1])
-sys.path.append(realpath)
-
-from modules.gp_module.fides import FIDES_MODULE
-from modules.gp_module.cigp import CIGP_MODULE
-from utils.mlgp_result_record import MLGP_recorder, MLGP_record_parser
+from mffusion.modules.gp_module.fides import FIDES_MODULE
+from mffusion.modules.gp_module.cigp import CIGP_MODULE
+from mffusion.utils.mlgp_result_record import MLGP_recorder, MLGP_record_parser
 
 
 def prepare_data():
     # prepare data
-    x = np.load('./data/sample/input.npy')
-    y0 = np.load('./data/sample/output_fidelity_0.npy')
-    y1 = np.load('./data/sample/output_fidelity_1.npy')
-    y2 = np.load('./data/sample/output_fidelity_2.npy')
+    head_data_dir = lambda dfp: os.path.join('..', 'data', 'sample', dfp)
+    x = np.load(head_data_dir('input.npy'))
+    y0 = np.load(head_data_dir('output_fidelity_0.npy'))
+    y1 = np.load(head_data_dir('output_fidelity_1.npy'))
+    y2 = np.load(head_data_dir('output_fidelity_2.npy'))
     data_len = x.shape[0]
     source_shape = [-1, *y0.shape[1:]]
 
@@ -40,8 +35,8 @@ def prepare_data():
 
 def plot_result(ground_true_y, predict_y, src_shape):
     # plot result
-    from visualize_tools.plot_field import plot_container
-    from utils.type_define import GP_val_with_var
+    from mffusion.visualize_tools.plot_field import plot_container
+    from mffusion.utils.type_define import GP_val_with_var
     if isinstance(predict_y[0], GP_val_with_var):
         data_list = [ground_true_y, predict_y[0].get_mean(), (ground_true_y - predict_y[0].get_mean()).abs()]
     else:
@@ -61,7 +56,7 @@ def gp_model_block_test(dataset, exp_config):
     train_inputs, train_outputs, eval_inputs, eval_outputs, source_shape = dataset
 
     # normalizer now is outsider of the model
-    from utils.normalizer import Dateset_normalize_manager
+    from mffusion.utils.normalizer import Dateset_normalize_manager
     data_norm_manager = Dateset_normalize_manager(train_inputs, train_outputs)
 
     # lowest fidelity model
@@ -76,7 +71,7 @@ def gp_model_block_test(dataset, exp_config):
     cigp = CIGP_MODULE(test_config)
 
     # init gp_model_block
-    from gp_model_block import GP_model_block
+    from mffusion.gp_model_block import GP_model_block
     gp_model_block = GP_model_block()
     gp_model_block.dnm = data_norm_manager
     gp_model_block.gp_model = cigp
@@ -114,7 +109,7 @@ def gp_model_block_test(dataset, exp_config):
     fides_block.gp_model = fides
 
     # init l2h modules
-    from modules.l2h_module.rho import Res_rho_l2h
+    from mffusion.modules.l2h_module.rho import Res_rho_l2h
     Res_rho_l2h_config = {
         'rho_value_init': 1.,
         'trainable': False,
@@ -162,7 +157,7 @@ def gp_model_block_test(dataset, exp_config):
 
     # plot_result(eval_outputs[len(train_outputs)-1], predict_y_mean, source_shape)
 
-    from utils.performance_evaluator import performance_evaluator
+    from mffusion.utils.performance_evaluator import performance_evaluator
     eval_result = performance_evaluator(eval_outputs[len(train_outputs)-1], predict_y_mean, ['rmse', 'r2'])
     eval_result['time'] = time.time()-start_time
     eval_result['train_sample_num'] = train_inputs[0].shape[0]

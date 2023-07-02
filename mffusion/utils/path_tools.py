@@ -1,5 +1,5 @@
 import os
-from utils import mlgp_log
+from mffusion.utils import mlgp_log
 
 
 default_name = 'exp'

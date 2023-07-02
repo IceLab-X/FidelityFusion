@@ -1,7 +1,7 @@
 import torch
-from modules.l2h_module.base_l2h_module import Basic_l2h
-from utils import smart_update
-from utils.type_define import *
+from mffusion.modules.l2h_module.base_l2h_module import Basic_l2h
+from mffusion.utils import smart_update
+from mffusion.utils.type_define import *
 
 import tensorly
 tensorly.set_backend('pytorch')

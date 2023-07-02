@@ -72,7 +72,7 @@ class GP_model_block(torch.nn.Module):
         else:
             gp_inputs = inputs
 
-        from utils.subset_tools import Subset_check
+        from mffusion.utils.subset_tools import Subset_check
         src_inputs = self.gp_model.inputs_tr
         checker = Subset_check(src_inputs[0])
 
