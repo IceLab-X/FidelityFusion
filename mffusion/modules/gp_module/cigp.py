@@ -2,6 +2,7 @@
 import torch
 import numpy as np
 
+from mffusion.utils.type_define import GP_val_with_var
 from mffusion.utils import *
 from mffusion.modules.kernel import kernel_utils
 from mffusion.modules.gp_module.basic_gp_model import BASE_GP_MODEL
@@ -39,6 +40,13 @@ class CIGP_MODULE(BASE_GP_MODEL):
             return self.noise
 
     def predict_with_var(self, inputs, vars=None):
+        if isinstance(self.outputs_tr[0], GP_val_with_var):
+            self.outputs_tr_mean = self.outputs_tr[0].mean
+            self.outputs_tr_var = self.outputs_tr[0].var
+        else:
+            self.outputs_tr_mean = self.outputs_tr[0]
+            self.outputs_tr_var = None
+
         if self.already_set_train_data is False:
             assert False, "gp model model hasn't been trained. predict failed"
     
@@ -53,7 +61,7 @@ class CIGP_MODULE(BASE_GP_MODEL):
             L = torch.linalg.cholesky(Sigma)
             LinvKx,_ = torch.triangular_solve(kx, L, upper = False)
 
-            u = kx.t() @ torch.cholesky_solve(self.outputs_tr[0], L)
+            u = kx.t() @ torch.cholesky_solve(self.outputs_tr_mean, L)
 
             var_diag = self.kernel_list[0](inputs[0], inputs[0]).diag().view(-1, 1) - (LinvKx**2).sum(dim = 0).view(-1, 1)
             _noise = self._get_noise_according_exp_format()
@@ -67,6 +75,13 @@ class CIGP_MODULE(BASE_GP_MODEL):
         self.outputs_tr = outputs
         self.already_set_train_data = True
 
+        if isinstance(outputs[0], GP_val_with_var):
+            output_mean = outputs[0].mean
+            output_var = outputs[0].var
+        else:
+            output_mean = outputs[0]
+            output_var = None
+
         Sigma = self.kernel_list[0](inputs[0], inputs[0]) + JITTER * torch.eye(inputs[0].size(0), device=list(self.parameters())[0].device)
         _noise = self._get_noise_according_exp_format()
 
@@ -77,9 +92,9 @@ class CIGP_MODULE(BASE_GP_MODEL):
         # Gamma,_ = torch.triangular_solve(self.Y, L, upper = False)
         #option 2
 
-        gamma = L.inverse() @ outputs[0]       # we can use this as an alternative because L is a lower triangular matrix.
+        gamma = L.inverse() @ output_mean       # we can use this as an alternative because L is a lower triangular matrix.
 
-        y_num, y_dimension = outputs[0].shape
+        y_num, y_dimension = output_mean.shape
         nll =  0.5 * (gamma ** 2).sum() +  L.diag().log().sum() * y_dimension  \
             + 0.5 * y_num * torch.log(2 * torch.tensor(PI, device=list(self.parameters())[0].device)) * y_dimension
         return nll
