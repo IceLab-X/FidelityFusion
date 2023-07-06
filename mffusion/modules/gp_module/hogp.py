@@ -11,17 +11,11 @@ from tensorly import tucker_to_tensor
 tensorly.set_backend('pytorch')
 
 
-realpath=os.path.abspath(__file__)
-_sep = os.path.sep
-realpath = realpath.split(_sep)
-realpath = _sep.join(realpath[:realpath.index('ML_gp')+1])
-sys.path.append(realpath)
-
-from utils import *
-from modules.kernel import kernel_utils
-from utils.data_utils import data_register
-from utils.mlgp_hook import set_function_as_module_to_catch_error
-from modules.gp_module.basic_gp_model import BASE_GP_MODEL
+from mffusion.utils import *
+from mffusion.modules.kernel import kernel_utils
+from mffusion.utils.data_utils import data_register
+from mffusion.utils.mlgp_hook import set_function_as_module_to_catch_error
+from mffusion.modules.gp_module.basic_gp_model import BASE_GP_MODEL
 
 
 default_config = {
@@ -207,8 +201,8 @@ class HOGP_MODULE(BASE_GP_MODEL):
 
 def basic_test():
     # prepare data
-    x = np.load('./data/sample/input.npy')
-    y = np.load('./data/sample/output_fidelity_2.npy')
+    x = np.load(head_data_dir('input.npy'))
+    y = np.load(head_data_dir('output_fidelity_2.npy'))
     x = torch.tensor(x).float()
     y = torch.tensor(y).float()
 
@@ -258,8 +252,8 @@ def basic_test():
 
 def gp_model_block_test():
     # prepare data
-    x = np.load('./data/sample/input.npy')
-    y = np.load('./data/sample/output_fidelity_2.npy')
+    x = np.load(head_data_dir('input.npy'))
+    y = np.load(head_data_dir('output_fidelity_2.npy'))
     x = torch.tensor(x).float()
     y = torch.tensor(y).float()
 

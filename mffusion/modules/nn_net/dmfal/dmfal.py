@@ -7,15 +7,8 @@ import os
 import sys
 import random
 
-realpath=os.path.abspath(__file__)
-_sep = os.path.sep
-realpath = realpath.split(_sep)
-realpath = _sep.join(realpath[:realpath.index('ML_gp')+1])
-sys.path.append(realpath)
-
-
-from modules.nn_net.dmfal.BaseNet import AdaptiveBaseNet
-from utils import *
+from mffusion.modules.nn_net.dmfal.BaseNet import AdaptiveBaseNet
+from mffusion.utils import *
 
 
 # optimize for main_controller

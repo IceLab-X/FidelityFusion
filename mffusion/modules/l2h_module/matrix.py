@@ -1,7 +1,7 @@
 import torch
-from modules.l2h_module.base_l2h_module import Basic_l2h
-from utils import smart_update
-from utils.type_define import *
+from mffusion.modules.l2h_module.base_l2h_module import Basic_l2h
+from mffusion.utils import smart_update
+from mffusion.utils.type_define import *
 
 import tensorly
 tensorly.set_backend('pytorch')
@@ -121,7 +121,10 @@ class Matrix_l2h(Basic_l2h):
         y_low = inputs[1]
 
         for i in range(len(self.l_shape)):
-            y_low = tensorly.tenalg.mode_dot(y_low, self.vectors[i], i+1)
+            if isinstance(y_low, GP_val_with_var):
+                y_low = tensorly.tenalg.mode_dot(y_low.get_mean(), self.vectors[i], i+1)
+            else:
+                y_low = tensorly.tenalg.mode_dot(y_low, self.vectors[i], i+1)
 
         res = outputs[0]
 

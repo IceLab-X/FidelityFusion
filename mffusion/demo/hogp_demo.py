@@ -4,20 +4,14 @@ import sys
 import torch
 import numpy as np
 
-realpath=os.path.abspath(__file__)
-_sep = os.path.sep
-realpath = realpath.split(_sep)
-realpath = _sep.join(realpath[:realpath.index('ML_gp')+1])
-sys.path.append(realpath)
-
-from modules.gp_module.hogp import HOGP_MODULE
-
+from mffusion.modules.gp_module.hogp import HOGP_MODULE
 
 def prepare_data():
     # prepare data
-    x = np.load('./data/sample/input.npy')
-    # y = np.load('./data/sample/output_fidelity_1.npy')
-    y = np.load('./data/sample/output_fidelity_2.npy')
+    head_data_dir = lambda dfp: os.path.join('..', 'data', 'sample', dfp)
+    x = np.load(head_data_dir('input.npy'))
+    # y = np.load(head_data_dir('output_fidelity_1.npy'))
+    y = np.load(head_data_dir('output_fidelity_2.npy'))
     data_len = x.shape[0]
     source_shape = [-1, *y.shape[1:]]
 
@@ -32,7 +26,7 @@ def prepare_data():
 
 def plot_result(ground_true_y, predict_y, src_shape):
     # plot result
-    from visualize_tools.plot_field import plot_container
+    from mffusion.visualize_tools.plot_field import plot_container
     data_list = [ground_true_y, predict_y[0].get_mean(), (ground_true_y - predict_y[0].get_mean()).abs()]
     data_list = [_d.reshape(src_shape) for _d in data_list]
     label_list = ['groundtruth', 'predict', 'diff']
@@ -45,7 +39,7 @@ def gp_model_block_test():
     train_inputs, train_outputs, eval_inputs, eval_outputs, source_shape = prepare_data()
 
     # normalizer now is outsider of the model
-    from utils.normalizer import Dateset_normalize_manager
+    from mffusion.utils.normalizer import Dateset_normalize_manager
     data_norm_manager = Dateset_normalize_manager(train_inputs, train_outputs)
 
     # init model
@@ -54,7 +48,7 @@ def gp_model_block_test():
     hogp = HOGP_MODULE(test_config)
 
     # init gp_model_block
-    from gp_model_block import GP_model_block
+    from mffusion.gp_model_block import GP_model_block
     gp_model_block = GP_model_block()
     gp_model_block.dnm = data_norm_manager
     gp_model_block.gp_model = hogp

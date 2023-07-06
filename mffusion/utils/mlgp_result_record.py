@@ -1,14 +1,9 @@
 import os
 import sys
-realpath=os.path.abspath(__file__)
-_sep = os.path.sep
-realpath = realpath.split(_sep)
-realpath = _sep.join(realpath[:realpath.index('ML_gp')+1])
-sys.path.append(realpath)
 
 import yaml
 
-from utils.mlgp_log import mlgp_log
+from mffusion.utils.mlgp_log import mlgp_log
 from copy import deepcopy
 
 

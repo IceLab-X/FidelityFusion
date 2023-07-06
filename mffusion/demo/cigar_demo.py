@@ -1,12 +1,11 @@
-# NAR demo. base on cigp, train on [x,concat(x,y_low)], y_high
+# AR for auto regression
+# high - low = res
 
 import os
 import sys
 
 import torch
 import numpy as np
-
-from mffusion.utils.type_define import *
 
 def prepare_data():
     # prepare data
@@ -30,11 +29,6 @@ def prepare_data():
     train_outputs = [y_high[:128,:]]
     eval_inputs = [x[128:,:], y_low[128:,:]]
     eval_outputs = [y_high[128:,:]]
-
-    # concat x and y_low
-    train_inputs = [torch.cat([train_inputs[0], train_inputs[1]], dim=1)]
-    eval_inputs = [torch.cat([eval_inputs[0], eval_inputs[1]], dim=1)]
-
     return train_inputs, train_outputs, eval_inputs, eval_outputs, source_shape
 
 
@@ -60,19 +54,29 @@ def gp_model_block_test():
     from mffusion.modules.gp_module.cigp import CIGP_MODULE
     cigp = CIGP_MODULE({'noise': 100})
 
+    # init l2h modules
+    from mffusion.modules.l2h_module.matrix import Matrix_l2h
+    matrix_config = {}
+    matrix_config['l_shape'] = train_inputs[1][0,...].shape
+    matrix_config['h_shape'] = train_outputs[0][0,...].shape
+    matrix_l2h_modules = Matrix_l2h(matrix_config)
+
     # init gp_model_block
     from mffusion.gp_model_block import GP_model_block
     gp_model_block = GP_model_block()
     gp_model_block.dnm = dateset_normalize_manager
     gp_model_block.gp_model = cigp
+    gp_model_block.pre_process_block = matrix_l2h_modules
+    gp_model_block.post_process_block = matrix_l2h_modules
 
     # init optimizer, optimizer is also outsider of the model
-    lr_dict = {'kernel': 0.01, 'noise': 0.01, 'rho': 0.01}
+    lr_dict = {'kernel': 0.01, 'noise': 0.01, 'others': 0.01, 'matrix': 0.01, 'rho': 0.01}
     params_dict = gp_model_block.get_train_params()
     optimizer_dict = [{'params': params_dict[_key], 'lr': lr_dict[_key]} for _key in params_dict.keys()]
     optimizer = torch.optim.Adam(optimizer_dict)
     
-    max_epoch=100
+    print('rho value(init):', gp_model_block.pre_process_block.rho.data)
+    max_epoch=300
     for epoch in range(max_epoch):
         optimizer.zero_grad()
         loss = gp_model_block.compute_loss(train_inputs, train_outputs)
@@ -83,10 +87,11 @@ def gp_model_block_test():
     print('\n')
     gp_model_block.eval()
     predict_y = gp_model_block.predict(eval_inputs)
+    print('rho value:', gp_model_block.pre_process_block.rho.data)
 
-    for i, _v in enumerate(predict_y):
-        if isinstance(_v, GP_val_with_var):
-            predict_y[i] = _v.get_mean()
+    from mffusion.utils.type_define import GP_val_with_var
+    if isinstance(predict_y[0], GP_val_with_var):
+        predict_y = [predict_y[0].mean]
 
     # plot result
     plot_result(eval_outputs[0], predict_y, source_shape)

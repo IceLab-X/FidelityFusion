@@ -5,7 +5,6 @@
 # Date: 2022-05-02
 
 import torch
-print(torch.__version__)
 # I use torch (1.11.0) for this work. lower version may not work.
 
 class PCA(object):
