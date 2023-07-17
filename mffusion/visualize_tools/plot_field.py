@@ -47,6 +47,7 @@ class plot_container:
         self.shading_method = 'gouraud'
 
         self.get_min_max()
+        self.filter_outsider_value()
 
 
     def get_min_max(self):
@@ -58,6 +59,38 @@ class plot_container:
 
         self.min_max_base_on_all_sample = False
         # if false, min_max get from everysample
+
+
+    def filter_outsider_value(self):
+        self.min_clamp = []
+        self.max_clamp = []
+
+        outsider_rate = 0.01
+        for i in range(self.data_number):
+            outsider_num = int(self.data_list[i].size * outsider_rate)
+            default_bins = self.data_list[i].size//1000
+            hist, bin_range = np.histogram(self.data_list[i],bins=default_bins)
+
+            hist_sum = np.cumsum(hist)
+            for j,_h in enumerate(hist_sum):
+                if _h >= outsider_num:
+                    self.min_clamp.append(bin_range[j])
+                    break
+
+            for j,_h in enumerate(hist_sum[::-1]):
+                if (self.data_list[i].size - _h) >= outsider_num:
+                    self.max_clamp.append(bin_range[min(-j,-1)])
+                    break
+
+            src_min = bin_range[0]
+            src_max = bin_range[-1]
+            # mlgp_log.w('data-{}: min {} clamp to {}, max {} clamp to {}'.format(i, src_min, self.min_clamp[-1], src_max, self.max_clamp[-1]))
+
+        self.min_clamp = np.vstack(self.min_clamp).min(0)
+        self.max_clamp = np.vstack(self.max_clamp).max(0)
+        self.min_list = np.clip(self.min_list, self.min_clamp, self.max_clamp)
+        self.max_list = np.clip(self.max_list, self.min_clamp, self.max_clamp)
+            
 
     
     def plot(self):
@@ -97,8 +130,8 @@ class plot_container:
 
 
 if __name__ == '__main__':
-    a = np.load('data/sample/output_fidelity_0.npy')
-    b = np.load('data/sample/output_fidelity_2.npy')
+    a = np.load('g.npy').reshape(-1,100,100)
+    b = np.load('p.npy').reshape(-1,100,100)
     pc =plot_container([a,b,abs(a-b)], ['fidelity-0', 'fidelity-2', 'diff'], 0)
     
     pc.plot()
