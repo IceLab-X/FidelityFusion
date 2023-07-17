@@ -67,6 +67,8 @@ class CIGP_MODULE(BASE_GP_MODEL):
             _noise = self._get_noise_according_exp_format()
             var_diag = var_diag + _noise.pow(-1)
             var_diag = var_diag.expand_as(u)
+            if self.outputs_tr_var is not None:
+                var_diag = var_diag + self.outputs_tr_var
         return u, var_diag
 
     def compute_loss(self, inputs, outputs, inputs_var=None, outputs_var=None):
@@ -86,6 +88,8 @@ class CIGP_MODULE(BASE_GP_MODEL):
         _noise = self._get_noise_according_exp_format()
 
         Sigma = Sigma + _noise.pow(-1) * torch.eye(inputs[0].size(0), device=list(self.parameters())[0].device)
+        if output_var is not None:
+            Sigma = Sigma + torch.diag(output_var[:,0])
 
         L = torch.linalg.cholesky(Sigma)
         #option 1 (use this if torch supports)
