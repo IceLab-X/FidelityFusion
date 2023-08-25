@@ -92,7 +92,7 @@ def gp_model_block_test(_num, exp_config):
     print('\n')
     gp_model_block.eval()
     predict_y = gp_model_block.predict(eval_inputs)
-    # plot_result(eval_outputs[0], predict_y, source_shape)
+    plot_result(eval_outputs[0], predict_y, source_shape)
 
     from mffusion.utils.performance_evaluator import performance_evaluator
     eval_result = performance_evaluator(eval_outputs[0], predict_y[0].mean, ['rmse', 'r2'])

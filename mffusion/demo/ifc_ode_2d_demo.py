@@ -126,10 +126,8 @@ def ifc_gpt_2d_test(dataset, exp_config):
             # mae_list_te = ifc_model.eval_mae(Xte_list, yte_list, t_list_te, t_list_tr)
             
             pred_dict = ifc_model.eval_pred(Xte_list, t_list_te)
-            # plot_result(eval_outputs[-1], predict_y, source_shape)
             
-
-            from utils.performance_evaluator import performance_evaluator
+            from mffusion.utils.performance_evaluator import performance_evaluator
             src_eval_output = data_norm_manager.denormalize_output(eval_outputs[-1], -1)
             pred_output = pred_dict[ifc_dataset.fid_list_tr[-1]]
             pred_output = data_norm_manager.denormalize_output(torch.tensor(pred_output).reshape_as(eval_outputs[-1]), -1)
@@ -141,7 +139,7 @@ def ifc_gpt_2d_test(dataset, exp_config):
 
             scheduler.step(adjust_rmse)
 
-        #
+        # plot_result(eval_outputs[-1], pred_output, source_shape)
 
         optimizer.zero_grad()
         loss.backward()

@@ -14,7 +14,6 @@ tensorly.set_backend('pytorch')
 from mffusion.utils import *
 from mffusion.modules.kernel import kernel_utils
 from mffusion.utils.data_utils import data_register
-from mffusion.utils.mlgp_hook import set_function_as_module_to_catch_error
 from mffusion.modules.gp_module.basic_gp_model import BASE_GP_MODEL
 
 
