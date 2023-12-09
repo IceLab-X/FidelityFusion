@@ -31,6 +31,12 @@ default_gar_config = {
 
 class GAR_MODULE(torch.nn.Module):
     def __init__(self, gar_config) -> None:
+        """
+        Initializes the GAR_MODULE.
+
+        Args:
+            gar_config (dict): Configuration parameters for the GAR_MODULE.
+        """
         super().__init__()
         self.config = update_dict_with_default(default_gar_config, gar_config)
         self.hogp_list = None
@@ -41,6 +47,9 @@ class GAR_MODULE(torch.nn.Module):
 
 
     def init_matrix_mapping(self):
+        """
+        Initializes the matrix mapping for each fidelity level.
+        """
         matrix_config = [default_matrix_mapping_config]*(self.fidelity_num-1)
         for i in range(self.fidelity_num-1):
             matrix_config[i]['low_fidelity_shape'] = self.config['fidelity_shapes'][i]
@@ -50,6 +59,9 @@ class GAR_MODULE(torch.nn.Module):
         
 
     def init_hogp_model(self):
+        """
+        Initializes the HOGP models for each fidelity level.
+        """
         if self.fidelity_num <= 1:
             MFGP_LOG.e("fidelity_num must be greater than 1, set fidelity_num in config first")
         
@@ -70,11 +82,33 @@ class GAR_MODULE(torch.nn.Module):
         self.hogp_list = torch.nn.ModuleList(self.hogp_list)
 
     def check_fidelity_index(self, fidelity_index):
+        """
+        Checks if the given fidelity index is valid.
+
+        Args:
+            fidelity_index (int): The fidelity index to check.
+
+        Raises:
+            Exception: If the fidelity index is out of range.
+        """
         if fidelity_index < 0 or fidelity_index >= self.fidelity_num:
             MFGP_LOG.e("fidelity_index must be bigger than {}, and smaller than fidelity_num[{}]".format(0, self.fidelity_num))
 
 
     def single_fidelity_forward(self, x, low_fidelity_y, x_var=0., low_fidelity_y_var=0., fidelity_index=0):
+        """
+        Performs a forward pass for a single fidelity level.
+
+        Args:
+            x (tensor): The input tensor.
+            low_fidelity_y (tensor): The low fidelity output tensor.
+            x_var (float, optional): The variance of the input tensor. Defaults to 0.
+            low_fidelity_y_var (float, optional): The variance of the low fidelity output tensor. Defaults to 0.
+            fidelity_index (int, optional): The fidelity index. Defaults to 0.
+
+        Returns:
+            tuple: A tuple containing the mean and variance of the high fidelity output tensor.
+        """
         if self.hogp_list is None:
             MFGP_LOG.e("please train first")
         self.check_fidelity_index(fidelity_index)
@@ -89,6 +123,21 @@ class GAR_MODULE(torch.nn.Module):
 
 
     def single_fidelity_compute_loss(self, x, low_fidelity, high_fidelity_y, x_var=0., low_fidelity_var=0., high_fidelity_y_var=0., fidelity_index=0):
+        """
+        Computes the loss for a single fidelity level.
+
+        Args:
+            x (tensor): The input tensor.
+            low_fidelity (tensor): The low fidelity tensor.
+            high_fidelity_y (tensor): The high fidelity output tensor.
+            x_var (float, optional): The variance of the input tensor. Defaults to 0.
+            low_fidelity_var (float, optional): The variance of the low fidelity tensor. Defaults to 0.
+            high_fidelity_y_var (float, optional): The variance of the high fidelity output tensor. Defaults to 0.
+            fidelity_index (int, optional): The fidelity index. Defaults to 0.
+
+        Returns:
+            tensor: The computed loss.
+        """
         self.check_fidelity_index(fidelity_index)
         if fidelity_index == 0:
             return self.hogp_list[0].compute_loss(x, high_fidelity_y)
@@ -98,6 +147,17 @@ class GAR_MODULE(torch.nn.Module):
 
 
     def forward(self, x, x_var=0., to_fidelity_n=-1):
+        """
+        Performs a forward pass through the GAR_MODULE.
+
+        Args:
+            x (tensor): The input tensor.
+            x_var (float, optional): The variance of the input tensor. Defaults to 0.
+            to_fidelity_n (int, optional): The fidelity level to propagate to. Defaults to -1.
+
+        Returns:
+            tuple: A tuple containing the mean and variance of the output tensor.
+        """
         if self.hogp_list is None:
             MFGP_LOG.e("please train first")
         if to_fidelity_n < 0:
@@ -115,6 +175,17 @@ class GAR_MODULE(torch.nn.Module):
 
 
     def compute_loss(self, x, y_list, to_fidelity_n=-1):
+        """
+        Computes the loss for the GAR_MODULE.
+
+        Args:
+            x (tensor): The input tensor.
+            y_list (list): A list of tensors representing the high fidelity outputs at each fidelity level.
+            to_fidelity_n (int, optional): The fidelity level to propagate to. Defaults to -1.
+
+        Returns:
+            tensor: The computed loss.
+        """
         if not isinstance(y_list, list) or len(y_list) != self.fidelity_num:
             MFGP_LOG.e("y_list must be a list of tensor with length {}".format(self.fidelity_num))
 

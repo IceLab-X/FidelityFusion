@@ -33,6 +33,29 @@ default_config = {
 
 
 class HOGP_MODULE(torch.nn.Module):
+    """
+    Higher Order Gaussian Process (HOGP) module.
+
+    Args:
+        gp_model_config (dict): Configuration for the GP model. Defaults to None.
+
+    Attributes:
+        gp_model_config (dict): Configuration for the GP model.
+        noise_box (GP_noise_box): Noise box for GP model.
+        train_x (torch.Tensor or None): Training input data.
+        train_y (torch.Tensor or None): Training output data.
+        n_dim (int): Number of dimensions in the output data.
+        kernel_list (list): List of kernel functions.
+        grid (torch.nn.ParameterList): Grid for mapping.
+        mapping_vector (torch.nn.ParameterList): Mapping vectors.
+
+    Methods:
+        check_single_tensor(t): Check if the input tensor is a single tensor.
+        compute_kernel_cache(): Compute kernel cache.
+        compute_loss(x, y, x_var=0., y_var=0., update_data=False): Compute loss function.
+        forward(x, x_vars=0.): Forward pass of the module.
+    """
+
     def __init__(self, gp_model_config=None) -> None:
         super().__init__()
         _final_config = update_dict_with_default(default_config, gp_model_config)
@@ -95,6 +118,9 @@ class HOGP_MODULE(torch.nn.Module):
     
 
     def compute_kernel_cache(self):
+        """
+        Compute kernel cache.
+        """
         kernel_result = []
         eigen_result = []
         # kernel on sample dim
@@ -112,6 +138,19 @@ class HOGP_MODULE(torch.nn.Module):
 
 
     def compute_loss(self, x, y, x_var=0., y_var=0., update_data=False):
+        """
+        Compute the loss function.
+
+        Args:
+            x (torch.Tensor or list): Input data.
+            y (torch.Tensor or list): Output data.
+            x_var (float): Variance of the input data. Defaults to 0.
+            y_var (float): Variance of the output data. Defaults to 0.
+            update_data (bool): Whether to update the training data. Defaults to False.
+
+        Returns:
+            torch.Tensor: Loss value.
+        """
         x = self.check_single_tensor(x)
         y = self.check_single_tensor(y)
 
@@ -160,6 +199,16 @@ class HOGP_MODULE(torch.nn.Module):
 
 
     def forward(self, x, x_vars=0.):
+        """
+        Forward pass of the module.
+
+        Args:
+            x (torch.Tensor or list): Input data.
+            x_vars (float): Variance of the input data. Defaults to 0.
+
+        Returns:
+            tuple: Tuple containing the predicted mean and variance.
+        """
         x = self.check_single_tensor(x)
 
         with torch.no_grad():

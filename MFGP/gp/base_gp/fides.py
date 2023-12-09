@@ -20,6 +20,12 @@ default_config = {
 
 class FIDES_MODULE(torch.nn.Module):
     def __init__(self, config) -> None:
+        """
+        Initialize the FIDES_MODULE.
+
+        Args:
+            config (dict): Configuration parameters for the module.
+        """
         super().__init__()
         _final_config = update_dict_with_default(default_config, config)
         self.config = _final_config
@@ -50,13 +56,32 @@ class FIDES_MODULE(torch.nn.Module):
         return t
 
     def set_fidelity(self, l1, h1, l2, h2):
+        """
+        Set the fidelity values.
+
+        Args:
+            l1 (float): Lower bound for fidelity 1.
+            h1 (float): Upper bound for fidelity 1.
+            l2 (float): Lower bound for fidelity 2.
+            h2 (float): Upper bound for fidelity 2.
+        """
         self.l1 = l1
         self.h1 = h1
         self.l2 = l2
         self.h2 = h2
         self.fi_define=True
 
-    def forward(self, x, x_var=None):
+    def forward(self, x, x_var=0.):
+        """
+        Forward pass of the module.
+
+        Args:
+            x (torch.Tensor or list): Input tensor or list of tensors.
+            x_var (float, optional): Variance of the input tensor. Defaults to 0.
+
+        Returns:
+            tuple: Tuple containing the mean and variance of the output.
+        """
         x = self.check_single_tensor(x)
 
         if self.train_x is None:
@@ -85,7 +110,19 @@ class FIDES_MODULE(torch.nn.Module):
 
 
     def compute_loss(self, x, y, x_var=0., y_var=0., update_data=False):
+        """
+        Compute the loss of the module.
 
+        Args:
+            x (torch.Tensor or list): Input tensor or list of tensors.
+            y (torch.Tensor): Target tensor.
+            x_var (float, optional): Variance of the input tensor. Defaults to 0.
+            y_var (float, optional): Variance of the target tensor. Defaults to 0.
+            update_data (bool, optional): Whether to update the training data. Defaults to False.
+
+        Returns:
+            torch.Tensor: Loss value.
+        """
         x = self.check_single_tensor(x)
         y = self.check_single_tensor(y)
         assert y.ndim == 2, "y should be 2d tensor"

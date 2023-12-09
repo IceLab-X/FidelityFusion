@@ -18,7 +18,26 @@ default_resgp_config = {
 }
 
 class ResGP_MODULE(torch.nn.Module):
+    """
+    Residual Gaussian Process (ResGP) module.
+
+    Args:
+        resgp_config (dict): Configuration for the ResGP module.
+
+    Attributes:
+        config (dict): Configuration for the ResGP module.
+        cigp_list (torch.nn.ModuleList): List of CIGP_MODULE instances.
+        fidelity_num (int): Number of fidelity levels.
+
+    """
+
     def __init__(self, resgp_config) -> None:
+        """
+        Initialize the ResGP module.
+
+        Args:
+            resgp_config (dict): Configuration for the ResGP module.
+        """
         super().__init__()
         self.config = update_dict_with_default(default_resgp_config, resgp_config)
         self.cigp_list = None
@@ -30,10 +49,16 @@ class ResGP_MODULE(torch.nn.Module):
 
 
     def init_residual(self):
+        """
+        Initialize the residual blocks.
+        """
         self.residual_list = [Residual(self.config['Residual']) for _ in range(self.fidelity_num-1)]
         self.residual_list = torch.nn.ModuleList(self.residual_list)
 
     def init_cigp_model(self):
+        """
+        Initialize the CIGP models.
+        """
         if self.fidelity_num <= 1:
             MFGP_LOG.e("fidelity_num must be greater than 1, set fidelity_num in config first")
         
@@ -53,11 +78,31 @@ class ResGP_MODULE(torch.nn.Module):
         self.cigp_list = torch.nn.ModuleList(self.cigp_list)
 
     def check_fidelity_index(self, fidelity_index):
+        """
+        Check if the fidelity index is valid.
+
+        Args:
+            fidelity_index (int): The fidelity index to check.
+        """
         if fidelity_index < 0 or fidelity_index >= self.fidelity_num:
             MFGP_LOG.e("fidelity_index must be bigger than {}, and smaller than fidelity_num[{}]".format(0, self.fidelity_num))
 
 
     def single_fidelity_forward(self, x, low_fidelity_y, x_var=0., low_fidelity_y_var=0., fidelity_index=0):
+        """
+        Perform forward pass for a single fidelity level.
+
+        Args:
+            x (torch.Tensor): Input tensor.
+            low_fidelity_y (torch.Tensor): Low fidelity output tensor.
+            x_var (float, optional): Variance of input tensor. Defaults to 0.
+            low_fidelity_y_var (float, optional): Variance of low fidelity output tensor. Defaults to 0.
+            fidelity_index (int, optional): Fidelity index. Defaults to 0.
+
+        Returns:
+            torch.Tensor: High fidelity mean tensor.
+            torch.Tensor: High fidelity variance tensor.
+        """
         if self.cigp_list is None:
             MFGP_LOG.e("please train first")
         self.check_fidelity_index(fidelity_index)
@@ -72,6 +117,21 @@ class ResGP_MODULE(torch.nn.Module):
 
 
     def single_fidelity_compute_loss(self, x, low_fidelity, high_fidelity_y, x_var=0., low_fidelity_var=0., high_fidelity_y_var=0., fidelity_index=0):
+        """
+        Compute loss for a single fidelity level.
+
+        Args:
+            x (torch.Tensor): Input tensor.
+            low_fidelity (torch.Tensor): Low fidelity tensor.
+            high_fidelity_y (torch.Tensor): High fidelity output tensor.
+            x_var (float, optional): Variance of input tensor. Defaults to 0.
+            low_fidelity_var (float, optional): Variance of low fidelity tensor. Defaults to 0.
+            high_fidelity_y_var (float, optional): Variance of high fidelity output tensor. Defaults to 0.
+            fidelity_index (int, optional): Fidelity index. Defaults to 0.
+
+        Returns:
+            torch.Tensor: Loss value.
+        """
         self.check_fidelity_index(fidelity_index)
         if fidelity_index == 0:
             return self.cigp_list[0].compute_loss(x, high_fidelity_y)
@@ -81,6 +141,18 @@ class ResGP_MODULE(torch.nn.Module):
 
 
     def forward(self, x, x_var=0., to_fidelity_n=-1):
+        """
+        Perform forward pass through the ResGP module.
+
+        Args:
+            x (torch.Tensor): Input tensor.
+            x_var (float, optional): Variance of input tensor. Defaults to 0.
+            to_fidelity_n (int, optional): Fidelity level to propagate to. Defaults to -1.
+
+        Returns:
+            torch.Tensor: Mean tensor.
+            torch.Tensor: Variance tensor.
+        """
         if self.cigp_list is None:
             MFGP_LOG.e("please train first")
         if to_fidelity_n < 0:
@@ -98,6 +170,17 @@ class ResGP_MODULE(torch.nn.Module):
 
 
     def compute_loss(self, x, y_list, to_fidelity_n=-1):
+        """
+        Compute loss for multiple fidelity levels.
+
+        Args:
+            x (torch.Tensor): Input tensor.
+            y_list (list): List of output tensors for each fidelity level.
+            to_fidelity_n (int, optional): Fidelity level to propagate to. Defaults to -1.
+
+        Returns:
+            torch.Tensor: Loss value.
+        """
         if not isinstance(y_list, list) or len(y_list) != self.fidelity_num:
             MFGP_LOG.e("y_list must be a list of tensor with length {}".format(self.fidelity_num))
 

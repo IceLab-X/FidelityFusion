@@ -18,6 +18,12 @@ default_ar_config = {
 
 class NAR_MODULE(torch.nn.Module):
     def __init__(self, nar_config) -> None:
+        """
+        Initializes the NAR_MODULE.
+
+        Args:
+            nar_config (dict): Configuration parameters for the NAR_MODULE.
+        """
         super().__init__()
         self.config = update_dict_with_default(default_ar_config, nar_config)
         self.cigp_list = None
@@ -26,6 +32,9 @@ class NAR_MODULE(torch.nn.Module):
         self.init_cigp_model()
 
     def init_cigp_model(self):
+        """
+        Initializes the CIGP models for each fidelity level.
+        """
         if self.fidelity_num <= 1:
             MFGP_LOG.e("fidelity_num must be greater than 1, set fidelity_num in config first")
 
@@ -45,11 +54,33 @@ class NAR_MODULE(torch.nn.Module):
         self.cigp_list = torch.nn.ModuleList(self.cigp_list)
 
     def check_fidelity_index(self, fidelity_index):
+        """
+        Checks if the fidelity index is valid.
+
+        Args:
+            fidelity_index (int): The fidelity index to check.
+
+        Raises:
+            Exception: If the fidelity index is out of range.
+        """
         if fidelity_index < 0 or fidelity_index >= self.fidelity_num:
             MFGP_LOG.e("fidelity_index must be bigger than {}, and smaller than fidelity_num[{}]".format(0, self.fidelity_num))
 
-
     def single_fidelity_forward(self, x, low_fidelity_y, x_var=0., low_fidelity_y_var=0., fidelity_index=0):
+        """
+        Performs forward pass for a single fidelity level.
+
+        Args:
+            x (torch.Tensor): The input tensor.
+            low_fidelity_y (torch.Tensor): The low fidelity output tensor.
+            x_var (float, optional): The input variance. Defaults to 0.
+            low_fidelity_y_var (float, optional): The low fidelity output variance. Defaults to 0.
+            fidelity_index (int, optional): The fidelity index. Defaults to 0.
+
+        Returns:
+            torch.Tensor: The high fidelity mean tensor.
+            torch.Tensor: The high fidelity variance tensor.
+        """
         if self.cigp_list is None:
             MFGP_LOG.e("please train first")
         self.check_fidelity_index(fidelity_index)
@@ -63,8 +94,22 @@ class NAR_MODULE(torch.nn.Module):
             high_fidelity_mean, high_fidelity_var = self.cigp_list[fidelity_index].forward(concat_input, concat_var)
             return high_fidelity_mean, high_fidelity_var
 
-
     def single_fidelity_compute_loss(self, x, low_fidelity, high_fidelity_y, x_var=0., low_fidelity_var=0., high_fidelity_y_var=0., fidelity_index=0):
+        """
+        Computes the loss for a single fidelity level.
+
+        Args:
+            x (torch.Tensor): The input tensor.
+            low_fidelity (torch.Tensor): The low fidelity tensor.
+            high_fidelity_y (torch.Tensor): The high fidelity output tensor.
+            x_var (float, optional): The input variance. Defaults to 0.
+            low_fidelity_var (float, optional): The low fidelity variance. Defaults to 0.
+            high_fidelity_y_var (float, optional): The high fidelity output variance. Defaults to 0.
+            fidelity_index (int, optional): The fidelity index. Defaults to 0.
+
+        Returns:
+            torch.Tensor: The computed loss.
+        """
         self.check_fidelity_index(fidelity_index)
         if fidelity_index == 0:
             return self.cigp_list[0].compute_loss(x, high_fidelity_y)
@@ -72,8 +117,19 @@ class NAR_MODULE(torch.nn.Module):
             concat_input = torch.cat([x, low_fidelity], dim=-1)
             return self.cigp_list[fidelity_index].compute_loss(concat_input, high_fidelity_y, update_data=False)
 
-
     def forward(self, x, x_var=0., to_fidelity_n=-1):
+        """
+        Performs forward pass for multiple fidelity levels.
+
+        Args:
+            x (torch.Tensor): The input tensor.
+            x_var (float, optional): The input variance. Defaults to 0.
+            to_fidelity_n (int, optional): The target fidelity level. Defaults to -1.
+
+        Returns:
+            torch.Tensor: The mean tensor.
+            torch.Tensor: The variance tensor.
+        """
         if self.cigp_list is None:
             MFGP_LOG.e("please train first")
         if to_fidelity_n < 0:
@@ -89,8 +145,18 @@ class NAR_MODULE(torch.nn.Module):
                 mean, var = self.cigp_list[_fn].forward(concat_input)
         return mean, var
 
-
     def compute_loss(self, x, y_list, to_fidelity_n=-1):
+        """
+        Computes the loss for multiple fidelity levels.
+
+        Args:
+            x (torch.Tensor): The input tensor.
+            y_list (list): The list of high fidelity output tensors.
+            to_fidelity_n (int, optional): The target fidelity level. Defaults to -1.
+
+        Returns:
+            torch.Tensor: The computed loss.
+        """
         if not isinstance(y_list, list) or len(y_list) != self.fidelity_num:
             MFGP_LOG.e("y_list must be a list of tensor with length {}".format(self.fidelity_num))
 

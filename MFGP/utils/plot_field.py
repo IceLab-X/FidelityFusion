@@ -11,11 +11,19 @@ from MFGP.utils.mfgp_log import MFGP_LOG
 
 class plot_container:
     def __init__(self, data_list, label_list, sample_dim) -> None:
-        # data_list: containing data want to plot. suppose to be 3D(2D field + sample dim)
-        # label_list: label attach to title
-        # sample dim: set which dim is sample dim
+        """
+        Initialize the PlotField object.
 
-        # check 2D, now support 2D plot
+        Args:
+            data_list (list): A list containing the data to be plotted. Each element in the list represents a 2D field with a sample dimension.
+            label_list (list): A list of labels to be attached to the title of each plot.
+            sample_dim (int): The index of the dimension that represents the sample dimension.
+
+        Raises:
+            AssertionError: If any of the data arrays in `data_list` is not 3D.
+            AssertionError: If the shape of any data array in `data_list` is not the same as the first data array.
+
+        """
         shape=None
         for i,_d in enumerate(data_list):
             assert len(_d.shape)==3, "now support 2D field, but got {} for data-{}".format(_d.shape, i)
