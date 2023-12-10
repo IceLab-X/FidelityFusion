@@ -11,7 +11,7 @@ EPS = 1e-10
 PI = 3.1415
 
 from MFGP.utils.gp_noise import GP_noise_box
-from MFGP.gp.kernel.kernel_utils import create_kernels
+from MFGP.kernel.kernel_utils import create_kernels
 from MFGP.utils.dict_tools import update_dict_with_default
 from MFGP.utils.mfgp_log import MFGP_LOG
 
@@ -32,7 +32,7 @@ default_config = {
 }
 
 
-class HOGP_MODULE(torch.nn.Module):
+class HOGP(torch.nn.Module):
     """
     Higher Order Gaussian Process (HOGP) module.
 

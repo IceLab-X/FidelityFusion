@@ -2,8 +2,8 @@ import torch
 
 from MFGP.utils.mfgp_log import MFGP_LOG
 from MFGP.utils.dict_tools import update_dict_with_default
-from MFGP.gp.base_gp.hogp import HOGP_MODULE
-from MFGP.gp.multiscale_coupling.matrix import Matrix_Mapping
+from MFGP.base_gp.hogp import HOGP
+from MFGP.multiscale_coupling.matrix import Matrix_Mapping
 
 
 default_hogp_model_config = {
@@ -29,13 +29,13 @@ default_gar_config = {
 }
 
 
-class GAR_MODULE(torch.nn.Module):
+class GAR(torch.nn.Module):
     def __init__(self, gar_config) -> None:
         """
-        Initializes the GAR_MODULE.
+        Initializes the GAR.
 
         Args:
-            gar_config (dict): Configuration parameters for the GAR_MODULE.
+            gar_config (dict): Configuration parameters for the GAR.
         """
         super().__init__()
         self.config = update_dict_with_default(default_gar_config, gar_config)
@@ -77,7 +77,7 @@ class GAR_MODULE(torch.nn.Module):
         self.hogp_list = []
         for i, _config in enumerate(hogp_config_list):
             _config['fidelity_shapes'] =  self.config['fidelity_shapes'][i]
-            self.hogp_list.append(HOGP_MODULE(_config))
+            self.hogp_list.append(HOGP(_config))
 
         self.hogp_list = torch.nn.ModuleList(self.hogp_list)
 
@@ -148,7 +148,7 @@ class GAR_MODULE(torch.nn.Module):
 
     def forward(self, x, x_var=0., to_fidelity_n=-1):
         """
-        Performs a forward pass through the GAR_MODULE.
+        Performs a forward pass through the GAR.
 
         Args:
             x (tensor): The input tensor.
@@ -176,7 +176,7 @@ class GAR_MODULE(torch.nn.Module):
 
     def compute_loss(self, x, y_list, to_fidelity_n=-1):
         """
-        Computes the loss for the GAR_MODULE.
+        Computes the loss for the GAR.
 
         Args:
             x (tensor): The input tensor.

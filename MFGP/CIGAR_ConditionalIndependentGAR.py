@@ -2,8 +2,8 @@ import torch
 
 from MFGP.utils.mfgp_log import MFGP_LOG
 from MFGP.utils.dict_tools import update_dict_with_default
-from MFGP.gp.base_gp.cigp import CIGP_MODULE
-from MFGP.gp.multiscale_coupling.Residual import Residual
+from MFGP.base_gp.cigp import CIGP
+from MFGP.multiscale_coupling.matrix import Matrix_Mapping
 
 
 default_cigp_model_config = {
@@ -11,47 +11,60 @@ default_cigp_model_config = {
     'kernel': {'SE': {'noise_exp_format':True, 'length_scale':1., 'scale': 1.}},
 }
 
-default_ar_config = {
-    'Residual': {'rho_value_init': 1., 'trainable': True},
+default_matrix_mapping_config = {
+    'low_fidelity_shape': None,
+    'high_fidelity_shape': None,
+    'matrix_init_method': "smooth",     # smooth, eye
+
+    'rho_value_init': 1.,
+    'trainable_rho': False,
+}
+
+default_cigar_config = {
     'cigp_model_config': default_cigp_model_config,
     'fidelity_shapes': [],
 }
 
-class AR_MODULE(torch.nn.Module):
+
+class CIGAR(torch.nn.Module):
     """
-    Autoregressive (AR) module for multi-fidelity Gaussian process.
+    CIGAR class represents a module for Coupled Input Gaussian Process (CIGP) with multiple fidelity levels.
 
     Args:
-        ar_config (dict): Configuration for the AR module.
+        cigar_config (dict): Configuration for the CIGAR module.
 
     Attributes:
-        config (dict): Configuration for the AR module.
-        cigp_list (torch.nn.ModuleList): List of CIGP_MODULE instances.
-        residual_list (torch.nn.ModuleList): List of Residual instances.
+        config (dict): Configuration for the CIGAR module.
+        cigp_list (torch.nn.ModuleList): List of CIGP modules for each fidelity level.
         fidelity_num (int): Number of fidelity levels.
+        matrix_list (torch.nn.ModuleList): List of Matrix_Mapping modules for each fidelity level.
 
     """
-    def __init__(self, ar_config) -> None:
+
+    def __init__(self, cigar_config) -> None:
         super().__init__()
-        self.config = update_dict_with_default(default_ar_config, ar_config)
+        self.config = update_dict_with_default(default_cigar_config, cigar_config)
         self.cigp_list = None
-        assert self.config['Residual']['trainable'], "AR must have trainable residual. Call ResGP to build with untrainable residual blocks"
         self.fidelity_num = len(self.config['fidelity_shapes'])
 
         self.init_cigp_model()
-        self.init_residual()
+        self.init_matrix_mapping()
 
-
-    def init_residual(self):
+    def init_matrix_mapping(self):
         """
-        Initializes the residual blocks.
+        Initializes the matrix mapping modules based on the fidelity shapes in the configuration.
         """
-        self.residual_list = [Residual(self.config['Residual']) for _ in range(self.fidelity_num-1)]
-        self.residual_list = torch.nn.ModuleList(self.residual_list)
+        matrix_config = [default_matrix_mapping_config]*(self.fidelity_num-1)
+        for i in range(self.fidelity_num-1):
+            matrix_config[i]['low_fidelity_shape'] = self.config['fidelity_shapes'][i]
+            matrix_config[i]['high_fidelity_shape'] = self.config['fidelity_shapes'][i+1]
+        self.matrix_list = [Matrix_Mapping(matrix_config[i]) for i in range(self.fidelity_num-1)]
+        self.matrix_list = torch.nn.ModuleList(self.matrix_list)
+        
 
     def init_cigp_model(self):
         """
-        Initializes the CIGP models.
+        Initializes the CIGP modules based on the cigp_model_config in the configuration.
         """
         if self.fidelity_num <= 1:
             MFGP_LOG.e("fidelity_num must be greater than 1, set fidelity_num in config first")
@@ -68,9 +81,8 @@ class AR_MODULE(torch.nn.Module):
         # create multi cigp model
         self.cigp_list = []
         for i, _config in enumerate(cigp_config_list):
-            self.cigp_list.append(CIGP_MODULE(_config))
+            self.cigp_list.append(CIGP(_config))
         self.cigp_list = torch.nn.ModuleList(self.cigp_list)
-
 
     def check_fidelity_index(self, fidelity_index):
         """
@@ -88,7 +100,7 @@ class AR_MODULE(torch.nn.Module):
 
     def single_fidelity_forward(self, x, low_fidelity_y, x_var=0., low_fidelity_y_var=0., fidelity_index=0):
         """
-        Performs forward pass for a single fidelity level.
+        Computes the forward pass for a single fidelity level.
 
         Args:
             x (torch.Tensor): The input tensor.
@@ -98,11 +110,8 @@ class AR_MODULE(torch.nn.Module):
             fidelity_index (int, optional): The fidelity index. Defaults to 0.
 
         Returns:
-            torch.Tensor: The high fidelity mean tensor.
-            torch.Tensor: The high fidelity variance tensor.
-
-        Raises:
-            MFGP_LOG.e: If the CIGP models have not been trained or if the fidelity index is invalid.
+            torch.Tensor: The output mean tensor.
+            torch.Tensor: The output variance tensor.
         """
         if self.cigp_list is None:
             MFGP_LOG.e("please train first")
@@ -112,8 +121,8 @@ class AR_MODULE(torch.nn.Module):
             return self.cigp_list[0].forward(x, x_var)
         else:
             res_mean, res_var = self.cigp_list[fidelity_index].forward(x, x_var)
-            high_fidelity_mean = self.residual_list[fidelity_index-1].forward(low_fidelity_y, res_mean)
-            high_fidelity_var = self.residual_list[fidelity_index-1].var_forward(low_fidelity_y_var, res_var)
+            high_fidelity_mean = self.matrix_list[fidelity_index-1].forward(low_fidelity_y, res_mean)
+            high_fidelity_var = self.matrix_list[fidelity_index-1].var_forward(low_fidelity_y_var, res_var)
             return high_fidelity_mean, high_fidelity_var
 
 
@@ -132,33 +141,27 @@ class AR_MODULE(torch.nn.Module):
 
         Returns:
             torch.Tensor: The computed loss.
-
-        Raises:
-            MFGP_LOG.e: If the fidelity index is invalid.
         """
         self.check_fidelity_index(fidelity_index)
         if fidelity_index == 0:
             return self.cigp_list[0].compute_loss(x, high_fidelity_y)
         else:
-            res = self.residual_list[fidelity_index-1].forward(low_fidelity, high_fidelity_y)
+            res = self.matrix_list[fidelity_index-1].forward(low_fidelity, high_fidelity_y)
             return self.cigp_list[fidelity_index].compute_loss(x, res, update_data=True)
 
 
     def forward(self, x, x_var=0., to_fidelity_n=-1):
         """
-        Performs forward pass up to a specified fidelity level.
+        Computes the forward pass for multiple fidelity levels.
 
         Args:
             x (torch.Tensor): The input tensor.
             x_var (float, optional): The variance of the input tensor. Defaults to 0.
-            to_fidelity_n (int, optional): The fidelity level to stop at. Defaults to -1.
+            to_fidelity_n (int, optional): The target fidelity level. Defaults to -1.
 
         Returns:
-            torch.Tensor: The mean tensor.
-            torch.Tensor: The variance tensor.
-
-        Raises:
-            MFGP_LOG.e: If the CIGP models have not been trained or if the fidelity index is invalid.
+            torch.Tensor: The output mean tensor.
+            torch.Tensor: The output variance tensor.
         """
         if self.cigp_list is None:
             MFGP_LOG.e("please train first")
@@ -171,25 +174,22 @@ class AR_MODULE(torch.nn.Module):
                 mean, var = self.cigp_list[0].forward(x, x_var)
             else:
                 res_mean, res_var = self.cigp_list[_fn].forward(x, x_var)
-                mean = self.residual_list[_fn-1].backward(mean, res_mean)
-                var = self.residual_list[_fn-1].var_backward(var, res_var)
+                mean = self.matrix_list[_fn-1].backward(mean, res_mean)
+                var = self.matrix_list[_fn-1].var_backward(var, res_var)
         return mean, var
 
 
     def compute_loss(self, x, y_list, to_fidelity_n=-1):
         """
-        Computes the loss up to a specified fidelity level.
+        Computes the loss for multiple fidelity levels.
 
         Args:
             x (torch.Tensor): The input tensor.
             y_list (list): List of tensors representing the output at each fidelity level.
-            to_fidelity_n (int, optional): The fidelity level to stop at. Defaults to -1.
+            to_fidelity_n (int, optional): The target fidelity level. Defaults to -1.
 
         Returns:
             torch.Tensor: The computed loss.
-
-        Raises:
-            MFGP_LOG.e: If the y_list is not a list of tensors with the correct shape or if the fidelity index is invalid.
         """
         if not isinstance(y_list, list) or len(y_list) != self.fidelity_num:
             MFGP_LOG.e("y_list must be a list of tensor with length {}".format(self.fidelity_num))
@@ -210,6 +210,6 @@ class AR_MODULE(torch.nn.Module):
             if _fn == 0:
                 loss += self.cigp_list[0].compute_loss(x, y_list[0])
             else:
-                res = self.residual_list[_fn-1].forward(y_list[_fn-1], y_list[_fn])
+                res = self.matrix_list[_fn-1].forward(y_list[_fn-1], y_list[_fn])
                 loss += self.cigp_list[_fn].compute_loss(x, res, update_data=True)
         return loss

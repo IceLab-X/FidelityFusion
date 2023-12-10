@@ -1,6 +1,6 @@
 import torch
 
-from MFGP.gp.kernel.SE_kernel import SE_kernel
+from MFGP.kernel.SE_kernel import SE_kernel
 
 def create_kernels(kernel_configs):
 
@@ -23,7 +23,7 @@ def create_kernel(kernel_config):
         if kernel_name == 'SE':
             return SE_kernel(kernel_config)
         elif kernel_name == 'kernel_res':
-            from MFGP.gp.kernel.MCMC_res_kernel import Kernel_res
+            from MFGP.kernel.MCMC_res_kernel import Kernel_res
             return Kernel_res(kernel_config)
         else:
             raise NotImplementedError

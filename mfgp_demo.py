@@ -34,14 +34,14 @@ def normalize_data(tr_x, eval_x, tr_y_list, eval_y_list):
 
 
 model_dict = {
-    'AR': AR_MODULE,
-    'CIGAR': CIGAR_MODULE,
-    'GAR': GAR_MODULE,
-    'FIDES': MF_FIDES_MODULE,
-    'NAR': NAR_MODULE,
-    'ResGP': ResGP_MODULE,
-    'CIGP': CIGP_MODULE,
-    'HOGP': HOGP_MODULE,
+    'AR': AR,
+    'CIGAR': CIGAR,
+    'GAR': GAR,
+    'CAR': CAR,
+    'NAR': NAR,
+    'ResGP': ResGP,
+    'CIGP': CIGP,
+    'HOGP': HOGP,
 }
 
 
@@ -62,7 +62,7 @@ if __name__ == '__main__':
     tr_x, eval_x, tr_y_list, eval_y_list = get_testing_data(fidelity_num)
     
     src_y_shape = tr_y_list[0].shape[1:]
-    if model_name in ['AR', 'CIGAR', 'FIDES', 'NAR', 'ResGP', 'CIGP']:
+    if model_name in ['AR', 'CIGAR', 'CAR', 'NAR', 'ResGP', 'CIGP']:
         flatten_output = True
         sample_num = tr_y_list[0].shape[0]
         tr_y_list = [_.reshape(sample_num, -1) for _ in tr_y_list]

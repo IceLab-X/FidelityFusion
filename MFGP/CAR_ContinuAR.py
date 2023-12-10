@@ -2,9 +2,9 @@ import torch
 
 from MFGP.utils.mfgp_log import MFGP_LOG
 from MFGP.utils.dict_tools import update_dict_with_default
-from MFGP.gp.base_gp.cigp import CIGP_MODULE
-from MFGP.gp.base_gp.fides import FIDES_MODULE
-from MFGP.gp.multiscale_coupling.Residual import Residual
+from MFGP.base_gp.cigp import CIGP
+from MFGP.base_gp.fides import FIDES
+from MFGP.multiscale_coupling.Residual import Residual
 
 
 default_cigp_model_config = {
@@ -26,10 +26,10 @@ default_ar_config = {
     'fidelity_shapes': [],
 }
 
-class MF_FIDES_MODULE(torch.nn.Module):
+class CAR(torch.nn.Module):
     def __init__(self, ar_config) -> None:
         """
-        Initialize the MF_FIDES_MODULE.
+        Initialize the CAR.
 
         Args:
             ar_config (dict): Configuration for the AR model.
@@ -56,13 +56,13 @@ class MF_FIDES_MODULE(torch.nn.Module):
         """
         Initialize the CIGP model.
         """
-        self.cigp = CIGP_MODULE(self.config['cigp_model_config'])
+        self.cigp = CIGP(self.config['cigp_model_config'])
 
     def init_fides_model(self):
         """
         Initialize the FIDES model.
         """
-        self.fides = FIDES_MODULE(self.config['fides_model_config'])
+        self.fides = FIDES(self.config['fides_model_config'])
 
     def check_fidelity_index(self, fidelity_index):
         """

@@ -2,8 +2,8 @@ import torch
 
 from MFGP.utils.mfgp_log import MFGP_LOG
 from MFGP.utils.dict_tools import update_dict_with_default
-from MFGP.gp.base_gp.cigp import CIGP_MODULE
-from MFGP.gp.multiscale_coupling.Residual import Residual
+from MFGP.base_gp.cigp import CIGP
+from MFGP.multiscale_coupling.Residual import Residual
 
 
 default_cigp_model_config = {
@@ -16,13 +16,13 @@ default_ar_config = {
     'fidelity_shapes': [],
 }
 
-class NAR_MODULE(torch.nn.Module):
+class NAR(torch.nn.Module):
     def __init__(self, nar_config) -> None:
         """
-        Initializes the NAR_MODULE.
+        Initializes the NAR.
 
         Args:
-            nar_config (dict): Configuration parameters for the NAR_MODULE.
+            nar_config (dict): Configuration parameters for the NAR.
         """
         super().__init__()
         self.config = update_dict_with_default(default_ar_config, nar_config)
@@ -49,7 +49,7 @@ class NAR_MODULE(torch.nn.Module):
 
         self.cigp_list = []
         for i, _config in enumerate(cigp_config_list):
-            self.cigp_list.append(CIGP_MODULE(_config))
+            self.cigp_list.append(CIGP(_config))
 
         self.cigp_list = torch.nn.ModuleList(self.cigp_list)
 

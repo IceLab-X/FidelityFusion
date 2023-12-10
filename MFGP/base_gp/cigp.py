@@ -6,7 +6,7 @@ EPS = 1e-10
 PI = 3.1415
 
 from MFGP.utils.gp_noise import GP_noise_box
-from MFGP.gp.kernel.kernel_utils import create_kernel
+from MFGP.kernel.kernel_utils import create_kernel
 from MFGP.utils.dict_tools import update_dict_with_default
 from MFGP.utils.mfgp_log import MFGP_LOG
 
@@ -16,7 +16,7 @@ default_config = {
     'kernel': {'SE': {'noise_exp_format':True, 'length_scale':1., 'scale': 1.}},
 }
 
-class CIGP_MODULE(torch.nn.Module):
+class CIGP(torch.nn.Module):
     """
     Conditional Independent Gaussian Process (CIGP) module.
 

@@ -1,9 +1,9 @@
-from MFGP.gp.coupling_gp.AR import AR_MODULE
-from MFGP.gp.coupling_gp.CIGAR import CIGAR_MODULE
-from MFGP.gp.coupling_gp.GAR import GAR_MODULE
-from MFGP.gp.coupling_gp.MF_FIDES import MF_FIDES_MODULE
-from MFGP.gp.coupling_gp.NAR import NAR_MODULE
-from MFGP.gp.coupling_gp.ResGP import ResGP_MODULE
+from MFGP.AR_AutoRegression import AR
+from MFGP.CIGAR_ConditionalIndependentGAR import CIGAR
+from MFGP.GAR_GeneralizedAutoAR import GAR
+from MFGP.CAR_ContinuAR import CAR
+from MFGP.NAR_NonlinearAR import NAR
+from MFGP.ResGP import ResGP
 
-from MFGP.gp.base_gp.cigp import CIGP_MODULE
-from MFGP.gp.base_gp.hogp import HOGP_MODULE
+from MFGP.base_gp.cigp import CIGP
+from MFGP.base_gp.hogp import HOGP

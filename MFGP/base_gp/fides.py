@@ -2,7 +2,7 @@
 import torch
 
 from MFGP.utils.gp_noise import GP_noise_box
-from MFGP.gp.kernel.kernel_utils import create_kernel
+from MFGP.kernel.kernel_utils import create_kernel
 from MFGP.utils.dict_tools import update_dict_with_default
 from MFGP.utils.mfgp_log import MFGP_LOG
 
@@ -18,10 +18,10 @@ default_config = {
               },
 }
 
-class FIDES_MODULE(torch.nn.Module):
+class FIDES(torch.nn.Module):
     def __init__(self, config) -> None:
         """
-        Initialize the FIDES_MODULE.
+        Initialize the FIDES.
 
         Args:
             config (dict): Configuration parameters for the module.
