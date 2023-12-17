@@ -82,9 +82,8 @@ class CIGP(torch.nn.Module):
 
             L = torch.linalg.cholesky(Sigma)
             kx = self.kernel(self.train_x, x)
-            # LinvKx, _ = torch.triangular_solve(kx, L, upper = False)
-            LinvKx = torch.linalg.solve_triangular(kx, L, upper = False)
-            torch.linalg.solve_triangular(kx, L, upper = False)
+            LinvKx, _ = torch.triangular_solve(kx, L, upper = False)
+            # LinvKx = torch.linalg.solve_triangular(kx, L, upper = False)      # torch recommand but not support nonsquare matrix
 
             u = kx.t() @ torch.cholesky_solve(self.train_y, L)
 

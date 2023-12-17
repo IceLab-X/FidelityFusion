@@ -4,6 +4,7 @@ from MFGP.utils.mfgp_log import MFGP_LOG
 from MFGP.utils.dict_tools import update_dict_with_default
 from MFGP.base_gp.cigp import CIGP
 from MFGP.multiscale_coupling.Residual import Residual
+from MFGP.utils.subset_tools import Subset_checker
 
 
 default_cigp_model_config = {
@@ -30,6 +31,8 @@ class NAR(torch.nn.Module):
         self.fidelity_num = len(self.config['fidelity_shapes'])
 
         self.init_cigp_model()
+        self.nonsubset = True
+
 
     def init_cigp_model(self):
         """
@@ -144,8 +147,35 @@ class NAR(torch.nn.Module):
                 # mean, var = self.cigp_list[_fn].forward(concat_input, var)
                 mean, var = self.cigp_list[_fn].forward(concat_input)
         return mean, var
+    
 
-    def compute_loss(self, x, y_list, to_fidelity_n=-1):
+    def _get_nonsubset_data(self, x_low, x_high, y_low, y_high, y_high_fidelity_index):
+        x_low_subset_index, x_high_subset_index = Subset_checker.get_subset(x_low, x_high)
+        x_low_nonsubset_index, x_high_nonsubset_index = Subset_checker.get_non_subset(x_low, x_high)
+
+        y_low_subset = y_low[x_low_subset_index]
+        x_high_nonsubset = x_high[x_high_nonsubset_index]
+
+        if 0 not in [len(x_high_nonsubset_index), len(x_high_subset_index)]:
+            y_low_nonsubset = self.forward(x_high_nonsubset, to_fidelity_n=y_high_fidelity_index-1)[0]
+            y_low = torch.cat([y_low_subset, y_low_nonsubset], dim=0)
+            y_high = torch.cat([y_high[x_high_subset_index], y_high[x_high_nonsubset_index]], dim=0)
+            x = torch.cat([x_high[x_high_subset_index], x_high_nonsubset], dim=0)
+        elif len(x_high_nonsubset_index) == 0:
+            # full subset
+            y_low = y_low_subset
+            y_high = y_high[x_high_subset_index]
+            x = x_high[x_high_subset_index]
+        elif len(x_high_subset_index) == 0:
+            # full nonsubset
+            y_low_nonsubset = self.forward(x_high_nonsubset, to_fidelity_n=y_high_fidelity_index-1)[0]
+            y_low = y_low_nonsubset
+            y_high = y_high[x_high_nonsubset_index]
+            x = x_high[x_high_nonsubset_index]
+        return x, y_low, y_high
+
+
+    def compute_loss(self, x_list, y_list, to_fidelity_n=-1):
         """
         Computes the loss for multiple fidelity levels.
 
@@ -159,6 +189,12 @@ class NAR(torch.nn.Module):
         """
         if not isinstance(y_list, list) or len(y_list) != self.fidelity_num:
             MFGP_LOG.e("y_list must be a list of tensor with length {}".format(self.fidelity_num))
+
+        if isinstance(x_list, torch.Tensor):
+            x_list = [x_list]
+            self.nonsubset = False
+        elif isinstance(x_list, list) and len(x_list) == 1:
+            self.nonsubset = False
 
         base_shape = y_list[0].shape
         if len(base_shape) != 2:
@@ -174,8 +210,15 @@ class NAR(torch.nn.Module):
         loss = 0.
         for _fn in range(to_fidelity_n+1):
             if _fn == 0:
-                loss += self.cigp_list[0].compute_loss(x, y_list[0])
+                loss += self.cigp_list[0].compute_loss(x_list[0], y_list[0])
             else:
-                concat_input = torch.cat([x, y_list[_fn-1]], dim=-1)
-                loss += self.cigp_list[_fn].compute_loss(concat_input, y_list[_fn], update_data=False)
+                if self.nonsubset:
+                    x, y_low, y_high = self._get_nonsubset_data(x_list[_fn-1], x_list[_fn], y_list[_fn-1], y_list[_fn], _fn)
+                else:
+                    x = x_list[0]
+                    y_low = y_list[_fn-1]
+                    y_high = y_list[_fn]
+
+                concat_input = torch.cat([x, y_low], dim=-1)
+                loss += self.cigp_list[_fn].compute_loss(concat_input, y_high, update_data=False)
         return loss
