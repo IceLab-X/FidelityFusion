@@ -1,5 +1,10 @@
 import sys
 
+import os, sys
+dir_path = os.path.dirname(os.path.realpath(__file__))
+parent_dir_path = os.path.abspath(os.path.join(dir_path, os.pardir))
+sys.path.insert(0, parent_dir_path)
+
 import torch
 import numpy as np
 
@@ -7,8 +12,8 @@ from MFGP_ver2023May import *
 from MFGP_ver2023May.utils.normalizer import Dateset_normalize_manager
 
 def get_testing_data(fidelity_num):
-    x = np.load(r'assets/sample_data/input.npy')
-    y_list = [np.load(r'assets/sample_data/output_fidelity_{}.npy'.format(i)) for i in range(3)]
+    x = np.load(r'../assets/MF_data/Poisson_data/input.npy')  
+    y_list = [np.load(r'../assets/MF_data/Poisson_data/output_fidelity_{}.npy'.format(i)) for i in range(3)]
     y_list = y_list[:fidelity_num]
 
     x = torch.tensor(x)
