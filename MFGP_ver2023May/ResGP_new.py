@@ -16,6 +16,7 @@ from MFGP_ver2023May.base_gp.cigp import CIGP
 from MFGP_ver2023May.utils.dict_tools import update_dict_with_default
 
 from torch.utils.data import DataLoader, TensorDataset
+from pytorch_lightning.callbacks import LearningRateMonitor, TQDMProgressBar
 # import MFGP_ver2023May.kernel.kernel as kernel
 
 
@@ -122,7 +123,7 @@ class ResGP(pl.LightningModule):
 
                 res = self.residual_list[_fn-1].forward(y_low, y_high)
                 loss += self.cigp_list[_fn].compute_loss(x, res, update_data=True)
-        return loss
+        return torch.tensor(loss, requires_grad=True)
     
     def training_step(self, train_batch, batch_idx) -> torch.Tensor:
         """Compute and return the training loss and metrics on one step. loss is to store the loss value. log_metrics
@@ -133,8 +134,22 @@ class ResGP(pl.LightningModule):
         avoid using on_training_epoch_end() and on_validation_epoch_end().
         """
 
-        #write a self.compute_loss function, need two input for x and y
+        
         loss = self.compute_loss(train_batch[0], train_batch[1])
+
+        return loss
+    
+    def test_step(self, test_batch, batch_idx) -> torch.Tensor:
+        """Compute and return the training loss and metrics on one step. loss is to store the loss value. log_metrics
+        is to store the metrics to be logged, including loss, top1 and/or top5 accuracies.
+
+        Use self.log_dict(log_metrics, on_step, on_epoch, logger) to log the metrics on each step and each epoch. For
+        training, log on each step and each epoch. For validation and testing, only log on each epoch. This way can
+        avoid using on_training_epoch_end() and on_validation_epoch_end().
+        """
+
+        
+        loss = self.compute_loss(test_batch[0], test_batch[1])
 
         return loss
     
