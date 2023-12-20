@@ -9,6 +9,7 @@ import argparse
 import time
 import numpy as np
 import pytorch_lightning as pl
+from pytorch_lightning import loggers as pl_loggers
 
 import torch
 import torch.nn as nn
@@ -123,7 +124,12 @@ class ResGP(pl.LightningModule):
 
                 res = self.residual_list[_fn-1].forward(y_low, y_high)
                 loss += self.cigp_list[_fn].compute_loss(x, res, update_data=True)
-        return torch.tensor(loss, requires_grad=True)
+
+
+        log_metrics = {
+            f"loss": loss,
+        }
+        return torch.tensor(loss, requires_grad=True), log_metrics
     
     def training_step(self, train_batch, batch_idx) -> torch.Tensor:
         """Compute and return the training loss and metrics on one step. loss is to store the loss value. log_metrics
@@ -135,8 +141,8 @@ class ResGP(pl.LightningModule):
         """
 
         
-        loss = self.compute_loss(train_batch[0], train_batch[1])
-
+        loss, metric = self.compute_loss(train_batch[0], train_batch[1])
+        self.log_dict(metric, on_step=True, on_epoch=True, logger=True)
         return loss
     
     def test_step(self, test_batch, batch_idx) -> torch.Tensor:
@@ -149,8 +155,8 @@ class ResGP(pl.LightningModule):
         """
 
         
-        loss = self.compute_loss(test_batch[0], test_batch[1])
-
+        loss, metric = self.compute_loss(test_batch[0], test_batch[1])
+        self.log_dict(metric, on_step=True, on_epoch=True, logger=True)
         return loss
     
     def configure_optimizers(self):
@@ -174,14 +180,14 @@ def get_testing_data(fidelity_num):
 
     return tr_x, eval_x, tr_y_list, eval_y_list
 
-def create_dataloaders(tr_x, tr_y_list, eval_x, eval_y_list, batch_size=32):
+def create_dataloaders(tr_x, tr_y_list, eval_x, eval_y_list):
     # Convert training data into a TensorDataset and then into a DataLoader
     train_data = TensorDataset(tr_x, *tr_y_list)
-    train_loader = DataLoader(train_data, batch_size=batch_size, shuffle=True)
+    train_loader = DataLoader(train_data, shuffle=True)
 
     # Similarly for validation data
     valid_data = TensorDataset(eval_x, *eval_y_list)
-    valid_loader = DataLoader(valid_data, batch_size=batch_size, shuffle=False)
+    valid_loader = DataLoader(valid_data, shuffle=False)
 
     return train_loader, valid_loader
 
@@ -211,7 +217,7 @@ def main():
 
     # ---- setup dataset ----
     tr_x, eval_x, tr_y_list, eval_y_list = get_testing_data(1)
-    train_loader, valid_loader = create_dataloaders(tr_x, tr_y_list, eval_x, eval_y_list, batch_size=32)
+    train_loader, valid_loader = create_dataloaders(tr_x, tr_y_list, eval_x, eval_y_list)
     # ---- setup model ----
     print("==> Building model..")
     model = get_model(cfg)
@@ -227,14 +233,14 @@ def main():
     #         experiment_name="{}_{}".format(cfg.COMET.EXPERIMENT_NAME, suffix),
     #     )
     # else:
-    #     logger = pl_loggers.TensorBoardLogger(cfg.OUTPUT.OUT_DIR)
+    logger = pl_loggers.TensorBoardLogger("./outputs")
 
     # ---- setup callbacks ----
     # setup progress bar
-    # progress_bar = TQDMProgressBar(cfg.OUTPUT.PB_FRESH)
+    progress_bar = TQDMProgressBar(50)
 
-    # # setup learning rate monitor
-    # lr_monitor = LearningRateMonitor(logging_interval="epoch")
+    # setup learning rate monitor
+    lr_monitor = LearningRateMonitor(logging_interval="epoch")
 
     # ---- setup trainers ----
     trainer = pl.Trainer(
@@ -242,7 +248,10 @@ def main():
         max_epochs=100,
         accelerator="gpu" if args.devices != 0 else "cpu",
         devices=args.devices if args.devices != 0 else "auto",
+        logger=logger,
+        callbacks=[progress_bar, lr_monitor],
         strategy="ddp",  # comment this line on Windows, because Windows does not support CCL backend
+        log_every_n_steps=1,
 
     )
 
