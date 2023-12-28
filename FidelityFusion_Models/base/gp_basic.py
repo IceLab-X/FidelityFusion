@@ -2,11 +2,12 @@
 # Author: Wei W. Xing (wxing.me)
 # Email: wayne.xingle@gmail.com
 # Date: 2023-11-26
-
+import sys
+sys.path.append(r'H:\\eda\\mybranch')
 import numpy as np
 import torch
 import torch.nn as nn
-import base.kernel as kernel
+import GaussianProcess.kernel as kernel
 import time as time
 
 class GP_basic(nn.Module):

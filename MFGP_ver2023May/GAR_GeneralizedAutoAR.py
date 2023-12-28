@@ -1,3 +1,5 @@
+import sys
+sys.path.append(r'H:\\eda\\mybranch')
 import torch
 
 from MFGP_ver2023May.utils.mfgp_log import MFGP_LOG
@@ -26,7 +28,7 @@ default_matrix_mapping_config = {
 
 default_gar_config = {
     'hogp_model_config': default_hogp_model_config,
-    'fidelity_shapes': [],
+    'fidelity_shapes': [[1],[1]],
 }
 
 
@@ -246,3 +248,31 @@ class GAR(torch.nn.Module):
                 res = self.matrix_list[_fn-1].forward(y_low, y_high)
                 loss += self.hogp_list[_fn].compute_loss(x, res, update_data=True)
         return loss
+    
+if __name__ == "__main__":
+    torch.manual_seed(1)
+    # generate the data
+    x_all = torch.rand(500, 1) * 20
+    xlow_indices = torch.randperm(500)[:300]
+    x_low = x_all[xlow_indices]
+    xhigh_indices = torch.randperm(500)[:300]
+    x_high = x_all[xhigh_indices]
+    x_test = torch.linspace(0, 20, 100).reshape(-1, 1)
+
+    y_low = torch.sin(x_low) + torch.rand(300, 1) * 0.6 - 0.3
+    y_high = torch.sin(x_high) + torch.rand(300, 1) * 0.2 - 0.1
+    y_test = torch.sin(x_test)
+
+    x_train = [x_low, x_high]
+    y_train = [y_low, y_high]
+
+    myNAR = GAR(default_gar_config)
+    myNAR.compute_loss([x_train], [y_train], to_fidelity_n=1)
+    ypred, ypred_var = myNAR.forward([x_test])
+
+    import matplotlib.pyplot as plt
+    plt.figure()
+    plt.errorbar(x_test.flatten(), ypred.reshape(-1).detach(), ypred_var.diag().sqrt().squeeze().detach(), fmt='r-.' ,alpha = 0.2)
+    plt.fill_between(x_test.flatten(), ypred.reshape(-1).detach() - ypred_var.diag().sqrt().squeeze().detach(), ypred.reshape(-1).detach() + ypred_var.diag().sqrt().squeeze().detach(), alpha=0.2)
+    plt.plot(x_test.flatten(), y_test, 'k+')
+    plt.show()

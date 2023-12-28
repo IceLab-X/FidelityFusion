@@ -1,6 +1,8 @@
 import torch
+import numpy as np
 from hogp_simple import HOGP_simple
 import GaussianProcess.kernel as kernel
+from GaussianProcess.gp_transform import Normalize0_layer
 import matplotlib.pyplot as plt
 import tensorly
 tensorly.set_backend('pytorch')
@@ -99,31 +101,61 @@ def train_GAR_twofidelity(GARmodel, x_train, y_train,max_iter=1000,lr_init=1e-1)
 if __name__ == "__main__":
     torch.manual_seed(1)
     # generate the data
-    x_all = torch.rand(500, 1) * 20
+    # x_all = torch.rand(500, 1) * 20
 
-    xlow_indices = torch.randperm(500)[:300]
-    x_low = x_all[xlow_indices]
-    xhigh_indices = torch.randperm(500)[:300]
+    # xlow_indices = torch.randperm(500)[:300]
+    # x_low = x_all[xlow_indices]
+    # xhigh_indices = torch.randperm(500)[:300]
 
-    # x_high = x_all[xhigh_indices]
-    ## full subset
-    x_high = x_all[xlow_indices]
+    # # x_high = x_all[xhigh_indices]
+    # ## full subset
+    # x_high = x_all[xlow_indices]
 
-    x_test = torch.linspace(0, 20, 100).reshape(-1, 1)
+    # x_test = torch.linspace(0, 20, 100).reshape(-1, 1)
 
-    y_low = torch.sin(x_low) + torch.rand(300, 1) * 0.6 - 0.3
-    y_high = torch.sin(x_high) + torch.rand(300, 1) * 0.2 - 0.1
-    y_test = torch.sin(x_test)
+    # y_low = torch.sin(x_low) + torch.rand(300, 1) * 0.6 - 0.3
+    # y_high = torch.sin(x_high) + torch.rand(300, 1) * 0.2 - 0.1
+    # y_test = torch.sin(x_test)
 
-    x_train = [x_low, x_high]
-    y_train = [y_low, y_high]
+    # x_train = [x_low, x_high]
+    # y_train = [y_low, y_high]
 
-    low_shape=y_low[0].shape
-    high_shape=y_high[0].shape
+    # low_shape=y_low[0].shape
+    # high_shape=y_high[0].shape
+
+    x = np.load('assets\\MF_data\\Poisson_data\\input.npy')
+    x = torch.tensor(x, dtype=torch.float32)
+    yl=np.load('assets\\MF_data\\Poisson_data\\output_fidelity_1.npy')
+    yl = torch.tensor(yl, dtype=torch.float32)
+    yh = np.load('assets\\MF_data\\Poisson_data\\output_fidelity_2.npy')
+    yh = torch.tensor(yh, dtype=torch.float32)
+
+    ## Standardization layer, currently using full dimensional standardization
+    dnm_x = Normalize0_layer(x)
+    dnm_yl = Normalize0_layer(yl)
+    dnm_yh = Normalize0_layer(yh)
+
+
+    #normalize the data
+    x=dnm_x.forward(x)
+    y_l=dnm_yl.forward(yl)
+    y_h=dnm_yh.forward(yh)
+
+    x_train = x[:128,:]
+    y_l = yl[:128,:]
+    y_h = yh[:128,:]
+    x_train = [x_train,x_train]
+    y_train = [y_l, y_h]
+    x_test = x[128:,:]
+    y_test = y_h[128:,:]
+    low_shape=y_l[0].shape
+    high_shape=y_h[0].shape
+
 
     GAR=GAR_twofidelity(low_shape,high_shape)
     train_GAR_twofidelity(GAR, x_train, y_train, max_iter=100, lr_init=1e-2)
     ypred, ypred_var = GAR(x_test)
+    ypred=dnm_yh.inverse(ypred)
 
     plt.figure()
     plt.errorbar(x_test.flatten(), ypred.reshape(-1).detach(), ypred_var.diag().sqrt().squeeze().detach(), fmt='r-.' ,alpha = 0.2)

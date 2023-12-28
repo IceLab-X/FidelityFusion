@@ -3,11 +3,12 @@
 # author: Wei Xing
 # date: 2023-12-12
 # version: 1.0
-
+import sys
+sys.path.append(r'H:\\eda\\mybranch')
 import torch
 import torch.nn as nn
 # import kernel as kernel
-import base.kernel as kernel
+import GaussianProcess.kernel as kernel
 from base.gp_basic import GP_basic as CIGP
 import MF_pack as mf
 import matplotlib.pyplot as plt
