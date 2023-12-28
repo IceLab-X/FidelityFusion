@@ -1,11 +1,13 @@
+import sys
+sys.path.append(r'H:\\eda\\mybranch')
 import numpy as np
 import torch
 import torch.nn as nn
-import base.kernel as kernel
+import GaussianProcess.kernel as kernel
 import tensorly
 import math
 import matplotlib.pyplot as plt
-from base.gp_transform import Normalize0_layer
+from GaussianProcess.gp_transform import Normalize0_layer
 from tensorly import tucker_to_tensor
 tensorly.set_backend('pytorch')
 
@@ -40,18 +42,18 @@ class HOGP_simple(nn.Module):
                 self.mapping_vector[i].requires_grad = False
 
         
-    def forward(self,x_train,x_test):
+    def forward(self,x_test):
         with torch.no_grad():
-            
-            K_star = self.kernel_list[0](x_test[0], x_train[0])
+            x_train = self.x_train
+            K_star = self.kernel_list[0](x_test, x_train)
             K_predict = [K_star] + self.K[1:]
 
             predict_u = tensorly.tenalg.multi_mode_dot(self.g, K_predict)
             n_dim = len(self.K_eigen) - 1
-            _init_value = torch.tensor([1.0]).reshape(*[1 for i in range(n_dim)]).to(x_train[0].device)
+            _init_value = torch.tensor([1.0]).reshape(*[1 for i in range(n_dim)]).to(x_train.device)
             diag_K_dims = tucker_to_tensor(( _init_value, [K.diag().reshape(-1,1) for K in self.K[1:]]))
             diag_K_dims = diag_K_dims.unsqueeze(0)
-            diag_K_x = self.kernel_list[0](x_test[0], x_test[0]).diag()
+            diag_K_x = self.kernel_list[0](x_test, x_test).diag()
             for i in range(n_dim):
                 diag_K_x = diag_K_x.unsqueeze(-1)
             diag_K = diag_K_x*diag_K_dims
@@ -68,10 +70,10 @@ class HOGP_simple(nn.Module):
         return predict_u, var_diag
     
     def log_likelihood(self, x_train,y_train):
-        
+        self.x_train=x_train
         self.K.clear()
         self.K_eigen.clear()
-        self.K.append(self.kernel_list[0](x_train[0], x_train[0]))
+        self.K.append(self.kernel_list[0](x_train, x_train))
         self.K_eigen.append(eigen_pairs(self.K[-1]))
 
         for i in range(0, len(self.kernel_list)-1):
@@ -83,7 +85,7 @@ class HOGP_simple(nn.Module):
         A = tucker_to_tensor((_init_value, lambda_list))
         A = A + self.noise_variance.pow(-1)* tensorly.ones(A.shape,  device=list(self.parameters())[0].device)
 
-        T_1 = tensorly.tenalg.multi_mode_dot(y_train[0], [eigen.vector.T for eigen in self.K_eigen])
+        T_1 = tensorly.tenalg.multi_mode_dot(y_train, [eigen.vector.T for eigen in self.K_eigen])
         T_2 = T_1 * A.pow(-1/2) 
         T_3 = tensorly.tenalg.multi_mode_dot(T_2, [eigen.vector for eigen in self.K_eigen]) 
         b = tensorly.tensor_to_vec(T_3)
@@ -118,9 +120,9 @@ if __name__ == '__main__':
     # single output test 1
     torch.manual_seed(1)       #set seed for reproducibility
     ##
-    x = np.load('H:\\eda\\mybranch\\assets\\MF_data\\Poisson_data\\input.npy')
+    x = np.load('assets\\MF_data\\Poisson_data\\input.npy')
     x = torch.tensor(x, dtype=torch.float32).to(device)
-    y = np.load('H:\\eda\\mybranch\\assets\\MF_data\\Poisson_data\\output_fidelity_2.npy')
+    y = np.load('assets\\MF_data\\Poisson_data\\output_fidelity_2.npy')
     y = torch.tensor(y, dtype=torch.float32).to(device)
 
     ## Standardization layer, currently using full dimensional standardization
@@ -131,12 +133,12 @@ if __name__ == '__main__':
     x=dnm_x.forward(x)
     y=dnm_y.forward(y)
 
-    xtr = [x[:128,:]]
-    ytr = [y[:128,:]]
-    xte = [x[128:,:]]
-    yte = [y[128:,:]]
+    xtr = x[:128,:]
+    ytr = y[:128,:]
+    xte = x[128:,:]
+    yte = y[128:,:]
 
-    output_shape=ytr[0][0,...].shape
+    output_shape=ytr[0,...].shape
 
     GPmodel=HOGP_simple(kernel=kernel.ARDKernel(1),noise_variance=1.0,output_shape=output_shape)
 
@@ -152,13 +154,13 @@ if __name__ == '__main__':
         print('iter', i, 'nll:{:.5f}'.format(loss.item()))
         
     with torch.no_grad():
-        ypred, ypred_var = GPmodel.forward(xtr,xte)
+        ypred, ypred_var = GPmodel.forward(xte)
         ypred=dnm_y.inverse(ypred)
     
     ##plot_res_for_only_1
     # for i in range(yte[0].shape[0]):
     fig, axs = plt.subplots(1, 3, figsize=(15, 5))
-    yte = dnm_y.inverse(yte[0])
+    yte = dnm_y.inverse(yte)
     vmin = torch.min(yte[1])
     vmax = torch.max(yte[1])
 

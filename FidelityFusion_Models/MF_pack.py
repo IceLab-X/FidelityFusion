@@ -72,14 +72,15 @@ class MultiFidelityData:
 # fidelity_2 = {'fidelity_index': 'medium', 'X': torch.tensor([3, 4, 5, 6, 7]), 'Y': torch.tensor([7, 6, 5, 4, 3])}
 # fidelity_3 = {'fidelity_index': 'high', 'X': torch.tensor([2, 4, 6, 8]), 'Y': torch.tensor([8, 6, 4, 2])}
 
-fidelity_1 = {'fidelity_index': '0', 'X': torch.tensor([1, 2, 3, 4, 5]), 'Y': torch.tensor([5, 4, 3, 2, 1])}
-fidelity_2 = {'fidelity_index': '1', 'X': torch.tensor([3, 4, 5, 6, 7]), 'Y': torch.tensor([7, 6, 5, 4, 3])}
-fidelity_3 = {'fidelity_index': '2', 'X': torch.tensor([2, 4, 6, 8]), 'Y': torch.tensor([8, 6, 4, 2])}
+if __name__ == "__main__":
+    fidelity_1 = {'fidelity_index': '0', 'X': torch.tensor([1, 2, 3, 4, 5]), 'Y': torch.tensor([5, 4, 3, 2, 1])}
+    fidelity_2 = {'fidelity_index': '1', 'X': torch.tensor([3, 4, 5, 6, 7]), 'Y': torch.tensor([7, 6, 5, 4, 3])}
+    fidelity_3 = {'fidelity_index': '2', 'X': torch.tensor([2, 4, 6, 8]), 'Y': torch.tensor([8, 6, 4, 2])}
 
-mf_data = MultiFidelityData([fidelity_1, fidelity_2, fidelity_3])
-unique_x, absolute_indices = mf_data.get_absolute_indices()
-relative_indices = mf_data.get_relative_indices()
+    mf_data = MultiFidelityData([fidelity_1, fidelity_2, fidelity_3])
+    unique_x, absolute_indices = mf_data.get_absolute_indices()
+    relative_indices = mf_data.get_relative_indices()
 
-print("Unique x values (Absolute System):", unique_x)
-print("Absolute Index Mapping:", absolute_indices)
-print("Relative Index Mapping (Overlap and Non-Overlap):", relative_indices)
+    print("Unique x values (Absolute System):", unique_x)
+    print("Absolute Index Mapping:", absolute_indices)
+    print("Relative Index Mapping (Overlap and Non-Overlap):", relative_indices)

@@ -1,5 +1,6 @@
+import sys
+sys.path.append(r'H:\\eda\\mybranch')
 import torch
-
 from MFGP_ver2023May.utils.mfgp_log import MFGP_LOG
 from MFGP_ver2023May.utils.dict_tools import update_dict_with_default
 from MFGP_ver2023May.base_gp.cigp import CIGP
@@ -14,8 +15,17 @@ default_cigp_model_config = {
 
 default_ar_config = {
     'cigp_model_config': default_cigp_model_config,
-    'fidelity_shapes': [],
+    'fidelity_shapes': [1,1],
 }
+
+def find_subsets_and_indexes(x_low, x_high):
+    # find the overlap set
+    flat_x_low = x_low.flatten()
+    flat_x_high = x_high.flatten()
+    subset_indexes_low = torch.nonzero(torch.isin(flat_x_low, flat_x_high), as_tuple=True)[0]
+    subset_indexes_high = torch.nonzero(torch.isin(flat_x_high, flat_x_low), as_tuple=True)[0]
+    subset_x = flat_x_low[subset_indexes_low].reshape(-1,1)
+    return subset_x, subset_indexes_low, subset_indexes_high
 
 class NAR(torch.nn.Module):
     def __init__(self, nar_config) -> None:
@@ -214,6 +224,11 @@ class NAR(torch.nn.Module):
             else:
                 if self.nonsubset:
                     x, y_low, y_high = self._get_nonsubset_data(x_list[_fn-1], x_list[_fn], y_list[_fn-1], y_list[_fn], _fn)
+
+                    # subset_x, subset_indexes_low, subset_indexes_high = find_subsets_and_indexes(x_low, x_high)
+                    # x=subset_x
+                    # y_low = y_list[_fn-1][subset_indexes_low]
+                    # y_high = y_list[_fn][subset_indexes_high]
                 else:
                     x = x_list[0]
                     y_low = y_list[_fn-1]
@@ -222,3 +237,31 @@ class NAR(torch.nn.Module):
                 concat_input = torch.cat([x, y_low], dim=-1)
                 loss += self.cigp_list[_fn].compute_loss(concat_input, y_high, update_data=False)
         return loss
+    
+if __name__ == "__main__":
+    torch.manual_seed(1)
+    # generate the data
+    x_all = torch.rand(500, 1) * 20
+    xlow_indices = torch.randperm(500)[:300]
+    x_low = x_all[xlow_indices]
+    xhigh_indices = torch.randperm(500)[:300]
+    x_high = x_all[xhigh_indices]
+    x_test = torch.linspace(0, 20, 100).reshape(-1, 1)
+
+    y_low = torch.sin(x_low) + torch.rand(300, 1) * 0.6 - 0.3
+    y_high = torch.sin(x_high) + torch.rand(300, 1) * 0.2 - 0.1
+    y_test = torch.sin(x_test)
+
+    x_train = [x_low, x_high]
+    y_train = [y_low, y_high]
+
+    myNAR = NAR(default_ar_config)
+    myNAR.compute_loss(x_train, y_train, to_fidelity_n=1)
+    ypred, ypred_var = myNAR.forward(x_test)
+
+    import matplotlib.pyplot as plt
+    plt.figure()
+    plt.errorbar(x_test.flatten(), ypred.reshape(-1).detach(), ypred_var.diag().sqrt().squeeze().detach(), fmt='r-.' ,alpha = 0.2)
+    plt.fill_between(x_test.flatten(), ypred.reshape(-1).detach() - ypred_var.diag().sqrt().squeeze().detach(), ypred.reshape(-1).detach() + ypred_var.diag().sqrt().squeeze().detach(), alpha=0.2)
+    plt.plot(x_test.flatten(), y_test, 'k+')
+    plt.show()

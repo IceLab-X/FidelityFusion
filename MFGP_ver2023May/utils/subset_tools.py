@@ -54,7 +54,7 @@ class Subset_checker():
             assert False, "|error|: tensor has duplicate samples"
 
     @numpy_compatible_decorator
-    @staticmethod
+    # @staticmethod
     def get_subset(data_a, data_b, subset_type='index', sample_dim=0):
         '''
         Return the subset of data_check, data_base
