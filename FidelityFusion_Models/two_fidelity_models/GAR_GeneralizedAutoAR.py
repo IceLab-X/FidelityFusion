@@ -8,20 +8,30 @@ import tensorly
 tensorly.set_backend('pytorch')
 
 def find_subsets_and_indexes(x_low, x_high):
-    # find the overlap set
-    flat_x_low = x_low.flatten()
-    flat_x_high = x_high.flatten()
-    subset_indexes_low = torch.nonzero(torch.isin(flat_x_low, flat_x_high), as_tuple=True)[0]
-    subset_indexes_high = torch.nonzero(torch.isin(flat_x_high, flat_x_low), as_tuple=True)[0]
-    subset_x = flat_x_low[subset_indexes_low].reshape(-1,1)
+    
+    subset_indexes_low = []
+    subset_indexes_high = []
+
+    for i, row_x1 in enumerate(x_low):
+        for j, row_x2 in enumerate(x_high):
+            if torch.equal(row_x1, row_x2):
+                subset_indexes_low.append(i)
+                subset_indexes_high.append(j)
+    subset_x=x_low[subset_indexes_low]
     return subset_x, subset_indexes_low, subset_indexes_high
 
-class Matric_l2h(torch.nn.Module):
-    def __init__(self,l_shape,h_shape,rho=1.,trainable_rho=False):
+class GAR_twofidelity(torch.nn.Module):
+    def __init__(self,l_shape,h_shape,rho=1.):
         super().__init__()
-        self.l_shape = l_shape
+        self.l_shape=l_shape
+        self.h_shape=h_shape
+
+        self.low_fidelity_HOGP=HOGP_simple(kernel=kernel.SquaredExponentialKernel(length_scale=1.,signal_variance=1.),
+                                            noise_variance=1.0,output_shape=h_shape)
+        self.high_fidelity_HOGP=HOGP_simple(kernel=kernel.SquaredExponentialKernel(length_scale=1.,signal_variance=1.),
+                                            noise_variance=1.0,output_shape=h_shape)
+        ## Matric_l2h
         self.vectors = []
-        ##eye
         for i in range(len(l_shape)):
             if l_shape[i] < h_shape[i]:
                 init_tensor = torch.eye(l_shape[i])
@@ -33,39 +43,22 @@ class Matric_l2h(torch.nn.Module):
             self.vectors.append(torch.nn.Parameter(init_tensor))
         self.vectors = torch.nn.ParameterList(self.vectors)
         self.rho = torch.nn.Parameter(torch.tensor(rho, dtype=torch.float32))
-        if not trainable_rho:
-            self.rho.requires_grad = False
-    
-    def forward(self, low_fidelity, high_fidelity):
-        for i in range(len(self.l_shape)):
-            low_fidelity = tensorly.tenalg.mode_dot(low_fidelity, self.vectors[i], i+1)
+        self.rho.requires_grad = False
 
-        res = high_fidelity - low_fidelity*self.rho
-        return res
-    
-    def backward(self, low_fidelity, res):
-        for i in range(len(self.l_shape)):
-            low_fidelity = tensorly.tenalg.mode_dot(low_fidelity, self.vectors[i], i+1)
-
-        high_fidelity = low_fidelity*self.rho + res
-        return high_fidelity
-        
-
-class GAR_twofidelity(torch.nn.Module):
-    def __init__(self,l_shape,h_shape):
-        super().__init__()
-        self.low_fidelity_HOGP=HOGP_simple(kernel=kernel.SquaredExponentialKernel(length_scale=1.,signal_variance=1.),
-                                            noise_variance=1.0,output_shape=h_shape)
-        self.high_fidelity_HOGP=HOGP_simple(kernel=kernel.SquaredExponentialKernel(length_scale=1.,signal_variance=1.),
-                                            noise_variance=1.0,output_shape=h_shape)
-        self.Matric=Matric_l2h(l_shape,h_shape)
 
     def forward(self,x_test):
         mean_low,var_low=self.low_fidelity_HOGP.forward(x_test)
 
         mean_res,var_res=self.high_fidelity_HOGP.forward(x_test)
-        mean_high=self.Matric.backward(mean_low,mean_res)
-        var_high=self.Matric.backward(var_low,var_res)
+
+        for i in range(len(self.l_shape)):
+            mean_low = tensorly.tenalg.mode_dot(mean_low, self.vectors[i], i+1)
+        mean_high = mean_low*self.rho + mean_res
+
+        for i in range(len(self.l_shape)):
+            var_low = tensorly.tenalg.mode_dot(var_low, self.vectors[i], i+1)
+        var_high = var_low*self.rho + var_res
+
         return mean_high,var_high
         
 
@@ -92,36 +85,20 @@ def train_GAR_twofidelity(GARmodel, x_train, y_train,max_iter=1000,lr_init=1e-1)
     optimizer_high = torch.optim.Adam(GARmodel.parameters(), lr=lr_init)
     for i in range(max_iter):
         optimizer_high.zero_grad()
-        res = GARmodel.Matric.forward(y_low,y_high)
+
+        with torch.no_grad():
+            for j in range(len(GARmodel.l_shape)):
+                y_low = tensorly.tenalg.mode_dot(y_low, GARmodel.vectors[j], j+1)
+        res = y_high - y_low * GARmodel.rho
+
         loss = GARmodel.high_fidelity_HOGP.log_likelihood(subset_x,res)
         loss.backward()
         optimizer_high.step()
         print('iter', i, 'nll:{:.5f}'.format(loss.item()))
 
+
 if __name__ == "__main__":
     torch.manual_seed(1)
-    # generate the data
-    # x_all = torch.rand(500, 1) * 20
-
-    # xlow_indices = torch.randperm(500)[:300]
-    # x_low = x_all[xlow_indices]
-    # xhigh_indices = torch.randperm(500)[:300]
-
-    # # x_high = x_all[xhigh_indices]
-    # ## full subset
-    # x_high = x_all[xlow_indices]
-
-    # x_test = torch.linspace(0, 20, 100).reshape(-1, 1)
-
-    # y_low = torch.sin(x_low) + torch.rand(300, 1) * 0.6 - 0.3
-    # y_high = torch.sin(x_high) + torch.rand(300, 1) * 0.2 - 0.1
-    # y_test = torch.sin(x_test)
-
-    # x_train = [x_low, x_high]
-    # y_train = [y_low, y_high]
-
-    # low_shape=y_low[0].shape
-    # high_shape=y_high[0].shape
 
     x = np.load('assets\\MF_data\\Poisson_data\\input.npy')
     x = torch.tensor(x, dtype=torch.float32)
@@ -135,7 +112,6 @@ if __name__ == "__main__":
     dnm_yl = Normalize0_layer(yl)
     dnm_yh = Normalize0_layer(yh)
 
-
     #normalize the data
     x=dnm_x.forward(x)
     y_l=dnm_yl.forward(yl)
@@ -144,23 +120,39 @@ if __name__ == "__main__":
     x_train = x[:128,:]
     y_l = yl[:128,:]
     y_h = yh[:128,:]
+
     x_train = [x_train,x_train]
     y_train = [y_l, y_h]
+
     x_test = x[128:,:]
-    y_test = y_h[128:,:]
+    y_test = yh[128:,:]
     low_shape=y_l[0].shape
     high_shape=y_h[0].shape
 
-
     GAR=GAR_twofidelity(low_shape,high_shape)
-    train_GAR_twofidelity(GAR, x_train, y_train, max_iter=100, lr_init=1e-2)
-    ypred, ypred_var = GAR(x_test)
-    ypred=dnm_yh.inverse(ypred)
+    train_GAR_twofidelity(GAR, x_train, y_train, max_iter=100, lr_init=1e-3)
 
-    plt.figure()
-    plt.errorbar(x_test.flatten(), ypred.reshape(-1).detach(), ypred_var.diag().sqrt().squeeze().detach(), fmt='r-.' ,alpha = 0.2)
-    plt.fill_between(x_test.flatten(), ypred.reshape(-1).detach() - ypred_var.diag().sqrt().squeeze().detach(), ypred.reshape(-1).detach() + ypred_var.diag().sqrt().squeeze().detach(), alpha=0.2)
-    plt.plot(x_test.flatten(), y_test, 'k+')
+    with torch.no_grad():
+        ypred, ypred_var = GAR(x_test)
+        ypred=dnm_yh.inverse(ypred)
+
+    ##plot the results
+    fig, axs = plt.subplots(1, 3, figsize=(15, 5))
+    yte = dnm_yh.inverse(y_test)
+    vmin = torch.min(yte[1])
+    vmax = torch.max(yte[1])
+
+    im = axs[0].imshow(yte[1].cpu(), cmap='hot', interpolation='nearest',vmin=vmin,vmax=vmax)
+    axs[0].set_title('Groundtruth')
+
+    axs[1].imshow(ypred[1].cpu(), cmap='hot', interpolation='nearest',vmin=vmin,vmax=vmax)
+    axs[1].set_title('Predict')
+
+    axs[2].imshow((yte[1].cpu()-ypred[1].cpu()).abs(), cmap='hot', interpolation='nearest',vmin=vmin,vmax=vmax)
+    axs[2].set_title('Difference')
+
+    cbar_ax = fig.add_axes([0.95, 0.2, 0.03, 0.6])
+    cbar=fig.colorbar(im, cax=cbar_ax)
     plt.show()
 
     
