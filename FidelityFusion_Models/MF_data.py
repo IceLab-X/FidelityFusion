@@ -83,6 +83,14 @@ class MultiFidelityDataManager:
             common_x1 = data1[0][common_indices_x1]
             common_x2 = data2[0][common_indices_x2]
 
+            # sorted_indices_x1 = torch.argsort(common_x1, dim=0)
+            # sorted_indices_x2 = torch.argsort(common_x2, dim=0)
+
+            # common_x1 = common_x1[sorted_indices_x1]
+            # common_x2 = common_x2[sorted_indices_x2]
+
+            # y1 = data1[1][common_indices_x1][sorted_indices_x1]
+            # y2 = data2[1][common_indices_x2][sorted_indices_x2]
             y1 = data1[1][common_indices_x1]
             y2 = data2[1][common_indices_x2]
 
@@ -124,8 +132,8 @@ class MultiFidelityDataManager:
 if __name__ == "__main__":
 
     initial_data = [
-        {'fidelity_index': '0', 'X': torch.tensor([[1, 2], [2, 4], [3, 6], [4, 6], [5, 7]]), 'Y': torch.tensor([[5], [4], [3], [2], [1]])},
-        {'fidelity_index': '1', 'X': torch.tensor([[1, 3], [2, 4], [5, 7], [6, 4], [7, 1]]), 'Y': torch.tensor([[7], [6], [5], [4], [3]])}
+        {'fidelity_index': '0', 'X': torch.tensor([[1, 2], [2, 4], [3, 6], [4, 6], [7, 3]]), 'Y': torch.tensor([[5], [4], [3], [2], [1]])},
+        {'fidelity_index': '1', 'X': torch.tensor([[1, 3], [2, 4], [7, 3], [6, 4], [7, 1]]), 'Y': torch.tensor([[7], [6], [5], [4], [3]])}
     ]
 
     fidelity_manager = MultiFidelityDataManager(initial_data)

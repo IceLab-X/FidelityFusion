@@ -89,8 +89,10 @@ if __name__ == "__main__":
     # generate the data
     x_all = torch.rand(500, 1) * 20
     xlow_indices = torch.randperm(500)[:300]
+    xlow_indices = torch.sort(xlow_indices).values
     x_low = x_all[xlow_indices]
     xhigh_indices = torch.randperm(500)[:300]
+    xhigh_indices = torch.sort(xhigh_indices).values
     x_high = x_all[xhigh_indices]
     x_test = torch.linspace(0, 20, 100).reshape(-1, 1)
 

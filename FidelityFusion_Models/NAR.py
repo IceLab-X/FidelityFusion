@@ -7,9 +7,9 @@ from two_fidelity_models.base.gp_basic import GP_basic as CIGP
 from MF_data import MultiFidelityDataManager
 import matplotlib.pyplot as plt
 
-class autoRegression(nn.Module):
+class NAR(nn.Module):
     # initialize the model
-    def __init__(self,fidelity_num,kernel,rho_init=1.0):
+    def __init__(self,fidelity_num,kernel):
         super().__init__()
         self.fidelity_num = fidelity_num
         # create the model
@@ -18,12 +18,6 @@ class autoRegression(nn.Module):
             self.cigp_list.append(CIGP(kernel=kernel, noise_variance=1.0))
         
         self.cigp_list = torch.nn.ModuleList(self.cigp_list)
-
-        self.rho_list=[]
-        for _ in range(self.fidelity_num-1):
-            self.rho_list.append(torch.nn.Parameter(torch.tensor(rho_init)))
-
-        self.rho_list = torch.nn.ParameterList(self.rho_list)
 
     def forward(self,x_test):
         # predict the model
@@ -34,9 +28,8 @@ class autoRegression(nn.Module):
                     y_pred_high = y_pred_low
                     cov_pred_high = cov_pred_low
             else:
-                y_pred_res, cov_pred_res= self.cigp_list[f](x_test)
-                y_pred_high = y_pred_low + self.rho_list[f-1] * y_pred_res
-                cov_pred_high = cov_pred_low + (self.rho_list[f-1] **2) * cov_pred_res
+                concat_input= torch.cat([x_test,y_pred_low.reshape(-1,1)],dim=-1)
+                y_pred_high, cov_pred_high= self.cigp_list[f](concat_input)
 
                 ## for next fidelity
                 y_pred_low = y_pred_high
@@ -45,20 +38,20 @@ class autoRegression(nn.Module):
         # return the prediction
         return y_pred_high, cov_pred_high
     
-def train_AR(ARmodel,data_manager,max_iter=1000,lr_init=1e-1):
+def train_NAR(NARmodel,data_manager,max_iter=1000,lr_init=1e-1):
     
-    optimizer = torch.optim.Adam(ARmodel.parameters(), lr=lr_init)
+    optimizer = torch.optim.Adam(NARmodel.parameters(), lr=lr_init)
     for i in range(max_iter):
         optimizer.zero_grad()
         loss = 0.
-        for f in range(ARmodel.fidelity_num):
+        for f in range(NARmodel.fidelity_num):
             if f == 0:
                 x_low,y_low = data_manager.get_data(str(f))
-                loss += -ARmodel.cigp_list[f].log_likelihood(x_low, y_low)
+                loss += -NARmodel.cigp_list[f].log_likelihood(x_low, y_low)
             else:
                 _, y_low, subset_x,y_high = data_manager.get_overlap_input_data(str(f-1),str(f))
-                y_residual = y_high - ARmodel.rho_list[f-1] * y_low
-                loss += -ARmodel.cigp_list[f].log_likelihood(subset_x, y_residual)
+                concat_input= torch.cat([subset_x,y_low],dim=-1)
+                loss += -NARmodel.cigp_list[f].log_likelihood(concat_input, y_high)
         loss.backward()
         optimizer.step()
         print('iter', i, 'nll:{:.5f}'.format(loss.item()))
@@ -94,12 +87,12 @@ if __name__ == "__main__":
 
     fidelity_manager = MultiFidelityDataManager(initial_data)
     kernel1 = kernel.SumKernel(kernel.LinearKernel(1), kernel.MaternKernel(1))
-    AR = autoRegression(fidelity_num=3,kernel=kernel1,rho_init=1.0)
+    myNAR = NAR(fidelity_num=3,kernel=kernel1)
 
-    train_AR(AR,fidelity_manager, max_iter=200, lr_init=1e-2)
+    train_NAR(myNAR,fidelity_manager, max_iter=200, lr_init=1e-2)
 
     with torch.no_grad():
-        ypred, ypred_var = AR(x_test)
+        ypred, ypred_var = myNAR(x_test)
 
     plt.figure()
     plt.errorbar(x_test.flatten(), ypred.reshape(-1).detach(), ypred_var.diag().sqrt().squeeze().detach(), fmt='r-.' ,alpha = 0.2)
