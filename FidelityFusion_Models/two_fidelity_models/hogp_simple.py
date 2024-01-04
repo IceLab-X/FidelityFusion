@@ -42,9 +42,9 @@ class HOGP_simple(nn.Module):
                 self.mapping_vector[i].requires_grad = False
 
         
-    def forward(self,x_test):
+    def forward(self,x_train,x_test):
         with torch.no_grad():
-            x_train = self.x_train
+            # x_train = self.x_train
             K_star = self.kernel_list[0](x_test, x_train)
             K_predict = [K_star] + self.K[1:]
 
@@ -70,7 +70,7 @@ class HOGP_simple(nn.Module):
         return predict_u, var_diag
     
     def log_likelihood(self, x_train,y_train):
-        self.x_train=x_train
+        # self.x_train=x_train
         self.K.clear()
         self.K_eigen.clear()
         self.K.append(self.kernel_list[0](x_train, x_train))
@@ -154,7 +154,7 @@ if __name__ == '__main__':
         print('iter', i, 'nll:{:.5f}'.format(loss.item()))
         
     with torch.no_grad():
-        ypred, ypred_var = GPmodel.forward(xte)
+        ypred, ypred_var = GPmodel.forward(xtr,xte)
         ypred=dnm_y.inverse(ypred)
     
     ##plot_res_for_only_1

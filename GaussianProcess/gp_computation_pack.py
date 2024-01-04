@@ -8,6 +8,8 @@
 import torch
 import torch.nn as nn
 import numpy as np
+import tensorly
+tensorly.set_backend('pytorch')
 
 
 EPS = 1e-9
@@ -111,3 +113,25 @@ def conditional_Gaussian(y, Sigma, K_s, K_ss, Kinv_method='cholesky3'):
         raise ValueError('Kinv_method should be either direct or cholesky')
     
     return mu, cov
+
+class Tensor_linear(torch.nn.Module):
+    def __init__(self,l_shape,h_shape):
+        super().__init__()
+        self.l_shape=l_shape
+        self.h_shape=h_shape
+        self.vectors = []
+        for i in range(len(self.l_shape)):
+            if self.l_shape[i] < self.h_shape[i]:
+                init_tensor = torch.eye(self.l_shape[i])
+                init_tensor = torch.nn.functional.interpolate(init_tensor.reshape(1, 1, *init_tensor.shape), 
+                                                            (self.l_shape[i],self.h_shape[i]), mode='bilinear')
+                init_tensor = init_tensor.squeeze().T
+            elif self.l_shape[i] == self.h_shape[i]:
+                init_tensor = torch.eye(self.l_shape[i])
+            self.vectors.append(torch.nn.Parameter(init_tensor))
+        self.vectors = torch.nn.ParameterList(self.vectors)
+
+    def forward(self,x):
+        for i in range(len(self.l_shape)):
+            y = tensorly.tenalg.mode_dot(x, self.vectors[i], i+1)
+        return y

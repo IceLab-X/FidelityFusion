@@ -3,7 +3,7 @@ sys.path.append(r'H:\\eda\\mybranch')
 import torch
 import torch.nn as nn
 import GaussianProcess.kernel as kernel
-from two_fidelity_models.base.gp_basic import GP_basic as CIGP
+from GaussianProcess.gp_basic import GP_basic as CIGP
 from MF_data import MultiFidelityDataManager
 import matplotlib.pyplot as plt
 
@@ -19,17 +19,19 @@ class NAR(nn.Module):
         
         self.cigp_list = torch.nn.ModuleList(self.cigp_list)
 
-    def forward(self,x_test):
+    def forward(self,data_manager,x_test):
         # predict the model
         for f in range(self.fidelity_num):
             if f == 0:
-                y_pred_low, cov_pred_low = self.cigp_list[f](x_test)
+                x_train,y_train = data_manager.get_data(f)
+                y_pred_low, cov_pred_low = self.cigp_list[f](x_train,y_train,x_test)
                 if self.fidelity_num == 1:
                     y_pred_high = y_pred_low
                     cov_pred_high = cov_pred_low
             else:
+                x_train,y_train = data_manager.get_data(-f)
                 concat_input= torch.cat([x_test,y_pred_low.reshape(-1,1)],dim=-1)
-                y_pred_high, cov_pred_high= self.cigp_list[f](concat_input)
+                y_pred_high, cov_pred_high= self.cigp_list[f](x_train,y_train,concat_input)
 
                 ## for next fidelity
                 y_pred_low = y_pred_high
@@ -40,21 +42,26 @@ class NAR(nn.Module):
     
 def train_NAR(NARmodel,data_manager,max_iter=1000,lr_init=1e-1):
     
-    optimizer = torch.optim.Adam(NARmodel.parameters(), lr=lr_init)
-    for i in range(max_iter):
-        optimizer.zero_grad()
-        loss = 0.
-        for f in range(NARmodel.fidelity_num):
-            if f == 0:
-                x_low,y_low = data_manager.get_data(str(f))
-                loss += -NARmodel.cigp_list[f].log_likelihood(x_low, y_low)
-            else:
-                _, y_low, subset_x,y_high = data_manager.get_overlap_input_data(str(f-1),str(f))
-                concat_input= torch.cat([subset_x,y_low],dim=-1)
-                loss += -NARmodel.cigp_list[f].log_likelihood(concat_input, y_high)
-        loss.backward()
-        optimizer.step()
-        print('iter', i, 'nll:{:.5f}'.format(loss.item()))
+    for f in range(NARmodel.fidelity_num):
+        optimizer = torch.optim.Adam(NARmodel.parameters(), lr=lr_init)
+        if f == 0:
+            x_low,y_low = data_manager.get_data(f)
+            for i in range(max_iter):
+                optimizer.zero_grad()
+                loss = -NARmodel.cigp_list[f].log_likelihood(x_low, y_low)
+                loss.backward()
+                optimizer.step()
+                print('fidelity:', f, 'iter', i, 'nll:{:.5f}'.format(loss.item()))
+        else:
+            _, y_low, subset_x,y_high = data_manager.get_overlap_input_data(f-1,f)
+            concat_input= torch.cat([subset_x,y_low],dim=-1)
+            data_manager.add_data(fidelity_index=-f,raw_fidelity_name='concat-{}'.format(f),x=concat_input,y=y_high)
+            for i in range(max_iter):
+                optimizer.zero_grad()
+                loss = -NARmodel.cigp_list[f].log_likelihood(concat_input, y_high)
+                loss.backward()
+                optimizer.step()
+                print('fidelity:', f, 'iter', i,'nll:{:.5f}'.format(loss.item()))
     
 # demo 
 if __name__ == "__main__":
@@ -74,15 +81,15 @@ if __name__ == "__main__":
     x_high2 = x_all[xhigh2_indices]
     x_test = torch.linspace(0, 20, 100).reshape(-1, 1)
 
-    y_low = torch.sin(x_low) + torch.rand(300, 1) * 0.6 - 0.3
-    y_high1 = torch.sin(x_high1) + torch.rand(300, 1) * 0.4 - 0.2
-    y_high2 = torch.sin(x_high2) + torch.rand(250, 1) * 0.2 - 0.1
+    y_low = torch.sin(x_low) - torch.rand(300, 1) * 0.2
+    y_high1 = torch.sin(x_high1) - torch.rand(300, 1) * 0.1
+    y_high2 = torch.sin(x_high2) + torch.rand(250, 1) * 0.1 -0.05
     y_test = torch.sin(x_test)
 
     initial_data = [
-        {'fidelity_index': '0', 'X': x_low, 'Y': y_low},
-        {'fidelity_index': '1', 'X': x_high1, 'Y': y_high1},
-        {'fidelity_index': '2', 'X': x_high2, 'Y': y_high2},
+        {'fidelity_indicator': 0,'raw_fidelity_name': '0', 'X': x_low, 'Y': y_low},
+        {'fidelity_indicator': 1, 'raw_fidelity_name': '1','X': x_high1, 'Y': y_high1},
+        {'fidelity_indicator': 2, 'raw_fidelity_name': '2','X': x_high2, 'Y': y_high2},
     ]
 
     fidelity_manager = MultiFidelityDataManager(initial_data)
@@ -92,7 +99,7 @@ if __name__ == "__main__":
     train_NAR(myNAR,fidelity_manager, max_iter=200, lr_init=1e-2)
 
     with torch.no_grad():
-        ypred, ypred_var = myNAR(x_test)
+        ypred, ypred_var = myNAR(fidelity_manager,x_test)
 
     plt.figure()
     plt.errorbar(x_test.flatten(), ypred.reshape(-1).detach(), ypred_var.diag().sqrt().squeeze().detach(), fmt='r-.' ,alpha = 0.2)

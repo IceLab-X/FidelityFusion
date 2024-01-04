@@ -6,7 +6,8 @@
 import numpy as np
 import torch
 import torch.nn as nn
-import kernel as kernel
+## this change need to improve
+import GaussianProcess.kernel as kernel
 import time as time
 
 class GP_basic(nn.Module):

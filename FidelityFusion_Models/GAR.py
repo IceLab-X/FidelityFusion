@@ -3,67 +3,45 @@ import numpy as np
 from two_fidelity_models.hogp_simple import HOGP_simple
 import GaussianProcess.kernel as kernel
 from GaussianProcess.gp_transform import Normalize0_layer
+from GaussianProcess.gp_computation_pack import Tensor_linear
 from MF_data import MultiFidelityDataManager
 import matplotlib.pyplot as plt
-import tensorly
-tensorly.set_backend('pytorch')
-
-class Matric_l2h(torch.nn.Module):
-    def __init__(self,l_shape,h_shape):
-        super().__init__()
-        self.l_shape=l_shape
-        self.h_shape=h_shape
-        self.vectors = []
-        for i in range(len(self.l_shape)):
-            if self.l_shape[i] < self.h_shape[i]:
-                init_tensor = torch.eye(self.l_shape[i])
-                init_tensor = torch.nn.functional.interpolate(init_tensor.reshape(1, 1, *init_tensor.shape), 
-                                                              (self.l_shape[i],self.h_shape[i]), mode='bilinear')
-                init_tensor = init_tensor.squeeze().T
-            elif self.l_shape[i] == self.h_shape[i]:
-                init_tensor = torch.eye(self.l_shape[i])
-            self.vectors.append(torch.nn.Parameter(init_tensor))
-        self.vectors = torch.nn.ParameterList(self.vectors)
-
-    def forward(self,low_fidelity):
-        for i in range(len(self.l_shape)):
-            low_fidelity = tensorly.tenalg.mode_dot(low_fidelity, self.vectors[i], i+1)
-        return low_fidelity
         
 class GAR(torch.nn.Module):
     def __init__(self,kernel,l_shape,h_shape,fidelity,rho=1.):
         super().__init__()
         self.l_shape=l_shape
         self.h_shape=h_shape
-        self.fidelity=fidelity
+        self.fidelity_num=fidelity
         self.hogp_list=[]
-        for i in range(self.fidelity):
+        for i in range(self.fidelity_num):
             self.hogp_list.append(HOGP_simple(kernel=kernel,noise_variance=1.0,output_shape=h_shape[i]))
         self.hogp_list=torch.nn.ModuleList(self.hogp_list)
 
-        ## Matric_l2h
-        self.matric_list=[]
-        for i in range(self.fidelity-1):
-            self.matric_list.append(Matric_l2h(l_shape[i],h_shape[i]))
-        self.matric_list=torch.nn.ModuleList(self.matric_list)
+        self.Tensor_linear_list=[]
+        for i in range(self.fidelity_num-1):
+            self.Tensor_linear_list.append(Tensor_linear(l_shape[i],h_shape[i]))
+        self.Tensor_linear_list=torch.nn.ModuleList(self.Tensor_linear_list)
 
         self.rho_list=[]
-        for _ in range(self.fidelity-1):
+        for _ in range(self.fidelity_num-1):
             self.rho_list.append(torch.nn.Parameter(torch.tensor(rho,requires_grad=False)))
         self.rho_list = torch.nn.ParameterList(self.rho_list)
 
-    def forward(self,x_test):
+    def forward(self,data_manager,x_test):
 
-        for f in range(self.fidelity):
+        for f in range(self.fidelity_num):
             if f == 0:
-                mean_low,var_low=self.hogp_list[f].forward(x_test)
-                if self.fidelity == 1:
+                x_train,_ = data_manager.get_data(f)
+                mean_low,var_low=self.hogp_list[f].forward(x_train,x_test)
+                if self.fidelity_num == 1:
                     mean_high = mean_low
                     var_high = var_low
             else:
-                mean_res,var_res=self.hogp_list[f].forward(x_test)
-                mean_high = self.matric_list[f-1](mean_low)*self.rho_list[f-1] + mean_res
-                var_high = self.matric_list[f-1](var_low)*self.rho_list[f-1]**2 + var_res
+                subset_data = data_manager.get_overlap_input_data(f-1,f)
+                mean_res,var_res=self.hogp_list[f].forward(subset_data[2],x_test)
+                mean_high = self.Tensor_linear_list[f-1](mean_low)*self.rho_list[f-1] + mean_res
+                var_high = self.Tensor_linear_list[f-1](var_low)*self.rho_list[f-1]**2 + var_res
 
                 ## for next fidelity
                 mean_low = mean_high
@@ -73,21 +51,25 @@ class GAR(torch.nn.Module):
         
 def train_GAR(GARmodel,data_manager,max_iter=1000,lr_init=1e-1):
     
-    optimizer = torch.optim.Adam(GARmodel.parameters(), lr=lr_init)
-    for i in range(max_iter):
-        optimizer.zero_grad()
-        loss=0.
-        for f in range(GARmodel.fidelity):
-            if f == 0:
-                x_low,y_low = data_manager.get_data(str(f))
-                loss += GARmodel.hogp_list[f].log_likelihood(x_low, y_low)
-            else:
-                _, y_low, subset_x,y_high = data_manager.get_overlap_input_data(str(f-1),str(f))
-                res = y_high - GARmodel.matric_list[f-1](y_low)*GARmodel.rho_list[f-1]
-                loss += GARmodel.hogp_list[f].log_likelihood(subset_x, res)
-        loss.backward()
-        optimizer.step()
-        print('iter', i, 'nll:{:.5f}'.format(loss.item()))
+    for f in range(GARmodel.fidelity_num):
+        optimizer = torch.optim.Adam(GARmodel.parameters(), lr=lr_init)
+        if f == 0:
+            x_low,y_low = data_manager.get_data(f)
+            for i in range(max_iter):
+                optimizer.zero_grad()
+                loss = GARmodel.hogp_list[f].log_likelihood(x_low, y_low)
+                loss.backward()
+                optimizer.step()
+                print('fidelity:', f, 'iter', i, 'nll:{:.5f}'.format(loss.item()))
+        else:
+            _, y_low, subset_x,y_high = data_manager.get_overlap_input_data(f-1,f)
+            for i in range(max_iter):
+                optimizer.zero_grad()
+                res = y_high - GARmodel.Tensor_linear_list[f-1](y_low)*GARmodel.rho_list[f-1]
+                loss = GARmodel.hogp_list[f].log_likelihood(subset_x, res)
+                loss.backward()
+                optimizer.step()
+                print('fidelity:', f, 'iter', i,'nll:{:.5f}'.format(loss.item()))
 
 if __name__ == "__main__":
     torch.manual_seed(1)
@@ -125,9 +107,9 @@ if __name__ == "__main__":
     high_shape = [y_h[0].shape, y_h2[0].shape,y_h2[0].shape] ##contain output shape
 
     initial_data = [
-        {'fidelity_index': '0', 'X': x_train, 'Y': y_l},
-        {'fidelity_index': '1', 'X': x_train, 'Y': y_h},
-        {'fidelity_index': '2', 'X': x_train, 'Y': y_h2}
+        {'fidelity_indicator': 0,'raw_fidelity_name': '0', 'X': x_train, 'Y': y_l},
+        {'fidelity_indicator': 1,'raw_fidelity_name': '1', 'X': x_train, 'Y': y_h},
+        {'fidelity_indicator': 2,'raw_fidelity_name': '2', 'X': x_train, 'Y': y_h2}
     ]
 
     fidelity_manager = MultiFidelityDataManager(initial_data)
@@ -138,7 +120,7 @@ if __name__ == "__main__":
     train_GAR(myGAR, fidelity_manager, max_iter=100, lr_init=1e-3)
 
     with torch.no_grad():
-        ypred, ypred_var = myGAR(x_test)
+        ypred, ypred_var = myGAR(fidelity_manager,x_test)
         ypred=dnm_yh2.inverse(ypred)
 
     ##plot the results

@@ -96,8 +96,8 @@ if __name__ == "__main__":
     x_high = x_all[xhigh_indices]
     x_test = torch.linspace(0, 20, 100).reshape(-1, 1)
 
-    y_low = torch.sin(x_low) + torch.rand(300, 1) * 0.6 - 0.3
-    y_high = torch.sin(x_high) + torch.rand(300, 1) * 0.2 - 0.1
+    y_low = torch.sin(x_low) - torch.rand(300, 1) * 0.1
+    y_high = torch.sin(x_high) + torch.rand(300, 1) * 0.1 - 0.05
     y_test = torch.sin(x_test)
 
     x_train = [x_low, x_high]
@@ -105,7 +105,7 @@ if __name__ == "__main__":
 
     AR = autoRegression_twofidelity(rho_init=1.0)
     print("rho_init:", AR.rho.item())
-    train_AR_twofidelity(AR, x_train, y_train, max_iter=200, lr_init=1e-2)
+    train_AR_twofidelity(AR, x_train, y_train, max_iter=100, lr_init=1e-2)
 
     with torch.no_grad():
         ypred, ypred_var = AR(x_test)
