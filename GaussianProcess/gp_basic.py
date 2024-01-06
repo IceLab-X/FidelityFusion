@@ -53,7 +53,14 @@ class GP_basic(nn.Module):
             ValueError: If Kinv_method is not 'direct' or 'cholesky'.
 
         """
+        if isinstance(y_train, list):
+            y_train_var = y_train[1]
+            y_train = y_train[0]
+        else:
+            y_train_var = None
         K = self.kernel(x_train, x_train) + self.noise_variance.pow(2) * torch.eye(len(x_train))
+        if y_train_var is not None:
+            K = K + y_train_var
         K_s = self.kernel(x_train, x_test)
         K_ss = self.kernel(x_test, x_test)
         
@@ -65,21 +72,22 @@ class GP_basic(nn.Module):
             alpha = K_inv @ y_train
             mu = K_s.T @ alpha
             v = L_inv @ K_s
-            cov = K_ss - v.T @ v
+            var = K_ss - v.T @ v
         elif Kinv_method == 'cholesky3':
             # recommended implementation, fastest so far
             L = torch.cholesky(K)
             alpha = torch.cholesky_solve(y_train, L)
             mu = K_s.T @ alpha
             v = L.inverse() @ K_s
-            cov = K_ss - v.T @ v
+            var = K_ss - v.T @ v
         elif Kinv_method == 'direct':
             K_inv = torch.inverse(K)
             mu = K_s.T @ K_inv @ y_train
-            cov = K_ss - K_s.T @ K_inv @ K_s
+            var = K_ss - K_s.T @ K_inv @ K_s
         else:
             raise ValueError('Kinv_method should be either direct or cholesky')
-        return mu.squeeze(), cov
+        
+        return mu.squeeze(), var
             
     def log_likelihood(self, x_train, y_train, Kinv_method='cholesky3'):
         """
@@ -98,7 +106,15 @@ class GP_basic(nn.Module):
             ValueError: If Kinv_method is not 'direct' or 'cholesky'.
 
         """
+        if isinstance(y_train, list):
+            y_train_var = y_train[1]
+            y_train = y_train[0]
+        else:
+            y_train_var = None
+
         K = self.kernel(x_train, x_train) + self.noise_variance.pow(2) * torch.eye(len(x_train))
+        if y_train_var is not None:
+            K = K + y_train_var 
         
         if Kinv_method == 'cholesky1':
             L = torch.cholesky(K)

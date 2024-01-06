@@ -1,5 +1,6 @@
 import sys
-sys.path.append(r'H:\\eda\\mybranch')
+import os
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 import torch
 import torch.nn as nn
 import GaussianProcess.kernel as kernel
@@ -9,7 +10,7 @@ import matplotlib.pyplot as plt
 
 class autoRegression(nn.Module):
     # initialize the model
-    def __init__(self,fidelity_num,kernel,rho_init=1.0):
+    def __init__(self,fidelity_num,kernel,rho_init=1.0,nonsubset=False):
         super().__init__()
         self.fidelity_num = fidelity_num
         # create the model
@@ -24,18 +25,23 @@ class autoRegression(nn.Module):
             self.rho_list.append(torch.nn.Parameter(torch.tensor(rho_init)))
 
         self.rho_list = torch.nn.ParameterList(self.rho_list)
+        self.nonsubset = nonsubset
 
-    def forward(self,data_manager,x_test):
+    def forward(self,data_manager,x_test,to_fidelity=None):
         # predict the model
-        for f in range(self.fidelity_num):
+        if to_fidelity is not None and to_fidelity >= 1:
+            fidelity_num = to_fidelity
+        else:
+            fidelity_num = self.fidelity_num
+        for f in range(fidelity_num):
             if f == 0:
                 x_train,y_train = data_manager.get_data(f)
                 y_pred_low, cov_pred_low = self.cigp_list[f](x_train,y_train,x_test)
-                if self.fidelity_num == 1:
+                if fidelity_num == 1:
                     y_pred_high = y_pred_low
                     cov_pred_high = cov_pred_low
             else:
-                x_train,y_train = data_manager.get_data(-f)
+                x_train,y_train = data_manager.get_data_by_name('res-{}'.format(f))
                 y_pred_res, cov_pred_res= self.cigp_list[f](x_train,y_train,x_test)
                 y_pred_high = y_pred_low + self.rho_list[f-1] * y_pred_res
                 cov_pred_high = cov_pred_low + (self.rho_list[f-1] **2) * cov_pred_res
@@ -46,6 +52,7 @@ class autoRegression(nn.Module):
 
         # return the prediction
         return y_pred_high, cov_pred_high
+    
     
 def train_AR(ARmodel,data_manager,max_iter=1000,lr_init=1e-1):
     
@@ -60,13 +67,22 @@ def train_AR(ARmodel,data_manager,max_iter=1000,lr_init=1e-1):
                 optimizer.step()
                 print('fidelity:', f, 'iter', i, 'nll:{:.5f}'.format(loss.item()))
         else:
-            _, y_low, subset_x,y_high = data_manager.get_overlap_input_data(f-1,f)
+            if ARmodel.nonsubset:
+                with torch.no_grad():
+                    subset_x,y_low,y_high = data_manager.get_nonsubset_data(ARmodel,f-1,f)
+            else:
+                _, y_low, subset_x,y_high = data_manager.get_overlap_input_data(f-1,f)
             for i in range(max_iter):
                 optimizer.zero_grad()
-                y_residual = y_high - ARmodel.rho_list[f-1] * y_low
+                if ARmodel.nonsubset:
+                    y_residual_mean = y_high[0] - ARmodel.rho_list[f-1] * y_low[0]
+                    y_residual_var = y_high[1] - ARmodel.rho_list[f-1] * y_low[1]
+                else:
+                    y_residual_mean = y_high - ARmodel.rho_list[f-1] * y_low
+                    y_residual_var = None
                 if i == max_iter-1:
-                    data_manager.add_data(fidelity_index=-f,raw_fidelity_name='res-{}'.format(f),x=subset_x,y=y_residual)
-                loss = -ARmodel.cigp_list[f].log_likelihood(subset_x, y_residual)
+                    data_manager.add_data(raw_fidelity_name='res-{}'.format(f),fidelity_index=None,x=subset_x,y=[y_residual_mean,y_residual_var])
+                loss = -ARmodel.cigp_list[f].log_likelihood(subset_x, [y_residual_mean ,y_residual_var])
                 loss.backward()
                 optimizer.step()
                 print('fidelity:', f, 'iter', i,'rho',ARmodel.rho_list[f-1].item(), 'nll:{:.5f}'.format(loss.item()))
@@ -95,16 +111,17 @@ if __name__ == "__main__":
     y_test = torch.sin(x_test)
 
     initial_data = [
-        {'fidelity_indicator': 0,'raw_fidelity_name': '0', 'X': x_low, 'Y': y_low},
-        {'fidelity_indicator': 1, 'raw_fidelity_name': '1','X': x_high1, 'Y': y_high1},
-        {'fidelity_indicator': 2, 'raw_fidelity_name': '2','X': x_high2, 'Y': y_high2},
+        {'raw_fidelity_name': '0','fidelity_indicator': 0, 'X': x_low, 'Y': y_low},
+        {'raw_fidelity_name': '1','fidelity_indicator': 1, 'X': x_high1, 'Y': y_high1},
+        {'raw_fidelity_name': '2','fidelity_indicator': 2, 'X': x_high2, 'Y': y_high2},
     ]
 
     fidelity_manager = MultiFidelityDataManager(initial_data)
     kernel1 = kernel.SumKernel(kernel.LinearKernel(1), kernel.MaternKernel(1))
-    AR = autoRegression(fidelity_num=2,kernel=kernel1,rho_init=1.0)
+    AR = autoRegression(fidelity_num=3,kernel=kernel1,rho_init=1.0,nonsubset=True)
 
-    train_AR(AR,fidelity_manager, max_iter=100, lr_init=1e-2)
+    ## if nonsubset is False, max_iter should be 100 ,lr can be 1e-2
+    train_AR(AR,fidelity_manager, max_iter=600, lr_init=1e-3)
 
     with torch.no_grad():
         ypred, ypred_var = AR(fidelity_manager,x_test)

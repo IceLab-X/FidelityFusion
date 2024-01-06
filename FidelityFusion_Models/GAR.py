@@ -8,7 +8,7 @@ from MF_data import MultiFidelityDataManager
 import matplotlib.pyplot as plt
         
 class GAR(torch.nn.Module):
-    def __init__(self,kernel,l_shape,h_shape,fidelity,rho=1.):
+    def __init__(self,kernel,l_shape,h_shape,fidelity,rho=1.,nonsubset=False):
         super().__init__()
         self.l_shape=l_shape
         self.h_shape=h_shape
@@ -27,19 +27,25 @@ class GAR(torch.nn.Module):
         for _ in range(self.fidelity_num-1):
             self.rho_list.append(torch.nn.Parameter(torch.tensor(rho,requires_grad=False)))
         self.rho_list = torch.nn.ParameterList(self.rho_list)
+        self.nonsubset = nonsubset
 
-    def forward(self,data_manager,x_test):
+    def forward(self,data_manager,x_test,to_fidelity=None):
+        
+        if to_fidelity is not None and to_fidelity >= 1:
+            fidelity_num = to_fidelity
+        else:
+            fidelity_num = self.fidelity_num
 
-        for f in range(self.fidelity_num):
+        for f in range(fidelity_num):
             if f == 0:
                 x_train,_ = data_manager.get_data(f)
                 mean_low,var_low=self.hogp_list[f].forward(x_train,x_test)
-                if self.fidelity_num == 1:
+                if fidelity_num == 1:
                     mean_high = mean_low
                     var_high = var_low
             else:
-                subset_data = data_manager.get_overlap_input_data(f-1,f)
-                mean_res,var_res=self.hogp_list[f].forward(subset_data[2],x_test)
+                x_train,_ = data_manager.get_data_by_name('res-{}'.format(f))
+                mean_res,var_res=self.hogp_list[f].forward(x_train,x_test)
                 mean_high = self.Tensor_linear_list[f-1](mean_low)*self.rho_list[f-1] + mean_res
                 var_high = self.Tensor_linear_list[f-1](var_low)*self.rho_list[f-1]**2 + var_res
 
@@ -62,11 +68,22 @@ def train_GAR(GARmodel,data_manager,max_iter=1000,lr_init=1e-1):
                 optimizer.step()
                 print('fidelity:', f, 'iter', i, 'nll:{:.5f}'.format(loss.item()))
         else:
-            _, y_low, subset_x,y_high = data_manager.get_overlap_input_data(f-1,f)
+            if GARmodel.nonsubset:
+                with torch.no_grad():
+                    subset_x,y_low,y_high = data_manager.get_nonsubset_data(GARmodel,f-1,f)
+            else:
+                _, y_low, subset_x,y_high = data_manager.get_overlap_input_data(f-1,f)
             for i in range(max_iter):
                 optimizer.zero_grad()
-                res = y_high - GARmodel.Tensor_linear_list[f-1](y_low)*GARmodel.rho_list[f-1]
-                loss = GARmodel.hogp_list[f].log_likelihood(subset_x, res)
+                if GARmodel.nonsubset:
+                    y_residual_mean = y_high[0] - GARmodel.rho_list[f-1] * GARmodel.Tensor_linear_list[f-1](y_low[0])
+                    y_residual_var = y_high[1] - GARmodel.rho_list[f-1] * y_low[1]
+                else:
+                    y_residual_mean = y_high - GARmodel.rho_list[f-1] * GARmodel.Tensor_linear_list[f-1](y_low)
+                    y_residual_var = None
+                if i == max_iter-1:
+                    data_manager.add_data(raw_fidelity_name='res-{}'.format(f),fidelity_index=None,x=subset_x,y=[y_residual_mean,y_residual_var])
+                loss = GARmodel.hogp_list[f].log_likelihood(subset_x, [y_residual_mean,y_residual_var])
                 loss.backward()
                 optimizer.step()
                 print('fidelity:', f, 'iter', i,'nll:{:.5f}'.format(loss.item()))
@@ -115,7 +132,7 @@ if __name__ == "__main__":
     fidelity_manager = MultiFidelityDataManager(initial_data)
 
     kernel1 = kernel.SquaredExponentialKernel(length_scale=1.,signal_variance=1.)
-    myGAR = GAR(kernel1,low_shape,high_shape,fidelity=3)
+    myGAR = GAR(kernel1,low_shape,high_shape,fidelity=3,nonsubset=True)
 
     train_GAR(myGAR, fidelity_manager, max_iter=100, lr_init=1e-3)
 

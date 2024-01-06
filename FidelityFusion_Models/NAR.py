@@ -1,5 +1,6 @@
 import sys
-sys.path.append(r'H:\\eda\\mybranch')
+import os
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 import torch
 import torch.nn as nn
 import GaussianProcess.kernel as kernel
@@ -9,7 +10,7 @@ import matplotlib.pyplot as plt
 
 class NAR(nn.Module):
     # initialize the model
-    def __init__(self,fidelity_num,kernel):
+    def __init__(self,fidelity_num,kernel,nonsubset=False):
         super().__init__()
         self.fidelity_num = fidelity_num
         # create the model
@@ -18,18 +19,23 @@ class NAR(nn.Module):
             self.cigp_list.append(CIGP(kernel=kernel, noise_variance=1.0))
         
         self.cigp_list = torch.nn.ModuleList(self.cigp_list)
+        self.nonsubset = nonsubset
 
-    def forward(self,data_manager,x_test):
+    def forward(self,data_manager,x_test,to_fidelity=None):
         # predict the model
-        for f in range(self.fidelity_num):
+        if to_fidelity is not None and to_fidelity >= 1:
+            fidelity_num = to_fidelity
+        else:
+            fidelity_num = self.fidelity_num
+        for f in range(fidelity_num):
             if f == 0:
                 x_train,y_train = data_manager.get_data(f)
                 y_pred_low, cov_pred_low = self.cigp_list[f](x_train,y_train,x_test)
-                if self.fidelity_num == 1:
+                if fidelity_num == 1:
                     y_pred_high = y_pred_low
                     cov_pred_high = cov_pred_low
             else:
-                x_train,y_train = data_manager.get_data(-f)
+                x_train,y_train = data_manager.get_data_by_name('concat-{}'.format(f))
                 concat_input= torch.cat([x_test,y_pred_low.reshape(-1,1)],dim=-1)
                 y_pred_high, cov_pred_high= self.cigp_list[f](x_train,y_train,concat_input)
 
@@ -53,12 +59,20 @@ def train_NAR(NARmodel,data_manager,max_iter=1000,lr_init=1e-1):
                 optimizer.step()
                 print('fidelity:', f, 'iter', i, 'nll:{:.5f}'.format(loss.item()))
         else:
-            _, y_low, subset_x,y_high = data_manager.get_overlap_input_data(f-1,f)
-            concat_input= torch.cat([subset_x,y_low],dim=-1)
-            data_manager.add_data(fidelity_index=-f,raw_fidelity_name='concat-{}'.format(f),x=concat_input,y=y_high)
+            if NARmodel.nonsubset:
+                with torch.no_grad():
+                    subset_x,y_low,y_high = data_manager.get_nonsubset_data(NARmodel,f-1,f)
+                y_low_mean = y_low[0]
+                y_high_mean = y_high[0]
+                y_high_var = y_high[1]
+            else:
+                _, y_low_mean, subset_x,y_high_mean = data_manager.get_overlap_input_data(f-1,f)
+                y_high_var = None
+            concat_input= torch.cat([subset_x,y_low_mean],dim=-1)
+            data_manager.add_data(raw_fidelity_name='concat-{}'.format(f),fidelity_index=None,x=concat_input,y=[y_high_mean,y_high_var])
             for i in range(max_iter):
                 optimizer.zero_grad()
-                loss = -NARmodel.cigp_list[f].log_likelihood(concat_input, y_high)
+                loss = -NARmodel.cigp_list[f].log_likelihood(concat_input, [y_high_mean,y_high_var])
                 loss.backward()
                 optimizer.step()
                 print('fidelity:', f, 'iter', i,'nll:{:.5f}'.format(loss.item()))
@@ -94,9 +108,10 @@ if __name__ == "__main__":
 
     fidelity_manager = MultiFidelityDataManager(initial_data)
     kernel1 = kernel.SumKernel(kernel.LinearKernel(1), kernel.MaternKernel(1))
-    myNAR = NAR(fidelity_num=3,kernel=kernel1)
+    myNAR = NAR(fidelity_num=3,kernel=kernel1,nonsubset=False)
 
-    train_NAR(myNAR,fidelity_manager, max_iter=200, lr_init=1e-2)
+    ## if nonsubset is False, max_iter should be 200 ,lr can be 1e-2
+    train_NAR(myNAR,fidelity_manager, max_iter=150, lr_init=1e-2)
 
     with torch.no_grad():
         ypred, ypred_var = myNAR(fidelity_manager,x_test)

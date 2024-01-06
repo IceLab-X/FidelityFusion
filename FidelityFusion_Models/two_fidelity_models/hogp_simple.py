@@ -1,5 +1,6 @@
 import sys
-sys.path.append(r'H:\\eda\\mybranch')
+import os
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..','..')))
 import numpy as np
 import torch
 import torch.nn as nn
@@ -44,7 +45,7 @@ class HOGP_simple(nn.Module):
         
     def forward(self,x_train,x_test):
         with torch.no_grad():
-            # x_train = self.x_train
+            
             K_star = self.kernel_list[0](x_test, x_train)
             K_predict = [K_star] + self.K[1:]
 
@@ -70,10 +71,19 @@ class HOGP_simple(nn.Module):
         return predict_u, var_diag
     
     def log_likelihood(self, x_train,y_train):
-        # self.x_train=x_train
+        
+        if isinstance(y_train, list):
+            y_train_var = y_train[1]
+            y_train = y_train[0]
+        else:
+            y_train_var = None
+        
         self.K.clear()
         self.K_eigen.clear()
-        self.K.append(self.kernel_list[0](x_train, x_train))
+        if y_train_var is not None:
+            self.K.append(self.kernel_list[0](x_train, x_train) + y_train_var)
+        else:
+            self.K.append(self.kernel_list[0](x_train, x_train))
         self.K_eigen.append(eigen_pairs(self.K[-1]))
 
         for i in range(0, len(self.kernel_list)-1):
