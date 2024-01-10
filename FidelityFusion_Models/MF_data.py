@@ -16,12 +16,12 @@ class MultiFidelityDataManager:
                 fidelity_index = fidelity_data['fidelity_indicator']
                 x = fidelity_data['X']
                 y = fidelity_data['Y']
-                self.add_data(fidelity_name,fidelity_index, x, y)
+                self.add_data(fidelity_name, fidelity_index, x, y)
 
     def add_data(self, raw_fidelity_name, fidelity_index, x, y):
         
         if raw_fidelity_name not in self.data_dict:
-            self.data_dict[raw_fidelity_name] = {'fidelity_index':fidelity_index,'X': x, 'Y': y}
+            self.data_dict[raw_fidelity_name] = {'fidelity_index':fidelity_index, 'X': x, 'Y': y}
         else:
             self.data_dict[raw_fidelity_name]['X'] = torch.cat([self.data_dict[raw_fidelity_name]['X'], x])
             self.data_dict[raw_fidelity_name]['Y'] = torch.cat([self.data_dict[raw_fidelity_name]['Y'], y])
@@ -49,10 +49,10 @@ class MultiFidelityDataManager:
 
         if x1 is not None and x2 is not None:
             
-            mask_x1 = torch.all(x1.unsqueeze(dim=1) == x2.unsqueeze(dim=0), dim=-1) # relative position mask
+            mask_x1 = torch.all(x1.unsqueeze(dim = 1) == x2.unsqueeze(dim = 0), dim=-1) # relative position mask
             mask_indices_x1 = torch.any(mask_x1, dim=-1) # x1 index mask
-            mask_x2 = torch.all(x2.unsqueeze(dim=1) == x1.unsqueeze(dim=0), dim=-1)
-            mask_indices_x2 = torch.any(mask_x2, dim=-1)
+            mask_x2 = torch.all(x2.unsqueeze(dim = 1) == x1.unsqueeze(dim = 0), dim=-1)
+            mask_indices_x2 = torch.any(mask_x2, dim = -1)
     
             common_x1 = x1[mask_indices_x1]
             common_x2 = x2[mask_indices_x2]
@@ -72,9 +72,9 @@ class MultiFidelityDataManager:
 
         if x1 is not None and x2 is not None:
             
-            mask_x1 = torch.all(x1.unsqueeze(dim=1) == x2.unsqueeze(dim=0), dim=-1) # relative position mask
+            mask_x1 = torch.all(x1.unsqueeze(dim = 1) == x2.unsqueeze(dim = 0), dim = -1) # relative position mask
             mask_indices_x1 = ~torch.any(mask_x1, dim=-1) # x1 index mask
-            mask_x2 = torch.all(x2.unsqueeze(dim=1) == x1.unsqueeze(dim=0), dim=-1)
+            mask_x2 = torch.all(x2.unsqueeze(dim = 1) == x1.unsqueeze(dim = 0), dim = -1)
             mask_indices_x2 = ~torch.any(mask_x2, dim=-1)
 
             unique_x1 = x1[mask_indices_x1]
@@ -95,22 +95,22 @@ class MultiFidelityDataManager:
 
         ## full nonsubset
         if len(subset_x2) == 0: 
-            y_low_filling_mean,y_low_filling_var = GPmodel.forward(unique_x2,to_fidelity=fidelity_index2)
-            y_high_var = torch.zeros((unique_y2.shape[0],unique_y2.shape[0]))
+            y_low_filling_mean,y_low_filling_var = GPmodel.forward(unique_x2,to_fidelity = fidelity_index2)
+            y_high_var = torch.zeros((unique_y2.shape[0], unique_y2.shape[0]))
             return unique_x2 , [y_low_filling_mean , y_low_filling_var] , [unique_y2 , y_high_var]
         ## full subset
         elif len(unique_x2) == 0: 
-            y_low_var = torch.zeros((subset_y1.shape[0],subset_y1.shape[0]))
-            y_high_var = torch.zeros((subset_y2.shape[0],subset_y2.shape[0]))
+            y_low_var = torch.zeros((subset_y1.shape[0], subset_y1.shape[0]))
+            y_high_var = torch.zeros((subset_y2.shape[0], subset_y2.shape[0]))
             return subset_x2 , [subset_y1 , y_low_var], [subset_y2 , y_high_var]
         else: 
-            y_low_filling_mean,y_low_filling_var = GPmodel.forward(self,unique_x2,to_fidelity=fidelity_index2)
-            y_low_mean = torch.cat([subset_y1,y_low_filling_mean.reshape(-1,1)],dim=0)
-            y_low_var = torch.zeros((subset_y1.shape[0]+y_low_filling_mean.shape[0], subset_y1.shape[0]+y_low_filling_mean.shape[0]))
-            y_low_var[-y_low_filling_var.shape[0]:,-y_low_filling_var.shape[1]:] = y_low_filling_var
-            y_high_mean = torch.cat([subset_y2,unique_y2],dim=0)
-            y_high_var = torch.zeros((subset_y2.shape[0]+unique_y2.shape[0], subset_y2.shape[0]+unique_y2.shape[0]))
-            x = torch.cat([subset_x2,unique_x2],dim=0)
+            y_low_filling_mean, y_low_filling_var = GPmodel.forward(self, unique_x2, to_fidelity=fidelity_index2)
+            y_low_mean = torch.cat([subset_y1, y_low_filling_mean.reshape(-1,1)], dim = 0)
+            y_low_var = torch.zeros((subset_y1.shape[0] + y_low_filling_mean.shape[0], subset_y1.shape[0] + y_low_filling_mean.shape[0]))
+            y_low_var[-y_low_filling_var.shape[0]:, -y_low_filling_var.shape[1]:] = y_low_filling_var
+            y_high_mean = torch.cat([subset_y2, unique_y2], dim = 0)
+            y_high_var = torch.zeros((subset_y2.shape[0] + unique_y2.shape[0], subset_y2.shape[0] + unique_y2.shape[0]))
+            x = torch.cat([subset_x2,unique_x2], dim = 0)
             return x , [y_low_mean ,y_low_var] , [y_high_mean , y_high_var]
             
     def display_fidelity_data_info(self, fidelity_index):
@@ -126,17 +126,17 @@ class MultiFidelityDataManager:
         else:
             print("No fidelity data found")
 
-##display 
+ 
 if __name__ == "__main__":
 
     initial_data = [
         {'raw_fidelity_name': 'IC_thermal','fidelity_indicator': 0 , 'X': torch.tensor([[1, 2], [2, 4], [3, 6], [4, 6], [7, 3]]), 'Y': torch.tensor([[5], [4], [3], [2], [1]])},
-        {'raw_fidelity_name': '1','fidelity_indicator': 1 ,'X': torch.tensor([[1, 3], [2, 4], [7, 3], [6, 4], [7, 1]]), 'Y': torch.tensor([[7], [6], [5], [4], [3]])}
+        {'raw_fidelity_name': '1','fidelity_indicator': 1 , 'X': torch.tensor([[1, 3], [2, 4], [7, 3], [6, 4], [7, 1]]), 'Y': torch.tensor([[7], [6], [5], [4], [3]])}
     ]
 
     fidelity_manager = MultiFidelityDataManager(initial_data)
 
-    fidelity_manager.add_data(raw_fidelity_name='2',fidelity_index=2,x=torch.tensor([[2, 4], [3, 6]]),y=torch.tensor([[1.5], [2.5]]))
+    fidelity_manager.add_data(raw_fidelity_name = '2', fidelity_index = 2, x = torch.tensor([[2, 4], [3, 6]]), y = torch.tensor([[1.5], [2.5]]))
 
     x,y = fidelity_manager.get_data(-1)
     print("精度-1的数据:\nx:{}\ny:{}".format(x,y))

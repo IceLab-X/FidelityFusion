@@ -14,12 +14,12 @@ tensorly.set_backend('pytorch')
 
 class eigen_pairs:
     def __init__(self, matrix) -> None:
-        eigen_value, eigen_vector = torch.linalg.eigh(matrix, UPLO='U')
+        eigen_value, eigen_vector = torch.linalg.eigh(matrix, UPLO = 'U')
         self.value = eigen_value
         self.vector = eigen_vector
 
 class HOGP_simple(nn.Module):
-    def __init__(self,kernel,noise_variance,output_shape,learnable_grid=False,learnable_map=False):
+    def __init__(self, kernel, noise_variance, output_shape, learnable_grid = False, learnable_map = False):
         super().__init__()
         self.noise_variance = nn.Parameter(torch.tensor([noise_variance]))
         self.kernel_list = []
@@ -57,7 +57,7 @@ class HOGP_simple(nn.Module):
             diag_K_x = self.kernel_list[0](x_test, x_test).diag()
             for i in range(n_dim):
                 diag_K_x = diag_K_x.unsqueeze(-1)
-            diag_K = diag_K_x*diag_K_dims
+            diag_K = diag_K_x * diag_K_dims
 
             S = self.A * self.A.pow(-1/2)
             S_2 = S.pow(2)
@@ -70,7 +70,7 @@ class HOGP_simple(nn.Module):
         
         return predict_u, var_diag
     
-    def log_likelihood(self, x_train,y_train):
+    def log_likelihood(self, x_train, y_train):
         
         if isinstance(y_train, list):
             y_train_var = y_train[1]
@@ -93,7 +93,7 @@ class HOGP_simple(nn.Module):
         _init_value = torch.tensor([1.0],  device=list(self.parameters())[0].device).reshape(*[1 for i in self.K])
         lambda_list = [eigen.value.reshape(-1, 1) for eigen in self.K_eigen]
         A = tucker_to_tensor((_init_value, lambda_list))
-        A = A + self.noise_variance.pow(-1)* tensorly.ones(A.shape,  device=list(self.parameters())[0].device)
+        A = A + self.noise_variance.pow(-1) * tensorly.ones(A.shape,  device = list(self.parameters())[0].device)
 
         T_1 = tensorly.tenalg.multi_mode_dot(y_train, [eigen.vector.T for eigen in self.K_eigen])
         T_2 = T_1 * A.pow(-1/2) 
@@ -103,7 +103,7 @@ class HOGP_simple(nn.Module):
 
         self.b = b
         self.A = A
-        self.g= g
+        self.g = g
         nd = torch.prod(torch.tensor([value for value in self.A.shape]))
         loss = -1/2* nd * torch.log(torch.tensor(2 * math.pi, device=list(self.parameters())[0].device))
         loss += -1/2* torch.log(self.A).sum()
@@ -143,16 +143,16 @@ if __name__ == '__main__':
     x=dnm_x.forward(x)
     y=dnm_y.forward(y)
 
-    xtr = x[:128,:]
-    ytr = y[:128,:]
-    xte = x[128:,:]
-    yte = y[128:,:]
+    xtr = x[:128, :]
+    ytr = y[:128, :]
+    xte = x[128:, :]
+    yte = y[128:, :]
 
     output_shape=ytr[0,...].shape
 
-    GPmodel=HOGP_simple(kernel=kernel.ARDKernel(1),noise_variance=1.0,output_shape=output_shape)
+    GPmodel=HOGP_simple(kernel = kernel.ARDKernel(1), noise_variance = 1.0, output_shape = output_shape)
 
-    optimizer = torch.optim.Adam(GPmodel.parameters(), lr=1e-2)
+    optimizer = torch.optim.Adam(GPmodel.parameters(), lr = 1e-2)
 
     GPmodel.to(device)
 
@@ -164,27 +164,27 @@ if __name__ == '__main__':
         print('iter', i, 'nll:{:.5f}'.format(loss.item()))
         
     with torch.no_grad():
-        ypred, ypred_var = GPmodel.forward(xtr,xte)
+        ypred, ypred_var = GPmodel.forward(xtr, xte)
         ypred=dnm_y.inverse(ypred)
     
     ##plot_res_for_only_1
     # for i in range(yte[0].shape[0]):
-    fig, axs = plt.subplots(1, 3, figsize=(15, 5))
+    fig, axs = plt.subplots(1, 3, figsize = (15, 5))
     yte = dnm_y.inverse(yte)
     vmin = torch.min(yte[1])
     vmax = torch.max(yte[1])
 
-    im = axs[0].imshow(yte[1].cpu(), cmap='hot', interpolation='nearest',vmin=vmin,vmax=vmax)
+    im = axs[0].imshow(yte[1].cpu(), cmap = 'hot', interpolation = 'nearest', vmin = vmin, vmax = vmax)
     axs[0].set_title('Groundtruth')
 
-    axs[1].imshow(ypred[1].cpu(), cmap='hot', interpolation='nearest',vmin=vmin,vmax=vmax)
+    axs[1].imshow(ypred[1].cpu(), cmap = 'hot', interpolation = 'nearest', vmin = vmin, vmax = vmax)
     axs[1].set_title('Predict')
 
-    axs[2].imshow((yte[1].cpu()-ypred[1].cpu()).abs(), cmap='hot', interpolation='nearest',vmin=vmin,vmax=vmax)
+    axs[2].imshow((yte[1].cpu()-ypred[1].cpu()).abs(), cmap = 'hot', interpolation = 'nearest', vmin = vmin, vmax = vmax)
     axs[2].set_title('Difference')
 
     cbar_ax = fig.add_axes([0.95, 0.2, 0.03, 0.6])
-    cbar=fig.colorbar(im, cax=cbar_ax)
+    cbar=fig.colorbar(im, cax = cbar_ax)
     plt.show()
 
     
