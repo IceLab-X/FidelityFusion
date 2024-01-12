@@ -3,8 +3,8 @@ import os
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..')))
 
 # import GaussianProcess.kernel as kernel
-from FidelityFusion_Models.GAR_GeneralizedAutoAR import GAR_twofidelity
-from FidelityFusion_Models.GAR_GeneralizedAutoAR import train_GAR_twofidelity
+from FidelityFusion_Models.GAR import GAR_twofidelity
+from FidelityFusion_Models.GAR import train_GAR_twofidelity
 from Experiments.calculate_metrix import calculate_metrix
 
 import torch
