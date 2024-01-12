@@ -4,16 +4,13 @@
 # date: 2023-12-12
 # version: 1.0
 import sys
-sys.path.append(r'H:\\eda\\mybranch')
+import os
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..','..')))
 import torch
 import torch.nn as nn
-# import kernel as kernel
 import GaussianProcess.kernel as kernel
-from base.gp_basic import GP_basic as CIGP
+from base.gp_basic import GP_basic as GPR
 import matplotlib.pyplot as plt
-# import MINIGP.MultiTaskGP_cigp as CIGP
-
-# from MultiTaskGP_cigp import cigp
 
 def find_subsets_and_indexes(x_low, x_high):
     # find the overlap set
@@ -32,10 +29,10 @@ class autoRegression_twofidelity(nn.Module):
         
         # create the model
         kernel1 = kernel.SumKernel(kernel.LinearKernel(1), kernel.MaternKernel(1))
-        self.low_fidelity_GP = CIGP(kernel=kernel1, noise_variance=1.0)
+        self.low_fidelity_GP = GPR(kernel = kernel1, noise_variance = 1.0)
         
         kernel2 = kernel.SumKernel(kernel.LinearKernel(1), kernel.MaternKernel(1))
-        self.Residual_GP = CIGP(kernel=kernel2, noise_variance=1.0)
+        self.Residual_GP = GPR(kernel = kernel2, noise_variance=1.0)
         
         self.rho = nn.Parameter(torch.tensor(rho_init))
 
@@ -45,7 +42,7 @@ class autoRegression_twofidelity(nn.Module):
         y_pred_res, cov_pred_res= self.Residual_GP(x_test)
         
         y_pred_high = y_pred_low + self.rho * y_pred_res
-        cov_pred_high = cov_pred_low + (self.rho **2) * cov_pred_res
+        cov_pred_high = cov_pred_low + (self.rho ** 2) * cov_pred_res
         
         # return the prediction
         return y_pred_high, cov_pred_high
@@ -59,7 +56,7 @@ def train_AR_twofidelity(ARmodel, x_train, y_train,max_iter=1000,lr_init=1e-1):
     y_high = y_train[1]
     
     # train the low fidelity GP
-    optimizer_low = torch.optim.Adam(ARmodel.low_fidelity_GP.parameters(), lr=lr_init)
+    optimizer_low = torch.optim.Adam(ARmodel.low_fidelity_GP.parameters(), lr = lr_init)
     for i in range(max_iter):
         optimizer_low.zero_grad()
         loss = -ARmodel.low_fidelity_GP.log_likelihood(x_low, y_low)
@@ -76,7 +73,7 @@ def train_AR_twofidelity(ARmodel, x_train, y_train,max_iter=1000,lr_init=1e-1):
     for i in range(max_iter):
         optimizer_res.zero_grad()
         y_residual = y_high[subset_indexes_high] - ARmodel.rho * y_low[subset_indexes_low]
-        loss = -ARmodel.Residual_GP.log_likelihood(subset_x,y_residual)
+        loss = -ARmodel.Residual_GP.log_likelihood(subset_x, y_residual)
         loss.backward()
         optimizer_res.step()
         print('iter', i, 'nll:{:.5f}'.format(loss.item()))
@@ -96,23 +93,23 @@ if __name__ == "__main__":
     x_high = x_all[xhigh_indices]
     x_test = torch.linspace(0, 20, 100).reshape(-1, 1)
 
-    y_low = torch.sin(x_low) - torch.rand(300, 1) * 0.1
+    y_low = torch.sin(x_low) - 0.3 * torch.sin(2 * x_low) + torch.rand(300, 1) * 0.1 - 0.05
     y_high = torch.sin(x_high) + torch.rand(300, 1) * 0.1 - 0.05
     y_test = torch.sin(x_test)
 
     x_train = [x_low, x_high]
     y_train = [y_low, y_high]
 
-    AR = autoRegression_twofidelity(rho_init=1.0)
+    AR = autoRegression_twofidelity(rho_init = 1.0)
     print("rho_init:", AR.rho.item())
-    train_AR_twofidelity(AR, x_train, y_train, max_iter=100, lr_init=1e-2)
+    train_AR_twofidelity(AR, x_train, y_train, max_iter = 600, lr_init = 1e-3)
 
     with torch.no_grad():
         ypred, ypred_var = AR(x_test)
     print("rho:", AR.rho.item())
 
     plt.figure()
-    plt.errorbar(x_test.flatten(), ypred.reshape(-1).detach(), ypred_var.diag().sqrt().squeeze().detach(), fmt='r-.' ,alpha = 0.2)
-    plt.fill_between(x_test.flatten(), ypred.reshape(-1).detach() - ypred_var.diag().sqrt().squeeze().detach(), ypred.reshape(-1).detach() + ypred_var.diag().sqrt().squeeze().detach(), alpha=0.2)
+    plt.errorbar(x_test.flatten(), ypred.reshape(-1).detach(), ypred_var.diag().sqrt().squeeze().detach(), fmt = 'r-.' ,alpha = 0.2)
+    plt.fill_between(x_test.flatten(), ypred.reshape(-1).detach() - ypred_var.diag().sqrt().squeeze().detach(), ypred.reshape(-1).detach() + ypred_var.diag().sqrt().squeeze().detach(), alpha = 0.2)
     plt.plot(x_test.flatten(), y_test, 'k+')
     plt.show() 
