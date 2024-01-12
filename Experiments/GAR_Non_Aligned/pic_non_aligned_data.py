@@ -41,6 +41,8 @@ plt.legend(loc="upper right", fontsize=20)
 plt.grid()
 
 plt.tight_layout()
-fig_file = os.path.join(sys.path[0], 'pics') + '/' + data_name + '.png'
-plt.savefig(fig_file,
+fig_file = os.path.join(sys.path[0], 'pics')
+if not os.path.exists(fig_file):
+        os.makedirs(fig_file)
+plt.savefig(fig_file  + '/' + data_name + '.png',
             bbox_inches='tight')
