@@ -88,14 +88,14 @@ class MultiFidelityDataManager:
             print("No unique data found")
             return None , None , None , None
     
-    def get_nonsubset_data(self, GPmodel, fidelity_index1, fidelity_index2):
-            
+    def get_nonsubset_fill_data(self, model, fidelity_index1, fidelity_index2):
+
         subset_x1, subset_y1, subset_x2, subset_y2 = self.get_overlap_input_data(fidelity_index1, fidelity_index2)
         unique_x1, unique_y1, unique_x2, unique_y2 = self.get_unique_input_data(fidelity_index1, fidelity_index2)
 
         ## full nonsubset
         if len(subset_x2) == 0: 
-            y_low_filling_mean,y_low_filling_var = GPmodel.forward(unique_x2,to_fidelity = fidelity_index2)
+            y_low_filling_mean,y_low_filling_var = model.forward(self, unique_x2, to_fidelity = fidelity_index2)
             y_high_var = torch.zeros((unique_y2.shape[0], unique_y2.shape[0]))
             return unique_x2 , [y_low_filling_mean , y_low_filling_var] , [unique_y2 , y_high_var]
         ## full subset
@@ -104,7 +104,7 @@ class MultiFidelityDataManager:
             y_high_var = torch.zeros((subset_y2.shape[0], subset_y2.shape[0]))
             return subset_x2 , [subset_y1 , y_low_var], [subset_y2 , y_high_var]
         else: 
-            y_low_filling_mean, y_low_filling_var = GPmodel.forward(self, unique_x2, to_fidelity=fidelity_index2)
+            y_low_filling_mean, y_low_filling_var = model.forward(self, unique_x2, to_fidelity=fidelity_index2)
             y_low_mean = torch.cat([subset_y1, y_low_filling_mean.reshape(-1,1)], dim = 0)
             y_low_var = torch.zeros((subset_y1.shape[0] + y_low_filling_mean.shape[0], subset_y1.shape[0] + y_low_filling_mean.shape[0]))
             y_low_var[-y_low_filling_var.shape[0]:, -y_low_filling_var.shape[1]:] = y_low_filling_var

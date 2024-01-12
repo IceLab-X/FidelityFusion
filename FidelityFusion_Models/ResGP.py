@@ -27,16 +27,16 @@ class ResGP(nn.Module):
             fidelity_num = to_fidelity
         else:
             fidelity_num = self.fidelity_num
-        for f in range(fidelity_num):
-            if f == 0:
-                x_train,y_train = data_manager.get_data(f)
-                y_pred_low, cov_pred_low = self.gpr_list[f](x_train, y_train, x_test)
+        for i_fidelity in range(fidelity_num):
+            if i_fidelity == 0:
+                x_train,y_train = data_manager.get_data(i_fidelity)
+                y_pred_low, cov_pred_low = self.gpr_list[i_fidelity](x_train, y_train, x_test)
                 if fidelity_num == 1:
                     y_pred_high = y_pred_low
                     cov_pred_high = cov_pred_low
             else:
-                x_train,y_train = data_manager.get_data_by_name('res-{}'.format(f))
-                y_pred_res, cov_pred_res= self.gpr_list[f](x_train, y_train, x_test)
+                x_train,y_train = data_manager.get_data_by_name('res-{}'.format(i_fidelity))
+                y_pred_res, cov_pred_res= self.gpr_list[i_fidelity](x_train, y_train, x_test)
                 y_pred_high = y_pred_low +  y_pred_res
                 cov_pred_high = cov_pred_low + cov_pred_res
 
@@ -49,33 +49,33 @@ class ResGP(nn.Module):
     
 def train_ResGP(ResGPmodel, data_manager, max_iter = 1000, lr_init = 1e-1):
     
-    for f in range(ResGPmodel.fidelity_num):
+    for i_fidelity in range(ResGPmodel.fidelity_num):
         optimizer = torch.optim.Adam(ResGPmodel.parameters(), lr = lr_init)
-        if f == 0:
-            x_low,y_low = data_manager.get_data(f)
+        if i_fidelity == 0:
+            x_low,y_low = data_manager.get_data(i_fidelity)
             for i in range(max_iter):
                 optimizer.zero_grad()
-                loss = -ResGPmodel.gpr_list[f].log_likelihood(x_low, y_low)
+                loss = -ResGPmodel.gpr_list[i_fidelity].log_likelihood(x_low, y_low)
                 loss.backward()
                 optimizer.step()
-                print('fidelity:', f, 'iter', i, 'nll:{:.5f}'.format(loss.item()))
+                print('fidelity:', i_fidelity, 'iter', i, 'nll:{:.5f}'.format(loss.item()))
         else:
             if ResGPmodel.nonsubset:
                 with torch.no_grad():
-                    subset_x, y_low, y_high = data_manager.get_nonsubset_data(ResGPmodel, f-1, f)
+                    subset_x, y_low, y_high = data_manager.get_nonsubset_fill_data(ResGPmodel, i_fidelity - 1, i_fidelity)
                 y_residual_mean = y_high[0] - y_low[0]
                 y_residual_var = y_high[1] - y_low[1]
             else:
-                _, y_low, subset_x, y_high = data_manager.get_overlap_input_data(f-1, f)
+                _, y_low, subset_x, y_high = data_manager.get_overlap_input_data(i_fidelity - 1, i_fidelity)
                 y_residual_mean = y_high - y_low
                 y_residual_var = None
-            data_manager.add_data(raw_fidelity_name = 'res-{}'.format(f), fidelity_index = None, x = subset_x, y = [y_residual_mean, y_residual_var])
+            data_manager.add_data(raw_fidelity_name = 'res-{}'.format(i_fidelity), fidelity_index = None, x = subset_x, y = [y_residual_mean, y_residual_var])
             for i in range(max_iter):
                 optimizer.zero_grad()
-                loss = -ResGPmodel.gpr_list[f].log_likelihood(subset_x, [y_residual_mean, y_residual_var])
+                loss = -ResGPmodel.gpr_list[i_fidelity].log_likelihood(subset_x, [y_residual_mean, y_residual_var])
                 loss.backward()
                 optimizer.step()
-                print('fidelity:', f, 'iter', i,'nll:{:.5f}'.format(loss.item()))
+                print('fidelity:', i_fidelity, 'iter', i,'nll:{:.5f}'.format(loss.item()))
     
 # demo 
 if __name__ == "__main__":
@@ -96,7 +96,7 @@ if __name__ == "__main__":
     x_test = torch.linspace(0, 20, 100).reshape(-1, 1)
 
     y_low = torch.sin(x_low) - 0.5 * torch.sin(2 * x_low) + torch.rand(300, 1) * 0.1 - 0.05
-    y_high1 = torch.sin(x_high1) - 0.3 * torch.sin(3 * x_high1) + torch.rand(300, 1) * 0.1 - 0.05
+    y_high1 = torch.sin(x_high1) - 0.3 * torch.sin(2 * x_high1) + torch.rand(300, 1) * 0.1 - 0.05
     y_high2 = torch.sin(x_high2) + torch.rand(250, 1) * 0.1 - 0.05
     y_test = torch.sin(x_test)
 

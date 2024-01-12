@@ -93,7 +93,7 @@ if __name__ == "__main__":
     x_high = x_all[xhigh_indices]
     x_test = torch.linspace(0, 20, 100).reshape(-1, 1)
 
-    y_low = torch.sin(x_low) - 0.3 * torch.sin(3*x_low) + torch.rand(300, 1) * 0.1 - 0.05
+    y_low = torch.sin(x_low) - 0.3 * torch.sin(2 * x_low) + torch.rand(300, 1) * 0.1 - 0.05
     y_high = torch.sin(x_high) + torch.rand(300, 1) * 0.1 - 0.05
     y_test = torch.sin(x_test)
 
