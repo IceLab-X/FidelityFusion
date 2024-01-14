@@ -1,6 +1,5 @@
 import sys
 import os
-# sys.path.append(r'H:\\eda\\mybranch')
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 import torch
 import torch.nn as nn
@@ -94,16 +93,16 @@ class ContinuousAutoRegression(nn.Module):
 
     def forward(self, data_manager, x_test):
         # predict the model
-        for f in range(self.fidelity_num):
-            if f == 0:
-                x_train,y_train = data_manager.get_data(f)
-                y_pred_low, cov_pred_low = self.cigp_list[f](x_train,y_train,x_test)
+        for i_fidelity in range(self.fidelity_num):
+            if i_fidelity == 0:
+                x_train,y_train = data_manager.get_data(i_fidelity)
+                y_pred_low, cov_pred_low = self.cigp_list[i_fidelity](x_train,y_train,x_test)
                 if self.fidelity_num == 1:
                     y_pred_high = y_pred_low
                     cov_pred_high = cov_pred_low
             else:
-                x_train,y_train = data_manager.get_data(-f)
-                y_pred_res, cov_pred_res= self.cigp_list[f](x_train,y_train,x_test)
+                x_train,y_train = data_manager.get_data(-i_fidelity)
+                y_pred_res, cov_pred_res= self.cigp_list[i_fidelity](x_train,y_train,x_test)
                 y_pred_high = y_pred_low + self.b * y_pred_res
                 cov_pred_high = cov_pred_low + (self.b **2) * cov_pred_res
 
@@ -116,27 +115,27 @@ class ContinuousAutoRegression(nn.Module):
     
 def train_CAR(CARmodel, data_manager,max_iter=1000,lr_init=1e-1):
     
-    for f in range(CARmodel.fidelity_num):
+    for i_fidelity in range(CARmodel.fidelity_num):
         optimizer = torch.optim.Adam(CARmodel.parameters(), lr=lr_init)
-        if f == 0:
-            x_low,y_low = data_manager.get_data(f)
+        if i_fidelity == 0:
+            x_low,y_low = data_manager.get_data(i_fidelity)
             for i in range(max_iter):
                 optimizer.zero_grad()
-                loss = -CARmodel.cigp_list[f].log_likelihood(x_low, y_low)
+                loss = -CARmodel.cigp_list[i_fidelity].log_likelihood(x_low, y_low)
                 loss.backward()
                 optimizer.step()
-                print('fidelity:', f, 'iter', i, 'nll:{:.5f}'.format(loss.item()))
+                print('fidelity:', i_fidelity, 'iter', i, 'nll:{:.5f}'.format(loss.item()))
         else:
-            _, y_low, subset_x,y_high = data_manager.get_overlap_input_data(f-1,f)
+            _, y_low, subset_x,y_high = data_manager.get_overlap_input_data(i_fidelity-1,i_fidelity)
             for i in range(max_iter):
                 optimizer.zero_grad()
                 y_residual = y_high - CARmodel.b.exp() * y_low # 修改
                 if i == max_iter-1:
-                    data_manager.add_data(fidelity_index=-f,raw_fidelity_name='res-{}'.format(f),x=subset_x,y=y_residual)
-                loss = -CARmodel.cigp_list[f].log_likelihood(subset_x, y_residual)
+                    data_manager.add_data(fidelity_index=-i_fidelity,raw_fidelity_name='res-{}'.format(i_fidelity),x=subset_x,y=y_residual)
+                loss = -CARmodel.cigp_list[i_fidelity].log_likelihood(subset_x, y_residual)
                 loss.backward()
                 optimizer.step()
-                print('fidelity:', f, 'iter', i,'b:',CARmodel.b.item(), 'nll:{:.5f}'.format(loss.item()))
+                print('fidelity:', i_fidelity, 'iter', i,'b:',CARmodel.b.item(), 'nll:{:.5f}'.format(loss.item()))
             
 # demo 
 if __name__ == "__main__":
@@ -156,15 +155,15 @@ if __name__ == "__main__":
     x_high2 = x_all[xhigh2_indices]
     x_test = torch.linspace(0, 20, 100).reshape(-1, 1)
 
-    y_low = torch.sin(x_low) - torch.rand(300, 1) * 0.2 
-    y_high1 = torch.sin(x_high1) - torch.rand(300, 1) * 0.1
+    y_low = torch.sin(x_low) - 0.5 * torch.sin(2 * x_low) + torch.rand(300, 1) * 0.1 - 0.05
+    y_high1 = torch.sin(x_high1) - 0.3 * torch.sin(2 * x_high1) + torch.rand(300, 1) * 0.1 - 0.05
     y_high2 = torch.sin(x_high2) + torch.rand(250, 1) * 0.1 - 0.05
     y_test = torch.sin(x_test)
 
     initial_data = [
-        {'fidelity_indicator': 0,'raw_fidelity_name': '0', 'X': x_low, 'Y': y_low},
-        {'fidelity_indicator': 1, 'raw_fidelity_name': '1','X': x_high1, 'Y': y_high1},
-        {'fidelity_indicator': 2, 'raw_fidelity_name': '2','X': x_high2, 'Y': y_high2},
+        {'raw_fidelity_name': '0','fidelity_indicator': 0, 'X': x_low, 'Y': y_low},
+        {'raw_fidelity_name': '1','fidelity_indicator': 1, 'X': x_high1, 'Y': y_high1},
+        {'raw_fidelity_name': '2','fidelity_indicator': 2, 'X': x_high2, 'Y': y_high2},
     ]
 
     fidelity_manager = MultiFidelityDataManager(initial_data)

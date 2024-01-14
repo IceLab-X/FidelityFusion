@@ -4,7 +4,7 @@ from two_fidelity_models.hogp_simple import HOGP_simple
 import GaussianProcess.kernel as kernel
 from GaussianProcess.gp_transform import Normalize0_layer
 from GaussianProcess.gp_computation_pack import Tensor_linear
-from MF_data import MultiFidelityDataManager
+from FidelityFusion_Models.MF_data import MultiFidelityDataManager
 import matplotlib.pyplot as plt
         
 class GAR(torch.nn.Module):

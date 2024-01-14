@@ -1,11 +1,10 @@
 import sys
 import os
-# sys.path.append(r'H:\\eda\\mybranch')
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 import torch
 import torch.nn as nn
 import GaussianProcess.kernel as kernel
-from GaussianProcess.gp_basic import GP_basic as CIGP
+from GaussianProcess.gp_basic import GP_basic as GPR
 from MF_data import MultiFidelityDataManager
 import matplotlib.pyplot as plt
 
@@ -90,7 +89,7 @@ class ContinuousAutoRegression_large(nn.Module):
         self.b = torch.nn.Parameter(torch.tensor(b_init))
 
         kernel_full = fidelity_kernel_MCMC(kernel_x.length_scales.shape[0], kernel_x, self.b)
-        self.cigp = CIGP(kernel=kernel_full, noise_variance=1.0)
+        self.cigp = GPR(kernel=kernel_full, noise_variance=1.0)
 
     def forward(self, data_manager, x_test):
         # predict the model
@@ -98,11 +97,11 @@ class ContinuousAutoRegression_large(nn.Module):
         x_train = []
         y_train = []
         fidelity_indicator = []
-        for f in range(self.fidelity_num):
-            x, y = data_manager.get_data(f)
+        for i_fidelity in range(self.fidelity_num):
+            x, y = data_manager.get_data(i_fidelity)
             x_train.append(x)
             y_train.append(y)
-            fidelity_indicator.append(torch.ones(x.shape[0]) * (f+1))
+            fidelity_indicator.append(torch.ones(x.shape[0]) * (i_fidelity+1))
         
         x_train = torch.cat(x_train, 0)
         y_train = torch.cat(y_train, 0)
@@ -120,11 +119,11 @@ def train_CAR(CARmodel, data_manager,max_iter=1000,lr_init=1e-1):
     x_train = []
     y_train = []
     fidelity_indicator = []
-    for f in range(CARmodel.fidelity_num):
-        x, y = data_manager.get_data(f)
+    for i_fidelity in range(CARmodel.fidelity_num):
+        x, y = data_manager.get_data(i_fidelity)
         x_train.append(x)
         y_train.append(y)
-        fidelity_indicator.append(torch.ones(x.shape[0]) * (f+1))
+        fidelity_indicator.append(torch.ones(x.shape[0]) * (i_fidelity+1))
     
     x_train = torch.cat(x_train, 0)
     y_train = torch.cat(y_train, 0)
@@ -137,7 +136,7 @@ def train_CAR(CARmodel, data_manager,max_iter=1000,lr_init=1e-1):
         loss = -CARmodel.cigp.log_likelihood(x_train, y_train)
         loss.backward()
         optimizer.step()
-        print('fidelity:', f, 'iter', i, 'nll:{:.5f}'.format(loss.item()))
+        print('fidelity:', i_fidelity, 'iter', i, 'nll:{:.5f}'.format(loss.item()))
     
     
 # demo 
@@ -158,17 +157,17 @@ if __name__ == "__main__":
     x_high2 = x_all[xhigh2_indices]
     x_test = torch.linspace(0, 20, 100).reshape(-1, 1)
 
-    y_low = torch.sin(x_low) - torch.rand(300, 1) * 0.2 
-    y_high1 = torch.sin(x_high1) - torch.rand(300, 1) * 0.1
+    y_low = torch.sin(x_low) - 0.5 * torch.sin(2 * x_low) + torch.rand(300, 1) * 0.1 - 0.05
+    y_high1 = torch.sin(x_high1) - 0.3 * torch.sin(2 * x_high1) + torch.rand(300, 1) * 0.1 - 0.05
     y_high2 = torch.sin(x_high2) + torch.rand(250, 1) * 0.1 - 0.05
     y_train = torch.cat((y_low, y_high1, y_high2), 0)
     y_test = torch.sin(x_test)
 
 
     initial_data = [
-        {'fidelity_indicator': 0,'raw_fidelity_name': '0', 'X': x_low, 'Y': y_low},
-        {'fidelity_indicator': 1, 'raw_fidelity_name': '1','X': x_high1, 'Y': y_high1},
-        {'fidelity_indicator': 2, 'raw_fidelity_name': '2','X': x_high2, 'Y': y_high2},
+        {'raw_fidelity_name': '0','fidelity_indicator': 0, 'X': x_low, 'Y': y_low},
+        {'raw_fidelity_name': '1','fidelity_indicator': 1, 'X': x_high1, 'Y': y_high1},
+        {'raw_fidelity_name': '2','fidelity_indicator': 2, 'X': x_high2, 'Y': y_high2},
     ]
 
     fidelity_manager = MultiFidelityDataManager(initial_data)

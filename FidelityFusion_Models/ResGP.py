@@ -5,7 +5,7 @@ import torch
 import torch.nn as nn
 import GaussianProcess.kernel as kernel
 from GaussianProcess.gp_basic import GP_basic as GPR
-from MF_data import MultiFidelityDataManager
+from FidelityFusion_Models.MF_data import MultiFidelityDataManager
 import matplotlib.pyplot as plt
 
 class ResGP(nn.Module):
