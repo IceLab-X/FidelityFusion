@@ -3,8 +3,8 @@ import os
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..')))
 
 import GaussianProcess.kernel as kernel
-from FidelityFusion_Models.NAR_NonlinearAR import NAR_twofidelity
-from FidelityFusion_Models.NAR_NonlinearAR import train_NAR_twofidelity
+from FidelityFusion_Models.NAR import NAR
+from FidelityFusion_Models.NAR import train_NAR
 from FidelityFusion_Models.MF_data import MultiFidelityDataManager
 from Experiments.calculate_metrix import calculate_metrix
 
@@ -57,13 +57,19 @@ if __name__ == '__main__':
                     x_train = [x_low, x_high1]
                     y_train = [y_low, y_high1]
                 
-
+                    initial_data = [
+                                        {'fidelity_indicator': 0,'raw_fidelity_name': '0', 'X': x_low, 'Y': y_low},
+                                        {'fidelity_indicator': 1, 'raw_fidelity_name': '1','X': x_high1, 'Y': y_high1},
+                                    ]
+                    
                     T1 = time.time()
-                    myNAR = NAR_twofidelity()
+                    fidelity_manager = MultiFidelityDataManager(initial_data)
+                    kernel1 = kernel.SumKernel(kernel.LinearKernel(1), kernel.MaternKernel(1))
+                    myNAR = NAR(fidelity_num=2,kernel=kernel1)
                     # print(myNAR.state_dict())
-                    train_NAR_twofidelity(myNAR, x_train, y_train, max_iter=100, lr_init=1e-2)
-                    ypred, ypred_var = myNAR(x_test)
-
+                    train_NAR(myNAR, fidelity_manager, max_iter=100, lr_init=1e-2)
+                    with torch.no_grad():
+                        ypred, ypred_var = myNAR(fidelity_manager, x_test)
 
                     metrics = calculate_metrix(y_test = y_test, y_mean_pre = ypred.reshape(-1, 1), y_var_pre = ypred_var)
 
@@ -75,7 +81,7 @@ if __name__ == '__main__':
                     recording['nll'].append(metrics['nll'])
                     recording['time'].append(T2 - T1)
 
-                path_csv = os.path.join('Experiments', 'GAR_aligned', 'exp_results', str(_data_name))
+                path_csv = os.path.join('Experiments', 'GAR_Non_Subset', 'exp_results', str(_data_name))
                 if not os.path.exists(path_csv):
                         os.makedirs(path_csv)
 

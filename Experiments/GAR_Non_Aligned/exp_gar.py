@@ -3,8 +3,8 @@ import os
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..')))
 
 # import GaussianProcess.kernel as kernel
-from FidelityFusion_Models.GAR import GAR_twofidelity
-from FidelityFusion_Models.GAR import train_GAR_twofidelity
+from FidelityFusion_Models.GAR import GAR
+from FidelityFusion_Models.GAR import train_GAR
 from Experiments.calculate_metrix import calculate_metrix
 
 import torch
@@ -60,9 +60,9 @@ if __name__ == '__main__':
                     low_shape=y_low[0].shape
                     high_shape=y_high1[0].shape
 
-                    GAR=GAR_twofidelity(low_shape,high_shape)
-                    train_GAR_twofidelity(GAR, x_train, y_train, max_iter=100, lr_init=1e-2)
-                    ypred, ypred_var = GAR(x_test)
+                    myGAR = GAR(low_shape,high_shape)
+                    train_GAR(myGAR, x_train, y_train, max_iter=100, lr_init=1e-2)
+                    ypred, ypred_var = myGAR(x_test)
 
 
                     metrics = calculate_metrix(y_test = y_test, y_mean_pre = ypred.reshape(-1, 1), y_var_pre = ypred_var)

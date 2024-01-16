@@ -13,8 +13,6 @@ from Experiments.calculate_metrix import calculate_metrix
 import torch
 
 
- 
-
 seed = list(range(3))
 fidelity_num = 2
 
@@ -31,7 +29,7 @@ for _data_name in ['sample_data']:
         recording = {'cost':[], 'rmse':[], 'r2':[], 'nll':[], 'nrmse':[], 'time':[]}
         for _seed in [0,1]:
             random.seed(_seed)
-            sample_num = torch.randint(0, 64)
+            sample_num = torch.randint(0, 64, size=(1,))
             x_all = torch.rand(500, 1) * 20
 
             xlow_indices = torch.randperm(500)[:train_sample_num]
@@ -75,7 +73,7 @@ for _data_name in ['sample_data']:
             recording['nll'].append(metrics['nll'])
             recording['time'].append(T2 - T1)
 
-            path_csv = os.path.join('Experiments', 'CAR_subset', 'exp_results', str(_data_name))
+            path_csv = os.path.join('Experiments', 'CAR_Cost', 'exp_results', str(_data_name))
             if not os.path.exists(path_csv):
                     os.makedirs(path_csv)
 
