@@ -1,6 +1,9 @@
+import sys
+import os
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 import torch
 import numpy as np
-from two_fidelity_models.hogp_simple import HOGP_simple
+from FidelityFusion_Models.two_fidelity_models.hogp_simple import HOGP_simple
 import GaussianProcess.kernel as kernel
 from GaussianProcess.gp_transform import Normalize0_layer
 from GaussianProcess.gp_computation_pack import Tensor_linear

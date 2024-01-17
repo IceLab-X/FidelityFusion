@@ -2,9 +2,10 @@ import sys
 import os
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..')))
 
-# import GaussianProcess.kernel as kernel
+import GaussianProcess.kernel as kernel
 from FidelityFusion_Models.GAR import GAR
 from FidelityFusion_Models.GAR import train_GAR
+from FidelityFusion_Models.MF_data import MultiFidelityDataManager
 from Experiments.calculate_metrix import calculate_metrix
 
 import torch
@@ -52,17 +53,25 @@ if __name__ == '__main__':
                     x_test = torch.linspace(0, 20, 100).reshape(-1, 1)
                     y_test = torch.sin(x_test)
                 
-                    x_train = [x_low, x_high1]
-                    y_train = [y_low, y_high1]
+                    # x_train = [x_low, x_high1]
+                    # y_train = [y_low, y_high1]
+
+                    initial_data = [
+                                        {'fidelity_indicator': 0,'raw_fidelity_name': '0', 'X': x_low, 'Y': y_low},
+                                        {'fidelity_indicator': 1, 'raw_fidelity_name': '1','X': x_high1, 'Y': y_high1},
+                                    ]
+                    fidelity_manager = MultiFidelityDataManager(initial_data)
 
                     T1 = time.time()
 
-                    low_shape=y_low[0].shape
-                    high_shape=y_high1[0].shape
+                    low_shape=[y_low[0].shape]
+                    high_shape=[y_high1[0].shape, y_high1[0].shape]
 
-                    myGAR = GAR(low_shape,high_shape)
-                    train_GAR(myGAR, x_train, y_train, max_iter=100, lr_init=1e-2)
-                    ypred, ypred_var = myGAR(x_test)
+                    kernel1 = kernel.SquaredExponentialKernel(length_scale = 1., signal_variance = 1.)
+                    myGAR = GAR(kernel1, low_shape, high_shape, fidelity = 2)
+                    train_GAR(myGAR, fidelity_manager, max_iter=100, lr_init=1e-2)
+                    with torch.no_grad():
+                        ypred, ypred_var = myGAR(fidelity_manager, x_test)
 
 
                     metrics = calculate_metrix(y_test = y_test, y_mean_pre = ypred.reshape(-1, 1), y_var_pre = ypred_var)

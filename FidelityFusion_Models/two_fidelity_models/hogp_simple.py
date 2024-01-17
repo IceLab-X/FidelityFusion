@@ -44,29 +44,52 @@ class HOGP_simple(nn.Module):
 
         
     def forward(self,x_train,x_test):
-        with torch.no_grad():
             
-            K_star = self.kernel_list[0](x_test, x_train)
-            K_predict = [K_star] + self.K[1:]
+        K_star = self.kernel_list[0](x_test, x_train)
+        K_predict = [K_star] + self.K[1:]
 
-            predict_u = tensorly.tenalg.multi_mode_dot(self.g, K_predict)
-            n_dim = len(self.K_eigen) - 1
-            _init_value = torch.tensor([1.0]).reshape(*[1 for i in range(n_dim)]).to(x_train.device)
-            diag_K_dims = tucker_to_tensor(( _init_value, [K.diag().reshape(-1,1) for K in self.K[1:]]))
-            diag_K_dims = diag_K_dims.unsqueeze(0)
-            diag_K_x = self.kernel_list[0](x_test, x_test).diag()
-            for i in range(n_dim):
-                diag_K_x = diag_K_x.unsqueeze(-1)
-            diag_K = diag_K_x * diag_K_dims
+        predict_u = tensorly.tenalg.multi_mode_dot(self.g, K_predict)
+        n_dim = len(self.K_eigen) - 1
+        _init_value = torch.tensor([1.0]).reshape(*[1 for i in range(n_dim)]).to(x_train.device)
+        diag_K_dims = tucker_to_tensor(( _init_value, [K.diag().reshape(-1,1) for K in self.K[1:]]))
+        diag_K_dims = diag_K_dims.unsqueeze(0)
+        diag_K_x = self.kernel_list[0](x_test, x_test).diag()
+        for i in range(n_dim):
+            diag_K_x = diag_K_x.unsqueeze(-1)
+        diag_K = diag_K_x * diag_K_dims
 
-            S = self.A * self.A.pow(-1/2)
-            S_2 = S.pow(2)
-            eigen_vectors_x = K_star@self.K[0]
-            eigen_vectors_dims = [self.K_eigen[i+1].vector.pow(2) for i in range(n_dim)]
-            
-            eigen_vectors = [eigen_vectors_x] + eigen_vectors_dims
-            S_product = tensorly.tenalg.multi_mode_dot(S_2, eigen_vectors)
-            var_diag = diag_K + S_product
+        S = self.A * self.A.pow(-1/2)
+        S_2 = S.pow(2)
+        eigen_vectors_x = K_star@self.K[0]
+        eigen_vectors_dims = [self.K_eigen[i+1].vector.pow(2) for i in range(n_dim)]
+        
+        eigen_vectors = [eigen_vectors_x] + eigen_vectors_dims
+        S_product = tensorly.tenalg.multi_mode_dot(S_2, eigen_vectors)
+        var_diag = diag_K + S_product
+
+        ## TODO how to calculate the variance of the prediction without diag?
+
+        # K_star = self.kernel_list[0](x_test, x_train)
+        # K_predict = [K_star] + self.K[1:]
+
+        # predict_u = tensorly.tenalg.multi_mode_dot(self.g, K_predict)
+        # n_dim = len(self.K_eigen) - 1
+        # _init_value = torch.tensor([1.0]).reshape(*[1 for i in range(n_dim)]).to(x_train.device)
+        # diag_K_dims = tucker_to_tensor(( _init_value, [K.diag().reshape(-1,1) for K in self.K[1:]]))
+        # diag_K_dims = diag_K_dims.unsqueeze(0)
+        # K_x = self.kernel_list[0](x_test, x_test)
+        # for i in range(n_dim):
+        #     K_x = K_x.unsqueeze(-1)
+        # K = K_x * diag_K_dims
+
+        # S = self.A * self.A.pow(-1/2)
+        # S_2 = S.pow(2)
+        # eigen_vectors_x = K_star@self.K[0]
+        # eigen_vectors_dims = [self.K_eigen[i+1].vector.pow(2) for i in range(n_dim)]
+        
+        # eigen_vectors = [eigen_vectors_x] + eigen_vectors_dims
+        # S_product = tensorly.tenalg.multi_mode_dot(S_2, eigen_vectors)
+        # var_diag = K + S_product
         
         return predict_u, var_diag
     
