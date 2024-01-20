@@ -66,7 +66,7 @@ class GP_basic(nn.Module):
         
         if Kinv_method == 'cholesky1':
             # kernel inverse is not stable, use cholesky decomposition instead
-            L = torch.cholesky(K)
+            L = torch.linalg.cholesky(K)
             L_inv = torch.inverse(L)
             K_inv = L_inv.T @ L_inv
             alpha = K_inv @ y_train
@@ -75,7 +75,7 @@ class GP_basic(nn.Module):
             var = K_ss - v.T @ v
         elif Kinv_method == 'cholesky3':
             # recommended implementation, fastest so far
-            L = torch.cholesky(K)
+            L = torch.linalg.cholesky(K)
             alpha = torch.cholesky_solve(y_train, L)
             mu = K_s.T @ alpha
             v = L.inverse() @ K_s
@@ -117,21 +117,33 @@ class GP_basic(nn.Module):
             K = K + y_train_var 
         
         if Kinv_method == 'cholesky1':
-            L = torch.cholesky(K)
+            L = torch.linalg.cholesky(K)
             L_inv = torch.inverse(L)
             K_inv = L_inv.T @ L_inv
-            return -0.5 * (y_train.T @ K_inv @ y_train + torch.logdet(K) + len(x_train) * np.log(2 * np.pi))
+            return -0.5 * (y_train.T @ K_inv @ y_train + 2 * torch.logdet(K) + len(x_train) * np.log(2 * np.pi))
         elif Kinv_method == 'cholesky2':
-            L = torch.cholesky(K)
-            return -0.5 * (y_train.T @ torch.cholesky_solve(y_train, L) + torch.logdet(K) + len(x_train) * np.log(2 * np.pi))
+            L = torch.linalg.cholesky(K)
+            gamma = torch.cholesky_solve(y_train, L)
+            return -0.5 * ((gamma.T @ gamma).sum() + 2 * torch.logdet(K) + len(x_train) * np.log(2 * np.pi))
         elif Kinv_method == 'cholesky3':
-            L = torch.cholesky(K)
-            return -0.5 * (y_train.T @ torch.cholesky_solve(y_train, L) + L.diag().log().sum() + len(x_train) * np.log(2 * np.pi))
+            L = torch.linalg.cholesky(K)
+            if y_train.shape[1] > 1:
+                Warning('y_use.shape[1] > 1, will treat each column as a sample (for the joint normal distribution) and sum the log-likelihood')
+                # 
+                # (Alpha ** 2).sum() = (Alpha @ Alpha^T).diag().sum() = \sum_i (Alpha @ Alpha^T)_{ii}
+                # 
+                y_dim = y_train.shape[1]
+                log_det_K = 2 * torch.sum(torch.log(torch.diag(L)))
+                gamma = torch.cholesky_solve(y_train, L, upper = False)
+                return - 0.5 * ( (gamma ** 2).sum() + log_det_K * y_dim + len(y_train) * y_dim * np.log(2 * np.pi) )
+            else:
+                gamma = torch.cholesky_solve(y_train, L, upper = False)
+                return -0.5 * (gamma.T @ gamma + 2 * L.diag().log().sum() + len(y_train) * np.log(2 * np.pi))
         elif Kinv_method == 'direct':
             K_inv = torch.inverse(K)
-            return -0.5 * (y_train.T @ K_inv @ y_train + torch.logdet(K) + len(x_train) * np.log(2 * np.pi))
+            return -0.5 * (y_train.T @ K_inv @ y_train + 2 * torch.logdet(K) + len(x_train) * np.log(2 * np.pi))
         elif Kinv_method == 'torch_distribution_MN1':
-            L = torch.cholesky(K)
+            L = torch.linalg.cholesky(K)
             return torch.distributions.MultivariateNormal(y_train, scale_tril=L).log_prob(y_train)
         elif Kinv_method == 'torch_distribution_MN2':
             return torch.distributions.MultivariateNormal(y_train, K).log_prob(y_train)

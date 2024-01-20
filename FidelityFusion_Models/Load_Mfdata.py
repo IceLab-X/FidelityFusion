@@ -3,7 +3,7 @@ import numpy as np
 import sys
 import os
 from emukit.core import ContinuousParameter, ParameterSpace
-from emukit.core.initial_designs.latin_design import LatinDesign
+from emukit.core.initial_designs.latin_design import LatinDesign  ##not importance
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 from emukit.test_functions.multi_fidelity import \
