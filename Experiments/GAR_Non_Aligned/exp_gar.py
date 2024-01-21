@@ -68,7 +68,7 @@ if __name__ == '__main__':
                     high_shape=[y_high1[0].shape, y_high1[0].shape]
 
                     kernel1 = kernel.SquaredExponentialKernel(length_scale = 1., signal_variance = 1.)
-                    myGAR = GAR(kernel1, low_shape, high_shape, fidelity = 2)
+                    myGAR = GAR(2,kernel1, low_shape, high_shape,)
                     train_GAR(myGAR, fidelity_manager, max_iter=100, lr_init=1e-2)
                     with torch.no_grad():
                         ypred, ypred_var = myGAR(fidelity_manager, x_test)

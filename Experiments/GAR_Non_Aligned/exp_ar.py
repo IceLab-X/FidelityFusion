@@ -3,17 +3,28 @@ import os
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..')))
 
 import GaussianProcess.kernel as kernel
-from FidelityFusion_Models.AR_autoRegression import autoRegression
-from FidelityFusion_Models.AR_autoRegression import train_AR
+from FidelityFusion_Models import *
 from FidelityFusion_Models.MF_data import MultiFidelityDataManager
 from Experiments.calculate_metrix import calculate_metrix
 
 import torch
 import time
-import torch.nn as nn
 import pandas as pd
 
-
+model_dict = {
+    'AR': AR,
+    'ResGP': ResGP,
+    'NAR': NAR,
+    'CIGAR': CIGAR,
+    'GAR': GAR,
+}
+train_model = {
+    'AR': train_AR,
+    'ResGP': train_ResGP,
+    'NAR': train_NAR,
+    'CIGAR': train_CIGAR,
+    'GAR': train_GAR,
+}
 real_dataset = ['FlowMix3D_MF',
                 'MolecularDynamic_MF', 
                 'plasmonic2_MF', 
@@ -31,7 +42,8 @@ gen_dataset = ['poisson_v4_02',
 interp_data = False
 
 if __name__ == '__main__':
-        
+    model_sum = ['AR'] 
+    for model_name in model_sum:  
         for _data_name in ['sample_data']:
             for _seed in [0,1]:
                 recording = {'train_sample_num':[], 'rmse':[], 'nrmse':[], 'r2':[], 'nll':[], 'time':[]}
@@ -44,9 +56,9 @@ if __name__ == '__main__':
                     xlow_indices = torch.sort(xlow_indices).values
                     x_low = x_all[xlow_indices]
 
-                    xhigh_indices = torch.randperm(300)[:_high_fidelity_num]
+                    xhigh_indices = torch.randperm(500)[:_high_fidelity_num]
                     xhigh_indices = torch.sort(xhigh_indices).values
-                    x_high1 = x_low[xhigh_indices]
+                    x_high1 = x_all[xhigh_indices]
 
                     y_low = torch.sin(x_low) - torch.rand(300, 1) * 0.2 
                     y_high1 = torch.sin(x_high1) - torch.rand(_high_fidelity_num, 1) * 0.1
@@ -62,12 +74,16 @@ if __name__ == '__main__':
                     T1 = time.time()
                     fidelity_manager = MultiFidelityDataManager(initial_data)
                     kernel1 = kernel.SumKernel(kernel.LinearKernel(1), kernel.MaternKernel(1))
-                    AR = autoRegression(fidelity_num=2,kernel=kernel1,rho_init=1.0)
+                    model_define = model_dict[model_name]
+                    if model_name in ['CIGAR', 'GAR']:
+                        pass
+                    else:
+                        model = model_define(fidelity_num=2,kernel=kernel1)
 
-                    train_AR(AR,fidelity_manager, max_iter=100, lr_init=1e-2)
+                    train_model[model_name](model,fidelity_manager, max_iter=100, lr_init=1e-2)
 
                     with torch.no_grad():
-                        ypred, ypred_var = AR(fidelity_manager,x_test)
+                        ypred, ypred_var = model(fidelity_manager,x_test)
 
 
                     metrics = calculate_metrix(y_test = y_test, y_mean_pre = ypred.reshape(-1, 1), y_var_pre = ypred_var)

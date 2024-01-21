@@ -8,7 +8,7 @@ from GaussianProcess.gp_basic import GP_basic as GPR
 from FidelityFusion_Models.MF_data import MultiFidelityDataManager
 import matplotlib.pyplot as plt
 
-class autoRegression(nn.Module):
+class AR(nn.Module):
     # initialize the model
     def __init__(self, fidelity_num, kernel, rho_init = 1.0, nonsubset = False):
         super().__init__()
@@ -118,13 +118,13 @@ if __name__ == "__main__":
 
     fidelity_manager = MultiFidelityDataManager(initial_data)
     kernel1 = kernel.SumKernel(kernel.LinearKernel(1), kernel.MaternKernel(1))
-    AR = autoRegression(fidelity_num=3,kernel=kernel1,rho_init=1.0,nonsubset=True)
+    myAR = AR(fidelity_num=3,kernel=kernel1,rho_init=1.0,nonsubset=True)
 
     ## if nonsubset is False, max_iter should be 100 ,lr can be 1e-2
-    train_AR(AR,fidelity_manager, max_iter=500, lr_init=1e-3)
+    train_AR(myAR,fidelity_manager, max_iter=500, lr_init=1e-3)
 
     with torch.no_grad():
-        ypred, ypred_var = AR(fidelity_manager,x_test)
+        ypred, ypred_var = myAR(fidelity_manager,x_test)
 
     plt.figure()
     plt.errorbar(x_test.flatten(), ypred.reshape(-1).detach(), ypred_var.diag().sqrt().squeeze().detach(), fmt='r-.' ,alpha = 0.2)

@@ -11,11 +11,11 @@ from FidelityFusion_Models.MF_data import MultiFidelityDataManager
 import matplotlib.pyplot as plt
         
 class CIGAR(torch.nn.Module):
-    def __init__(self, kernel, l_shape, h_shape, fidelity, nonsubset = False):
+    def __init__(self, fidelity_num, kernel, l_shape, h_shape, nonsubset = False):
         super().__init__()
         self.l_shape = l_shape
         self.h_shape = h_shape
-        self.fidelity_num = fidelity
+        self.fidelity_num = fidelity_num
         self.cigp_list = []
         for i in range(self.fidelity_num):
             self.cigp_list.append(GPR(kernel = kernel, noise_variance = 1.0))
@@ -140,9 +140,9 @@ if __name__ == "__main__":
     fidelity_manager = MultiFidelityDataManager(initial_data)
 
     kernel1 = kernel.SquaredExponentialKernel(length_scale = 1., signal_variance = 1.)
-    myCIGAR = CIGAR(kernel1, low_shape, high_shape, fidelity = 3, nonsubset = True)
+    myCIGAR = CIGAR(3,kernel1, low_shape, high_shape, nonsubset = True)
 
-    train_CIGAR(myCIGAR, fidelity_manager, max_iter = 300, lr_init = 1e-3)
+    train_CIGAR(myCIGAR, fidelity_manager, max_iter = 3, lr_init = 1e-3)
 
     with torch.no_grad():
         ypred, ypred_var = myCIGAR(fidelity_manager, x_test)

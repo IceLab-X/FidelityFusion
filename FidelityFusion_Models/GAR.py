@@ -11,11 +11,11 @@ from FidelityFusion_Models.MF_data import MultiFidelityDataManager
 import matplotlib.pyplot as plt
         
 class GAR(torch.nn.Module):
-    def __init__(self, kernel, l_shape, h_shape, fidelity, nonsubset = False):
+    def __init__(self, fidelity_num, kernel, l_shape, h_shape, nonsubset = False):
         super().__init__()
         self.l_shape = l_shape
         self.h_shape = h_shape
-        self.fidelity_num = fidelity
+        self.fidelity_num = fidelity_num
         self.hogp_list = []
         for i in range(self.fidelity_num):
             self.hogp_list.append(HOGP_simple(kernel = kernel, noise_variance = 1.0, output_shape = h_shape[i]))
@@ -42,14 +42,14 @@ class GAR(torch.nn.Module):
                 if fidelity_num == 1:
                     mean_high = mean_low
                     var_high = var_low
-                    var_high = torch.diag_embed(torch.flatten(var_high))
+                    # var_high = torch.diag_embed(torch.flatten(var_high))
             else:
                 x_train, _ = data_manager.get_data_by_name('res-{}'.format(i_fidelity))
                 mean_res, var_res = self.hogp_list[i_fidelity].forward(x_train, x_test)
 
                 mean_high = self.Tensor_linear_list[i_fidelity - 1](mean_low) + mean_res
                 var_high = self.Tensor_linear_list[i_fidelity - 1](var_low) + var_res
-                var_high = torch.diag_embed(torch.flatten(var_high))
+                # var_high = torch.diag_embed(torch.flatten(var_high))
 
                 ## for next fidelity
                 mean_low = mean_high
@@ -135,7 +135,7 @@ if __name__ == "__main__":
     fidelity_manager = MultiFidelityDataManager(initial_data)
 
     kernel1 = kernel.SquaredExponentialKernel(length_scale = 1., signal_variance = 1.)
-    myGAR = GAR(kernel1, low_shape, high_shape, fidelity = 3, nonsubset = True)
+    myGAR = GAR(3 ,kernel1, low_shape, high_shape, nonsubset = True)
 
     train_GAR(myGAR, fidelity_manager, max_iter = 100, lr_init = 1e-3)
 

@@ -3,24 +3,12 @@ import os
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..')))
 
 import GaussianProcess.kernel as kernel
-from FidelityFusion_Models.AR_autoRegression import autoRegression as AR
-from FidelityFusion_Models.ResGP import ResGP
-from FidelityFusion_Models.NAR import NAR
-from FidelityFusion_Models.CIGAR import CIGAR
-from FidelityFusion_Models.GAR import GAR
-
-from FidelityFusion_Models.AR_autoRegression import train_AR
-from FidelityFusion_Models.ResGP import train_ResGP
-from FidelityFusion_Models.NAR import train_NAR
-from FidelityFusion_Models.CIGAR import train_CIGAR
-from FidelityFusion_Models.GAR import train_GAR
-
+from FidelityFusion_Models import *
 from FidelityFusion_Models.MF_data import MultiFidelityDataManager
 from Experiments.calculate_metrix import calculate_metrix
 
 import torch
 import time
-import torch.nn as nn
 import pandas as pd
 
 
@@ -41,12 +29,12 @@ gen_dataset = ['poisson_v4_02',
 interp_data = False
 
 model_dic = {'AR': AR, 'ResGP': ResGP, 'NAR': NAR, 'CIGAR': CIGAR, 'GAR': GAR}
-train_dic = {'AR': train_AR,'ResGp': train_ResGP, 'NAR': train_NAR,'CIGAR': train_CIGAR, 'GAR': train_GAR}
+train_dic = {'AR': train_AR,'ResGP': train_ResGP, 'NAR': train_NAR,'CIGAR': train_CIGAR, 'GAR': train_GAR}
 
 if __name__ == '__main__':
         
-        # method_list = ['AR', 'ResGP', 'NAR', 'CIGAR', 'GAR']
-        method_list = ['AR']
+        method_list = ['CIGAR']
+        # method_list = ['AR']
         for method in method_list:
             for _data_name in ['sample_data']:
                 for _seed in [0, 1]:
@@ -70,6 +58,10 @@ if __name__ == '__main__':
 
                         x_test = torch.linspace(0, 20, 100).reshape(-1, 1)
                         y_test = torch.sin(x_test)
+
+                        src_y_shape = y_high1.shape[1:]
+                        low_shape = [y_low[0].shape]
+                        high_shape = [y_high1[0].shape, y_high1[0].shape]
                     
                         initial_data = [
                                             {'fidelity_indicator': 0,'raw_fidelity_name': '0', 'X': x_low, 'Y': y_low},
@@ -78,14 +70,22 @@ if __name__ == '__main__':
 
                         T1 = time.time()
                         fidelity_manager = MultiFidelityDataManager(initial_data)
-                        kernel1 = kernel.SumKernel(kernel.LinearKernel(1), kernel.MaternKernel(1))
-                        model = model_dic[method](fidelity_num=2, kernel=kernel1, rho_init=1.0)
+                        kernel1 = kernel.SquaredExponentialKernel(length_scale = 1., signal_variance = 1.)
+
+                        if method == 'AR':
+                            model = model_dic[method](fidelity_num=2, kernel=kernel1, rho_init=1.0)
+                        elif method in ['CIGAR', 'GAR']:
+                            model = model_dic[method](fidelity_num=2, kernel=kernel1, l_shape=low_shape, h_shape=high_shape)
+                        else:
+                            model = model_dic[method](fidelity_num=2, kernel=kernel1)
 
                         train_dic[method](model, fidelity_manager, max_iter=100, lr_init=1e-2)
 
                         with torch.no_grad():
                             ypred, ypred_var = model(fidelity_manager,x_test)
-
+        
+                        # ypred = ypred.reshape(-1, * src_y_shape)
+                        # ypred_var = ypred_var.reshape(-1, * src_y_shape)
 
                         metrics = calculate_metrix(y_test = y_test, y_mean_pre = ypred.reshape(-1, 1), y_var_pre = ypred_var)
 
