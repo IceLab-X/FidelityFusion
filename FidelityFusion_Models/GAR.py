@@ -42,18 +42,20 @@ class GAR(torch.nn.Module):
                 if fidelity_num == 1:
                     mean_high = mean_low
                     var_high = var_low
+                    var_high = torch.diag_embed(torch.flatten(var_high))
             else:
                 x_train, _ = data_manager.get_data_by_name('res-{}'.format(i_fidelity))
                 mean_res, var_res = self.hogp_list[i_fidelity].forward(x_train, x_test)
 
                 mean_high = self.Tensor_linear_list[i_fidelity - 1](mean_low) + mean_res
                 var_high = self.Tensor_linear_list[i_fidelity - 1](var_low) + var_res
+                var_high = torch.diag_embed(torch.flatten(var_high))
 
                 ## for next fidelity
                 mean_low = mean_high
                 var_low = var_high
 
-        return mean_high,var_high
+        return mean_high, var_high
         
 def train_GAR(GARmodel, data_manager, max_iter = 1000, lr_init =  1e-1):
     

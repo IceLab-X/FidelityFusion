@@ -4,17 +4,17 @@ from matplotlib import pyplot as plt
 import sys
 import os
 
-Dic = {'ar': ['#ff7f0e', "o", "solid", "AR"],
-       'nar': ['#708090', "o", "solid", "NAR"],
+Dic = {'AR': ['#ff7f0e', "o", "solid", "AR"],
+       'NAR': ['#708090', "o", "solid", "NAR"],
        'dc': ['#17becf', "o", "solid", "DC-I"],
-       'resgp': ['#8c564b', "o", "solid", "ResGP"],
+       'ResGP': ['#8c564b', "o", "solid", "ResGP"],
        'dmfal': ['#2ca02c', "o", "solid", "MF-BNN"],
-       'gar': ['#DC143C', "o", "dashed", "GAR"],
-       'cigar': ['#1f77b4', "o", "dashed", "CIGAR"],
+       'GAR': ['#DC143C', "o", "dashed", "GAR"],
+       'CIGAR': ['#1f77b4', "o", "dashed", "CIGAR"],
         }
 
 data_name = 'sample_data'
-methods_name_list = ['ar']
+methods_name_list = ['AR']
 
 for methods_name in methods_name_list:
     ct = []

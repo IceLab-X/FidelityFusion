@@ -32,7 +32,7 @@ interp_data = False
 if __name__ == '__main__':
         
         for _data_name in ['sample_data']:
-            for _seed in [0,1]:
+            for _seed in [0]:
                 recording = {'train_sample_num':[], 'rmse':[], 'nrmse':[], 'r2':[], 'nll':[], 'time':[]}
                 for _high_fidelity_num in [4, 8, 16, 32]:
                     torch.manual_seed(_seed)
@@ -89,6 +89,6 @@ if __name__ == '__main__':
                         os.makedirs(path_csv)
 
                 record = pd.DataFrame(recording)
-                record.to_csv(path_csv + '/gar_seed_' + str(_seed) + '.csv', index = False) # 将数据写入
+                record.to_csv(path_csv + '/GAR_seed_' + str(_seed) + '.csv', index = False) # 将数据写入
 
                     

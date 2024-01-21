@@ -53,7 +53,7 @@ for _data_name in data_name_list:
                 # kernel_residual = fidelity_kernel_MCMC(x_low.shape[1], kernel.ARDKernel(x_low.shape[1]), 1, 2)
                 CAR = ContinuousAutoRegression(fidelity_num=fidelity_num, kernel_list=kernel_list, b_init=1.0)
 
-                train_CAR(CAR,fidelity_manager, max_iter=100, lr_init=1e-2)
+                train_CAR(CAR, fidelity_manager, max_iter=100, lr_init=1e-2)
 
                 with torch.no_grad():
                     ypred, ypred_var = CAR(fidelity_manager,x_test)

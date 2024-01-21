@@ -4,18 +4,18 @@ from matplotlib import pyplot as plt
 import sys
 import os
 
-Dic = {'ar': ['#ff7f0e', "o", "solid", "AR"],
-       'nar': ['#708090', "o", "solid", "NAR"],
+Dic = {'AR': ['#ff7f0e', "o", "solid", "AR"],
+       'NAR': ['#708090', "o", "solid", "NAR"],
        'dc': ['#17becf', "o", "solid", "DC-I"],
-       'resgp': ['#8c564b', "o", "solid", "ResGP"],
+       'ResGP': ['#8c564b', "o", "solid", "ResGP"],
        'dmfal': ['#2ca02c', "o", "solid", "MF-BNN"],
-       'gar': ['#DC143C', "o", "dashed", "GAR"],
-       'car': ['#1f77b4', "o", "dashed", "Ours"],
+       'GAR': ['#DC143C', "o", "dashed", "GAR"],
+       'CIGAR': ['#1f77b4', "o", "dashed", "CIGAR"],
         }
 
 data_name = 'sample_data'
 dec_rate = 0.75
-methods_name_list = ['car']
+methods_name_list = ['CAR']
 
 for methods_name in methods_name_list:
     ct = []
@@ -34,7 +34,7 @@ for methods_name in methods_name_list:
                 label=Dic[methods_name][-1], marker=Dic[methods_name][1], fillstyle='full',
                 elinewidth = 3 ,capsize = 8, markersize = 12, alpha = 0.8)
 
-    plt.xlabel("# Training Samples $N^{0}$", fontsize=25)
+    plt.xlabel("# Training Samples $N^{0}$", fontsize=20)
     plt.ylabel("RMSE", fontsize = 20)
 
 

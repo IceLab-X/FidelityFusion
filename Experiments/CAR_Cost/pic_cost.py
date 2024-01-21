@@ -4,17 +4,17 @@ from matplotlib import pyplot as plt
 import sys
 import os
 
-Dic = {'ar': ['#ff7f0e', "o", "solid", "AR"],
-       'nar': ['#708090', "o", "solid", "NAR"],
+Dic = {'AR': ['#ff7f0e', "o", "solid", "AR"],
+       'NAR': ['#708090', "o", "solid", "NAR"],
        'dc': ['#17becf', "o", "solid", "DC-I"],
-       'resgp': ['#8c564b', "o", "solid", "ResGP"],
+       'ResGP': ['#8c564b', "o", "solid", "ResGP"],
        'dmfal': ['#2ca02c', "o", "solid", "MF-BNN"],
-       'gar': ['#DC143C', "o", "dashed", "GAR"],
-       'car': ['#1f77b4', "o", "dashed", "Ours"],
+       'GAR': ['#DC143C', "o", "dashed", "GAR"],
+       'CIGAR': ['#1f77b4', "o", "dashed", "CIGAR"],
         }
 
 data_name = 'sample_data'
-methods_name_list = ['car']
+methods_name_list = ['CAR']
 start_seed = 21
 # cost实验一般不需要跑好几个seed取平均值 因为已经很随机了
 
