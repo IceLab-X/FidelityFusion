@@ -14,7 +14,7 @@ Dic = {'ar': ['#ff7f0e', "o", "solid", "AR"],
         }
 
 data_name = 'sample_data'
-methods_name_list = ['nar']
+methods_name_list = ['nar', 'ar']
 
 for methods_name in methods_name_list:
     ct = []

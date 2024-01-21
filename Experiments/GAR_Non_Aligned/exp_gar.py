@@ -43,9 +43,9 @@ if __name__ == '__main__':
                     xlow_indices = torch.sort(xlow_indices).values
                     x_low = x_all[xlow_indices]
 
-                    xhigh_indices = torch.randperm(500)[:_high_fidelity_num]
+                    xhigh_indices = torch.randperm(300)[:_high_fidelity_num]
                     xhigh_indices = torch.sort(xhigh_indices).values
-                    x_high1 = x_all[xhigh_indices]
+                    x_high1 = x_low[xhigh_indices]
 
                     y_low = torch.sin(x_low) - torch.rand(300, 1) * 0.2 
                     y_high1 = torch.sin(x_high1) - torch.rand(_high_fidelity_num, 1) * 0.1

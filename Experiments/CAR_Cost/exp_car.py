@@ -13,7 +13,7 @@ from Experiments.calculate_metrix import calculate_metrix
 import torch
 
 
-seed = list(range(3))
+# seed = list(range(3))
 fidelity_num = 2
 
 def get_cost(ones_num_list):
@@ -26,58 +26,62 @@ def get_cost(ones_num_list):
 
 for _data_name in ['sample_data']:
         train_sample_num = 64
-        recording = {'cost':[], 'rmse':[], 'r2':[], 'nll':[], 'nrmse':[], 'time':[]}
-        for _seed in [0,1]:
-            random.seed(_seed)
-            sample_num = torch.randint(0, 64, size=(1,))
-            x_all = torch.rand(500, 1) * 20
+        for _start_seed in [1]:
+                recording = {'cost':[], 'rmse':[], 'r2':[], 'nll':[], 'nrmse':[], 'time':[]}
+                for _seed in list(range(_start_seed, _start_seed + 5)):
+                        torch.manual_seed(_seed)
+                        sample_num = torch.randint(0, 64, size=(1,))
+                        torch.manual_seed(_seed + 217)
+                        train_sample_num = torch.randint(64, 128, size=(1,))
 
-            xlow_indices = torch.randperm(500)[:train_sample_num]
-            xlow_indices = torch.sort(xlow_indices).values
-            x_low = x_all[xlow_indices]
+                        x_all = torch.rand(500, 1) * 20
 
-            xhigh_indices = torch.randperm(500)[:train_sample_num-sample_num]
-            xhigh_indices = torch.sort(xhigh_indices).values
-            x_high1 = x_all[xhigh_indices]
+                        xlow_indices = torch.randperm(500)[:train_sample_num]
+                        xlow_indices = torch.sort(xlow_indices).values
+                        x_low = x_all[xlow_indices]
 
-            y_low = torch.sin(x_low) - torch.rand(train_sample_num, 1) * 0.2 
-            y_high1 = torch.sin(x_high1) - torch.rand(train_sample_num-sample_num, 1) * 0.1
+                        xhigh_indices = torch.randperm(500)[:train_sample_num-sample_num]
+                        xhigh_indices = torch.sort(xhigh_indices).values
+                        x_high1 = x_all[xhigh_indices]
 
-            x_test = torch.linspace(0, 20, 100).reshape(-1, 1)
-            y_test = torch.sin(x_test)
+                        y_low = torch.sin(x_low) - torch.rand(train_sample_num, 1) * 0.2 
+                        y_high1 = torch.sin(x_high1) - torch.rand(train_sample_num-sample_num, 1) * 0.1
 
-            T1 = time.time()
+                        x_test = torch.linspace(0, 20, 100).reshape(-1, 1)
+                        y_test = torch.sin(x_test)
 
-            initial_data = [
-                                {'fidelity_indicator': 0,'raw_fidelity_name': '0', 'X': x_low, 'Y': y_low},
-                                {'fidelity_indicator': 1, 'raw_fidelity_name': '1','X': x_high1, 'Y': y_high1},
-                            ]
+                        T1 = time.time()
 
-            fidelity_manager = MultiFidelityDataManager(initial_data)
-            fidelity_num = 2
-            kernel_list = [kernel.ARDKernel(x_low.shape[1]) for _ in range(fidelity_num)]
-            CAR = ContinuousAutoRegression(fidelity_num=fidelity_num, kernel_list=kernel_list, b_init=1.0)
+                        initial_data = [
+                                                {'fidelity_indicator': 0,'raw_fidelity_name': '0', 'X': x_low, 'Y': y_low},
+                                                {'fidelity_indicator': 1, 'raw_fidelity_name': '1','X': x_high1, 'Y': y_high1},
+                                        ]
 
-            train_CAR(CAR,fidelity_manager, max_iter=100, lr_init=1e-2)
+                        fidelity_manager = MultiFidelityDataManager(initial_data)
+                        fidelity_num = 2
+                        kernel_list = [kernel.ARDKernel(x_low.shape[1]) for _ in range(fidelity_num)]
+                        CAR = ContinuousAutoRegression(fidelity_num=fidelity_num, kernel_list=kernel_list, b_init=1.0)
 
-            with torch.no_grad():
-                ypred, ypred_var = CAR(fidelity_manager,x_test)
-                
-            metrics = calculate_metrix(y_test = y_test, y_mean_pre = ypred.reshape(-1, 1), y_var_pre = ypred_var)
+                        train_CAR(CAR,fidelity_manager, max_iter=100, lr_init=1e-2)
 
-            T2 = time.time()
-            recording['cost'].append(int(train_sample_num-sample_num))
-            recording['rmse'].append(metrics['rmse'])
-            recording['nrmse'].append(metrics['nrmse'])
-            recording['r2'].append(metrics['r2'])
-            recording['nll'].append(metrics['nll'])
-            recording['time'].append(T2 - T1)
+                        with torch.no_grad():
+                                ypred, ypred_var = CAR(fidelity_manager,x_test)
+                                
+                        metrics = calculate_metrix(y_test = y_test, y_mean_pre = ypred.reshape(-1, 1), y_var_pre = ypred_var)
 
-            path_csv = os.path.join('Experiments', 'CAR_Cost', 'exp_results', str(_data_name))
-            if not os.path.exists(path_csv):
-                    os.makedirs(path_csv)
+                        T2 = time.time()
+                        recording['cost'].append(int(train_sample_num-sample_num))
+                        recording['rmse'].append(metrics['rmse'])
+                        recording['nrmse'].append(metrics['nrmse'])
+                        recording['r2'].append(metrics['r2'])
+                        recording['nll'].append(metrics['nll'])
+                        recording['time'].append(T2 - T1)
 
-            record = pd.DataFrame(recording)
-            record.to_csv(path_csv + '/car_seed_' + str(_seed) + '.csv', index = False) # 将数据写入
+                path_csv = os.path.join('Experiments', 'CAR_Cost', 'exp_results', str(_data_name))
+                if not os.path.exists(path_csv):
+                        os.makedirs(path_csv)
+
+                record = pd.DataFrame(recording)
+                record.to_csv(path_csv + '/car_seed_' + str(_start_seed) + '.csv', index = False) # 将数据写入
 
             

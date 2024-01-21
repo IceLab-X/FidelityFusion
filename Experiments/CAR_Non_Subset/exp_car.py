@@ -31,9 +31,9 @@ for _data_name in data_name_list:
                 xlow_indices = torch.sort(xlow_indices).values
                 x_low = x_all[xlow_indices]
 
-                xhigh_indices = torch.randperm(train_sample_num)[:int(dec_rate * train_sample_num)]
+                xhigh_indices = torch.randperm(500)[:int(dec_rate * train_sample_num)]
                 xhigh_indices = torch.sort(xhigh_indices).values
-                x_high1 = x_low[xhigh_indices]
+                x_high1 = x_all[xhigh_indices]
 
                 y_low = torch.sin(x_low) - torch.rand(train_sample_num, 1) * 0.2 
                 y_high1 = torch.sin(x_high1) - torch.rand(int(dec_rate * train_sample_num), 1) * 0.1
@@ -68,7 +68,7 @@ for _data_name in data_name_list:
                 recording['nll'].append(metrics['nll'])
                 recording['time'].append(T2 - T1)
 
-            path_csv = os.path.join('Experiments', 'CAR_subset', 'exp_results', str(_data_name))
+            path_csv = os.path.join('Experiments', 'CAR_Non_Subset', 'exp_results', str(_data_name))
             if not os.path.exists(path_csv):
                     os.makedirs(path_csv)
 

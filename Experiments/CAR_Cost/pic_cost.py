@@ -14,28 +14,23 @@ Dic = {'ar': ['#ff7f0e', "o", "solid", "AR"],
         }
 
 data_name = 'sample_data'
-dec_rate = 0.75
 methods_name_list = ['car']
+start_seed = 21
+# cost实验一般不需要跑好几个seed取平均值 因为已经很随机了
 
 for methods_name in methods_name_list:
     ct = []
     tem = []
-    for seed in [0, 1]:
-        # path = os.path.join(sys.path[0], 'exp_results', data_name, methods_name + '_' + str(dec_rate)  + '_seed_' + str(seed) + '.csv')
-        path = os.path.join(sys.path[0], 'exp_results', data_name, methods_name + '_seed_' + str(seed) + '.csv')
-        data = pd.DataFrame(pd.read_csv(path))
-        orders = data['cost'].to_numpy().reshape(-1, 1).flatten()
-        rmse = data['rmse'].to_numpy().reshape(-1, 1)
-        tem.append(rmse)
+    path = os.path.join(sys.path[0], 'exp_results', data_name, methods_name + '_seed_' + str(start_seed) + '.csv')
+    data = pd.DataFrame(pd.read_csv(path))
+    sorted_data = data.sort_values(by='cost', ascending=True)
+    orders = sorted_data['cost'].to_numpy().reshape(-1, 1).flatten()
+    rmse = sorted_data['rmse'].to_numpy().reshape(-1, 1)
+    tem.append(rmse)
 
-    tem = np.array(tem)
-    mean = np.mean(tem, axis=0).flatten()
-    var = np.std(tem, axis=0).flatten()
-    plt.errorbar(orders, mean, yerr = var, ls = Dic[methods_name][2], linewidth=3.5, color=Dic[methods_name][0],
-                label=Dic[methods_name][-1], marker=Dic[methods_name][1], fillstyle='full',
-                elinewidth = 3 ,capsize = 8, markersize = 12, alpha = 0.8)
+    plt.plot(orders, rmse, ls = Dic[methods_name][2], linewidth=3.5, color=Dic[methods_name][0], label=Dic[methods_name][-1], marker=Dic[methods_name][1], markersize = 12, alpha = 0.8)
 
-    plt.xlabel("# Training Samples $N^{0}$", fontsize=25)
+    plt.xlabel("# Cost", fontsize=20)
     plt.ylabel("RMSE", fontsize = 20)
 
 
