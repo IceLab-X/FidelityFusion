@@ -93,13 +93,23 @@ def train_CIGAR(GARmodel, data_manager, max_iter = 1000, lr_init =  1e-1):
 if __name__ == "__main__":
     torch.manual_seed(1)
 
-    x = np.load('assets\\MF_data\\Poisson_data\\input.npy')
+    # x = np.load('assets\\MF_data\\Poisson_data\\input.npy')
+    # x = torch.tensor(x, dtype=torch.float32)
+    # yl=np.load('assets\\MF_data\\Poisson_data\\output_fidelity_0.npy')
+    # yl = torch.tensor(yl, dtype=torch.float32)
+    # yh = np.load('assets\\MF_data\\Poisson_data\\output_fidelity_1.npy')
+    # yh = torch.tensor(yh, dtype=torch.float32)
+    # yh2 = np.load('assets\\MF_data\\Poisson_data\\output_fidelity_2.npy')
+    # yh2 = torch.tensor(yh2, dtype = torch.float32)
+
+
+    x = np.load('assets/MF_data/Poisson_data/input.npy')
     x = torch.tensor(x, dtype=torch.float32)
-    yl=np.load('assets\\MF_data\\Poisson_data\\output_fidelity_0.npy')
+    yl=np.load('assets/MF_data/Poisson_data/output_fidelity_0.npy')
     yl = torch.tensor(yl, dtype=torch.float32)
-    yh = np.load('assets\\MF_data\\Poisson_data\\output_fidelity_1.npy')
+    yh = np.load('assets/MF_data/Poisson_data/output_fidelity_1.npy')
     yh = torch.tensor(yh, dtype=torch.float32)
-    yh2 = np.load('assets\\MF_data\\Poisson_data\\output_fidelity_2.npy')
+    yh2 = np.load('assets/MF_data/Poisson_data/output_fidelity_2.npy')
     yh2 = torch.tensor(yh2, dtype = torch.float32)
 
     ## Standardization layer, currently using full dimensional standardization

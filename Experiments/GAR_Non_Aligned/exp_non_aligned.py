@@ -37,7 +37,7 @@ if __name__ == '__main__':
         # method_list = ['AR']
         for method in method_list:
             for _data_name in ['sample_data']:
-                for _seed in [0, 1]:
+                for _seed in [0]:
                     recording = {'train_sample_num':[], 'rmse':[], 'nrmse':[], 'r2':[], 'nll':[], 'time':[]}
                     for _high_fidelity_num in [4, 8, 16, 32]:
                         torch.manual_seed(_seed)
