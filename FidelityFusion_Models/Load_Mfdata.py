@@ -2,6 +2,7 @@ import torch
 import numpy as np
 import sys
 import os
+from assets.MF_data import *
 from emukit.core import ContinuousParameter, ParameterSpace
 from emukit.core.initial_designs.latin_design import LatinDesign  ##not importance
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
@@ -13,24 +14,6 @@ from emukit.test_functions.multi_fidelity import \
      multi_fidelity_hartmann_3d,
      multi_fidelity_park_function,
      )
-
-from assets.MF_data import \
-(
-    multi_fidelity_Colville, multi_fidelity_non_linear_sin, multi_fidelity_forrester_my, multi_fidelity_Toal,
-
-    multi_fidelity_maolin1, multi_fidelity_maolin5, multi_fidelity_maolin6, multi_fidelity_maolin7, multi_fidelity_maolin8, multi_fidelity_maolin10,
-    multi_fidelity_maolin12, multi_fidelity_maolin13, multi_fidelity_maolin15, multi_fidelity_maolin19, multi_fidelity_maolin20,
-
-    multi_fidelity_p1_simp, multi_fidelity_p2_simp, multi_fidelity_p3_simp, multi_fidelity_p4_simp, multi_fidelity_p5_simp,
-
-    multi_fidelity_shuo6, multi_fidelity_shuo11, multi_fidelity_shuo15, multi_fidelity_shuo16,
-
-    multi_fidelity_test3_function, multi_fidelity_test4_function, multi_fidelity_test5_function, multi_fidelity_test6_function,
-    multi_fidelity_test7_function, multi_fidelity_test8_function, multi_fidelity_test9_function,
-
-    test_function_d1, test_function_d2, test_function_d3, test_function_d4, test_function_d5,
-    test_function_d6, test_function_d7, test_function_d8, test_function_d9, test_function_d10,
-)
 
 data_mapping = {
         "borehole": multi_fidelity_borehole_function,

@@ -14,12 +14,12 @@ Dic = {'AR': ['#ff7f0e', "o", "solid", "AR"],
         }
 
 data_name = 'sample_data'
-methods_name_list = ['AR']
+methods_name_list = ['AR','NAR','ResGP','GAR','CIGAR']
 
 for methods_name in methods_name_list:
     ct = []
     tem = []
-    for seed in [0, 1]:
+    for seed in [0,1]:
         path = os.path.join(sys.path[0], 'exp_results', data_name, methods_name + '_seed_' + str(seed) + '.csv')
         data = pd.DataFrame(pd.read_csv(path))
         orders = data['train_sample_num'].to_numpy().reshape(-1, 1).flatten()

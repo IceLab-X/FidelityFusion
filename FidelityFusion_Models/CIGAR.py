@@ -164,7 +164,7 @@ if __name__ == "__main__":
     kernel1 = kernel.SquaredExponentialKernel(length_scale = 1., signal_variance = 1.)
     myCIGAR = CIGAR(3,kernel1, low_shape, high_shape, nonsubset = True)
 
-    train_CIGAR(myCIGAR, fidelity_manager, max_iter = 3, lr_init = 1e-3)
+    train_CIGAR(myCIGAR, fidelity_manager, max_iter = 300, lr_init = 1e-3)
 
     with torch.no_grad():
         ypred, ypred_var = myCIGAR(fidelity_manager, x_test)

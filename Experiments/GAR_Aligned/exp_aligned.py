@@ -96,7 +96,7 @@ if __name__ == '__main__':
                         recording['nll'].append(metrics['nll'])
                         recording['time'].append(T2 - T1)
 
-                    path_csv = os.path.join('Experiments', 'GAR_Non_Aligned', 'exp_results', str(_data_name))
+                    path_csv = os.path.join('Experiments', 'GAR_Aligned', 'exp_results', str(_data_name))
                     if not os.path.exists(path_csv):
                             os.makedirs(path_csv)
 
