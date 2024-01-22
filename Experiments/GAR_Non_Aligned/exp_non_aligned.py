@@ -33,6 +33,7 @@ train_dic = {'AR': train_AR,'ResGP': train_ResGP, 'NAR': train_NAR,'CIGAR': trai
 
 if __name__ == '__main__':
         
+        # method_list = ['GAR']
         method_list = ['CIGAR']
         # method_list = ['AR']
         for method in method_list:
@@ -86,7 +87,10 @@ if __name__ == '__main__':
         
                         # ypred = ypred.reshape(-1, * src_y_shape)
                         # ypred_var = ypred_var.reshape(-1, * src_y_shape)
-
+                        if ypred_var.shape == ypred.reshape(-1, 1):
+                            pass
+                        else:
+                            ypred_var = torch.diag_embed(torch.flatten(ypred_var))
                         metrics = calculate_metrix(y_test = y_test, y_mean_pre = ypred.reshape(-1, 1), y_var_pre = ypred_var)
 
                         T2 = time.time()

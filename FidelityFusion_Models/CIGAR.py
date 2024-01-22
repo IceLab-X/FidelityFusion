@@ -39,6 +39,12 @@ class CIGAR(torch.nn.Module):
             if i_fidelity == 0:
                 x_train, y_train = data_manager.get_data(i_fidelity)
                 mean_low, var_low = self.cigp_list[i_fidelity].forward(x_train, y_train, x_test)
+                if len(mean_low.shape) == 1:
+                    mean_low = mean_low.unsqueeze(dim = 1)
+                # if mean_low.shape == var_low.diag().shape:
+                #     var_low = var_low.diag()
+                # else:
+                #     var_low = var_low.diag().unsqueeze(dim = 1).expand_as(mean_low)
                 var_low = var_low.diag().unsqueeze(dim = 1).expand_as(mean_low)
                 if fidelity_num == 1:
                     mean_high = mean_low
@@ -46,6 +52,12 @@ class CIGAR(torch.nn.Module):
             else:
                 x_train, y_train = data_manager.get_data_by_name('res-{}'.format(i_fidelity))
                 mean_res, var_res = self.cigp_list[i_fidelity].forward(x_train, y_train, x_test)
+                if len(mean_res.shape) == 1:
+                    mean_res = mean_res.unsqueeze(dim = 1)
+                # if mean_res.shape == var_res.diag().shape:
+                #     var_res = var_low.diag()
+                # else:
+                #     var_res = var_low.diag().unsqueeze(dim = 1).expand_as(mean_res)
                 var_res = var_low.diag().unsqueeze(dim = 1).expand_as(mean_res)
                 mean_high = self.Tensor_linear_list[i_fidelity - 1](mean_low) + mean_res
                 var_high = self.Tensor_linear_list[i_fidelity - 1](var_low) + var_res

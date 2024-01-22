@@ -4,11 +4,11 @@ from sklearn.metrics import mean_squared_error, r2_score
 
 def _gaussian_loss(inputs, target, var):
     assert inputs.shape == target.shape
-    if inputs.shape == var.shape:
-        pass
-    else:
-        var = torch.diag_embed(torch.flatten(var))
-    # assert inputs.shape == var.shape
+    # if inputs.shape == var.shape:
+    #     pass
+    # else:
+    #     var = torch.diag_embed(torch.flatten(var))
+    assert inputs.shape == var.shape
     if len(inputs.shape) > 2:
         sample = inputs.shape[0]
         inputs = inputs.reshape(-1, sample)
