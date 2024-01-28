@@ -50,6 +50,7 @@ class upper_confidence_bound_continuous(nn.Module):
         ksin = np.sqrt(1-np.power(phi, 2))
         return ksin
 
+    # gamma_z is ？？？
     def gamma_z(self, ksin_z):
         q = 1 / (self.p + self.d + 2)
         lambda_balance = np.power(self.model_cost.compute_cost(self.z_range)/self.model_cost.compute_cost(1), q)

@@ -28,7 +28,7 @@ class AR(nn.Module):
         self.nonsubset = nonsubset
 
     def forward(self, data_manager, x_test, to_fidelity = None):
-        # predict the model
+        # predict the posterior given a new input x_test
         if to_fidelity is not None and to_fidelity >= 1:
             fidelity_num = to_fidelity
         else:
@@ -41,12 +41,13 @@ class AR(nn.Module):
                     y_pred_high = y_pred_low
                     cov_pred_high = cov_pred_low
             else:
+                # get the residual data from data_manager using key word 'res-{}', which is created during model training
                 x_train,y_train = data_manager.get_data_by_name('res-{}'.format(i_fidelity))
                 y_pred_res, cov_pred_res= self.gpr_list[i_fidelity](x_train,y_train,x_test)
                 y_pred_high = y_pred_low + self.rho_list[i_fidelity - 1] * y_pred_res
                 cov_pred_high = cov_pred_low + (self.rho_list[i_fidelity - 1] **2) * cov_pred_res
 
-                ## for next fidelity
+                ## update: high fidelity not become the low fidelity for the next iteration
                 y_pred_low = y_pred_high
                 cov_pred_low = cov_pred_high
 

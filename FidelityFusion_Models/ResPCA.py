@@ -66,40 +66,40 @@ class listPCA(object):
             Ylist.append(self.model_list[i].recover(Zlist[i]))
         return Ylist
     
-class resPCA_wrong(object):
-    # residual PCA
-    # this version does not as expected. TODO: fix it.
-    def __init__(self, Ylist, r=0.99):
-        # for i in range(len(Ylist)):
-        for i in reversed(range(len(Ylist))):
-            if i == 0:
-                Ylist[i] = Ylist[i] #for i = 0
-            else:
-                Ylist[i] = Ylist[i] - Ylist[i-1]
-        self.model = listPCA(Ylist)
-        self.Zlist = self.model.Zlist
+# class resPCA_wrong(object):
+#     # residual PCA
+#     # this version does not as expected. TODO: fix it.
+#     def __init__(self, Ylist, r=0.99):
+#         # for i in range(len(Ylist)):
+#         for i in reversed(range(len(Ylist))):
+#             if i == 0:
+#                 Ylist[i] = Ylist[i] #for i = 0
+#             else:
+#                 Ylist[i] = Ylist[i] - Ylist[i-1]
+#         self.model = listPCA(Ylist)
+#         self.Zlist = self.model.Zlist
         
-    def project(self, Ylist):
-        # for i in range(len(Ylist)):
-        for i in reversed(range(len(Ylist))):
-            if i == 0:
-                Ylist[i] = Ylist[i] #for i = 0
-            else:
-                Ylist[i] = Ylist[i] - Ylist[i-1]
-        Zlist = self.model.project(Ylist)
-        return Zlist
+#     def project(self, Ylist):
+#         # for i in range(len(Ylist)):
+#         for i in reversed(range(len(Ylist))):
+#             if i == 0:
+#                 Ylist[i] = Ylist[i] #for i = 0
+#             else:
+#                 Ylist[i] = Ylist[i] - Ylist[i-1]
+#         Zlist = self.model.project(Ylist)
+#         return Zlist
         
-    def recover(self, Zlist):
-        Ylist = self.model.recover(Zlist)
-        # for i in range(len(Ylist)):
-        # for i, e in reversed(list(enumerate(Ylist))):
-        # for i in reversed(range(len(Ylist))):
-        for i in range(len(Ylist)):
-            if i == 0:
-                Ylist[i] = Ylist[i] #for i = 0
-            else:
-                Ylist[i] = Ylist[i] + Ylist[i-1]
-        return Ylist
+#     def recover(self, Zlist):
+#         Ylist = self.model.recover(Zlist)
+#         # for i in range(len(Ylist)):
+#         # for i, e in reversed(list(enumerate(Ylist))):
+#         # for i in reversed(range(len(Ylist))):
+#         for i in range(len(Ylist)):
+#             if i == 0:
+#                 Ylist[i] = Ylist[i] #for i = 0
+#             else:
+#                 Ylist[i] = Ylist[i] + Ylist[i-1]
+#         return Ylist
 
 class resPCA(object):
     # residual PCA

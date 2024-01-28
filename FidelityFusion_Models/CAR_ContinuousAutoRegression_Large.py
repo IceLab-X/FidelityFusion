@@ -11,9 +11,9 @@ import matplotlib.pyplot as plt
 def warp_function(lf, hf):
     return lf, hf
 
-class fidelity_kernel_MCMC(nn.Module):
+class fidelity_kernel_MC(nn.Module):
     """
-    fidelity kernel module base ARD and use MCMC to calculate the integral.
+    fidelity kernel module base ARD and use monte carlo to calculate the integral.
 
     Args:
         input_dim (int): The input dimension.
@@ -56,9 +56,11 @@ class fidelity_kernel_MCMC(nn.Module):
 
         N = 100
         torch.manual_seed(self.seed)
+        # t1 ????
         t1 = torch.rand(N).float().reshape(N, 1) # 这块需要用来调整z选点的范围
         t2 = torch.rand(N).float().reshape(N, 1)
         
+        # tem ????
         tem = [fidelity_indicator_1 for i in range(fidelity_indicator_2.size(0))]
         S1 = torch.cat(tem, dim=1)
         tem = [fidelity_indicator_2 for i in range(fidelity_indicator_1.size(0))]
@@ -73,6 +75,7 @@ class fidelity_kernel_MCMC(nn.Module):
         dist_z = (z_11 + z_22.t())*t_prod - 2*z_12
         dist_z = dist_z / (2 * self.log_length_scales).exp()
         
+        # S ????
         S = S1 + S2.t()
         t_part = 0.005 * torch.sum((3-t1) + (3-t2)) * torch.ones(fidelity_indicator_1.size(0), fidelity_indicator_2.size(0))
         z_part = (-self.b*(S - t_part) - 0.5 * dist_z).exp()/N

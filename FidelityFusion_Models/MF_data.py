@@ -5,6 +5,8 @@ version 1.2 : 2024/1/6 add get_data_by_name and get_nonsubset_data
 '''
 import torch
 
+
+# TODO: doest data manager assume the low fidelity data always contains more data than the high fidelity data?
 class MultiFidelityDataManager:
 
     def __init__(self, initial_data=None):
@@ -89,13 +91,17 @@ class MultiFidelityDataManager:
             return None , None , None , None
     
     def get_nonsubset_fill_data(self, model, fidelity_index1, fidelity_index2):
+        # generate the filling data for the nonsubset data. 
+        # this function requires a fidelity fusion model "model" following the formate of GAR, CIGAR, CAR, AR
+        # If the user need to fill the data with different method, he can write his own function and replace this function. The key things it to use the first two lines of this function to get the subset data and nonsubset data.
 
         subset_x1, subset_y1, subset_x2, subset_y2 = self.get_overlap_input_data(fidelity_index1, fidelity_index2)
         unique_x1, unique_y1, unique_x2, unique_y2 = self.get_unique_input_data(fidelity_index1, fidelity_index2)
 
-        ## full nonsubset
+        ## full nonsubset: 
         if len(subset_x2) == 0: 
             y_low_filling_mean,y_low_filling_var = model.forward(self, unique_x2, to_fidelity = fidelity_index2)
+            # y_high_var is zero because the outputs are observed
             y_high_var = torch.zeros((unique_y2.shape[0], unique_y2.shape[0]))
             return unique_x2 , [y_low_filling_mean , y_low_filling_var] , [unique_y2 , y_high_var]
         ## full subset

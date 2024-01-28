@@ -10,6 +10,15 @@ from GaussianProcess.gp_computation_pack import Tensor_linear
 from FidelityFusion_Models.MF_data import MultiFidelityDataManager
 import matplotlib.pyplot as plt
         
+# if_nonsubset = False
+# model_train_mode = 'train'
+# model_train_if_use_only_subset = False
+# l_shape, h_shape do we need two list. maybe out_shape_list
+
+# LF present the low fidelity, HF present the high fidelity
+# cigp_list -> model_list/gpr_list
+
+        
 class CIGAR(torch.nn.Module):
     def __init__(self, fidelity_num, kernel, l_shape, h_shape, nonsubset = False):
         super().__init__()
