@@ -82,6 +82,8 @@ class UCB:
         variance = self.variance_func(X)
         return mean + self.kappa * torch.sqrt(variance)
 
+#   TODO: find_next_batch is a common function for all acquisition functions, so it should be moved to a separate file
+#   TODO: this batch method is naive because it does not consider the interdependence between points in the batch
     def find_next_batch(self, bounds, batch_size=1, n_samples=1000):
         """
         Find the next batch of points to sample by selecting the ones with the highest UCB from a large set of random samples.
@@ -145,6 +147,8 @@ class EI:
         ei = (mean - f_best - self.xi) * torch.tensor(norm.cdf(Z.numpy()), dtype=torch.float32) + std * torch.tensor(norm.pdf(Z.numpy()), dtype=torch.float32)
         return ei
 
+#   TODO: find_next_batch is a common function for all acquisition functions, so it should be moved to a separate file
+#   TODO: this batch method is naive because it does not consider the interdependence between points in the batch
     def find_next_batch(self, bounds, batch_size=1, n_samples=1000, f_best=None):
         """
         Find the next batch of points to sample by selecting the ones with the highest EI from a large set of random samples.
@@ -210,6 +214,8 @@ class PI:
         pi = torch.tensor(norm.cdf(Z.numpy()), dtype=torch.float32)
         return pi
 
+#   TODO: find_next_batch is a common function for all acquisition functions, so it should be moved to a separate file
+#   TODO: this batch method is naive because it does not consider the interdependence between points in the batch
     def find_next_batch(self, bounds, batch_size=1, n_samples=1000, f_best=None):
         """
         Find the next batch of points to sample by selecting the ones with the highest PI from a large set of random samples.
@@ -277,6 +283,8 @@ class KG:
 
         return kg
 
+#   TODO: find_next_batch is a common function for all acquisition functions, so it should be moved to a separate file
+#   TODO: this batch method is naive because it does not consider the interdependence between points in the batch
     def find_next_batch(self, bounds, batch_size=1, n_samples=1000, f_best=None):
         """
         Find the next batch of points to sample by selecting the ones with the highest KG from a large set of random samples.
