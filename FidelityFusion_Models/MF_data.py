@@ -10,7 +10,17 @@ import torch
 class MultiFidelityDataManager:
 
     def __init__(self, initial_data=None):
-        
+        """
+        Initialize the MFData object.
+
+        Args:
+            initial_data (list): List of dictionaries containing initial data for the object.
+                Each dictionary should have the following keys:
+                - 'raw_fidelity_name': The name of the fidelity.
+                - 'fidelity_indicator': The indicator for the fidelity.
+                - 'X': The X data.
+                - 'Y': The Y data.
+        """
         self.data_dict = {}
         if initial_data is not None:
             for fidelity_data in initial_data:
@@ -21,15 +31,33 @@ class MultiFidelityDataManager:
                 self.add_data(fidelity_name, fidelity_index, x, y)
 
     def add_data(self, raw_fidelity_name, fidelity_index, x, y):
-        
+        """
+        Add data to the data dictionary.
+
+        Args:
+            raw_fidelity_name (str): The name of the raw fidelity.
+            fidelity_index (int): The fidelity index.
+            x (torch.Tensor): The input data.
+            y (torch.Tensor): The target data.
+
+        """
         if raw_fidelity_name not in self.data_dict:
-            self.data_dict[raw_fidelity_name] = {'fidelity_index':fidelity_index, 'X': x, 'Y': y}
+            self.data_dict[raw_fidelity_name] = {'fidelity_index': fidelity_index, 'X': x, 'Y': y}
         else:
             self.data_dict[raw_fidelity_name]['X'] = torch.cat([self.data_dict[raw_fidelity_name]['X'], x])
             self.data_dict[raw_fidelity_name]['Y'] = torch.cat([self.data_dict[raw_fidelity_name]['Y'], y])
 
     def get_data(self, fidelity_index):
-        
+        """
+        Retrieve the data associated with the given fidelity index.
+
+        Parameters:
+        - fidelity_index (int): The fidelity index to search for.
+
+        Returns:
+        - X (torch.Tensor or None): The X data corresponding to the fidelity index, or None if not found.
+        - Y (torch.Tensor or None): The Y data corresponding to the fidelity index, or None if not found.
+        """
         for data in self.data_dict.values():
             if data['fidelity_index'] == fidelity_index:
                 return data['X'], data['Y']
@@ -37,25 +65,48 @@ class MultiFidelityDataManager:
 
         
     def get_data_by_name(self, raw_fidelity_name):
+        """
+        Retrieve the data associated with the given raw fidelity name.
 
+        Args:
+            raw_fidelity_name (str): The name of the raw fidelity.
+
+        Returns:
+            tuple or None: A tuple containing the X and Y data associated with the raw fidelity name,
+                           or None if the raw fidelity name is not found in the data dictionary.
+        """
         if raw_fidelity_name in self.data_dict:
             return self.data_dict[raw_fidelity_name]['X'], self.data_dict[raw_fidelity_name]['Y']
         else:
-            return None , None
+            return None, None
 
 
     def get_overlap_input_data(self, fidelity_index1, fidelity_index2):
-        
-        x1,y1 = self.get_data(fidelity_index1)
-        x2,y2 = self.get_data(fidelity_index2)
+        """
+        Retrieves the overlapping input data between two fidelity indices.
+
+        Args:
+            fidelity_index1 (int): The first fidelity index.
+            fidelity_index2 (int): The second fidelity index.
+
+        Returns:
+            tuple: A tuple containing the following elements:
+                - common_x1 (torch.Tensor): The overlapping input data from fidelity_index1.
+                - y1 (torch.Tensor): The corresponding output data for common_x1.
+                - common_x2 (torch.Tensor): The overlapping input data from fidelity_index2.
+                - y2 (torch.Tensor): The corresponding output data for common_x2.
+
+                If no overlap data is found, returns (None, None, None, None).
+        """
+        x1, y1 = self.get_data(fidelity_index1)
+        x2, y2 = self.get_data(fidelity_index2)
 
         if x1 is not None and x2 is not None:
-            
-            mask_x1 = torch.all(x1.unsqueeze(dim = 1) == x2.unsqueeze(dim = 0), dim=-1) # relative position mask
-            mask_indices_x1 = torch.any(mask_x1, dim=-1) # x1 index mask
-            mask_x2 = torch.all(x2.unsqueeze(dim = 1) == x1.unsqueeze(dim = 0), dim=-1)
-            mask_indices_x2 = torch.any(mask_x2, dim = -1)
-    
+            mask_x1 = torch.all(x1.unsqueeze(dim=1) == x2.unsqueeze(dim=0), dim=-1)  # relative position mask
+            mask_indices_x1 = torch.any(mask_x1, dim=-1)  # x1 index mask
+            mask_x2 = torch.all(x2.unsqueeze(dim=1) == x1.unsqueeze(dim=0), dim=-1)
+            mask_indices_x2 = torch.any(mask_x2, dim=-1)
+
             common_x1 = x1[mask_indices_x1]
             common_x2 = x2[mask_indices_x2]
 
@@ -68,15 +119,29 @@ class MultiFidelityDataManager:
             return None, None, None, None
 
     def get_unique_input_data(self, fidelity_index1, fidelity_index2):
-        
-        x1,y1 = self.get_data(fidelity_index1)
-        x2,y2 = self.get_data(fidelity_index2)
+        """
+        Retrieves unique input data based on the given fidelity indices.
+
+        Args:
+            fidelity_index1 (int): The first fidelity index.
+            fidelity_index2 (int): The second fidelity index.
+
+        Returns:
+            tuple: A tuple containing the following elements:
+                - unique_x1 (torch.Tensor): Unique input data for fidelity_index1.
+                - y1 (torch.Tensor): Corresponding output data for unique_x1.
+                - unique_x2 (torch.Tensor): Unique input data for fidelity_index2.
+                - y2 (torch.Tensor): Corresponding output data for unique_x2.
+
+                If no unique data is found, returns None for all elements.
+        """
+        x1, y1 = self.get_data(fidelity_index1)
+        x2, y2 = self.get_data(fidelity_index2)
 
         if x1 is not None and x2 is not None:
-            
-            mask_x1 = torch.all(x1.unsqueeze(dim = 1) == x2.unsqueeze(dim = 0), dim = -1) # relative position mask
-            mask_indices_x1 = ~torch.any(mask_x1, dim=-1) # x1 index mask
-            mask_x2 = torch.all(x2.unsqueeze(dim = 1) == x1.unsqueeze(dim = 0), dim = -1)
+            mask_x1 = torch.all(x1.unsqueeze(dim=1) == x2.unsqueeze(dim=0), dim=-1)  # relative position mask
+            mask_indices_x1 = ~torch.any(mask_x1, dim=-1)  # x1 index mask
+            mask_x2 = torch.all(x2.unsqueeze(dim=1) == x1.unsqueeze(dim=0), dim=-1)
             mask_indices_x2 = ~torch.any(mask_x2, dim=-1)
 
             unique_x1 = x1[mask_indices_x1]
@@ -88,7 +153,7 @@ class MultiFidelityDataManager:
             return unique_x1, y1, unique_x2, y2
         else:
             print("No unique data found")
-            return None , None , None , None
+            return None, None, None, None
     
     def get_nonsubset_fill_data(self, model, fidelity_index1, fidelity_index2):
         # generate the filling data for the nonsubset data. 
@@ -120,10 +185,18 @@ class MultiFidelityDataManager:
             return x , [y_low_mean ,y_low_var] , [y_high_mean , y_high_var]
             
     def display_fidelity_data_info(self, fidelity_index):
+        """
+        Display information about the fidelity data with the given fidelity index.
 
-        for raw_fidelity_name , data in self.data_dict.items():
+        Parameters:
+        - fidelity_index (int): The index of the fidelity data to display.
+
+        Returns:
+        None
+        """
+        for raw_fidelity_name, data in self.data_dict.items():
             if data['fidelity_index'] == fidelity_index:
-                print("<---------Fidelity data informaton:--------->")
+                print("<---------Fidelity data information:--------->")
                 print("Fidelity index: {}".format(fidelity_index))
                 print("Fidelity name: {}".format(raw_fidelity_name))
                 print("data_num: {}".format(data['X'].shape[0]))

@@ -10,24 +10,45 @@ import matplotlib.pyplot as plt
 
 class AR(nn.Module):
     # initialize the model
-    def __init__(self, fidelity_num, kernel, rho_init = 1.0, nonsubset = False):
+    def __init__(self, fidelity_num, kernel, rho_init=1.0, if_nonsubset=False):
+        """
+        Initialize the AR_autoRegression class.
+
+        Args:
+            fidelity_num (int): The number of fidelity levels.
+            kernel: The kernel function for Gaussian Process Regression.
+            rho_init (float): The initial value for the rho parameter.
+            if_nonsubset (bool): Flag indicating whether to use non-subset data for training selection.
+
+        """
         super().__init__()
         self.fidelity_num = fidelity_num
         # create the model
-        self.gpr_list=[]
+        self.gpr_list = []
         for _ in range(self.fidelity_num):
-            self.gpr_list.append(GPR(kernel = kernel, noise_variance = 1.0))
+            self.gpr_list.append(GPR(kernel=kernel, noise_variance=1.0))
         
         self.gpr_list = torch.nn.ModuleList(self.gpr_list)
 
-        self.rho_list=[]
+        self.rho_list = []
         for _ in range(self.fidelity_num-1):
             self.rho_list.append(torch.nn.Parameter(torch.tensor(rho_init)))
 
         self.rho_list = torch.nn.ParameterList(self.rho_list)
-        self.nonsubset = nonsubset
+        self.if_nonsubset = if_nonsubset
 
-    def forward(self, data_manager, x_test, to_fidelity = None):
+    def forward(self, data_manager, x_test, to_fidelity=None):
+        """
+        Predicts the posterior given a new input `x_test`.
+
+        Args:
+            data_manager: The data manager object.
+            x_test: The input data for prediction.
+            to_fidelity: The fidelity level to use for prediction. If None, the default fidelity level will be used.
+
+        Returns:
+            Tuple: A tuple containing the predicted output `y_pred_high` and the covariance `cov_pred_high`.
+        """
         # predict the posterior given a new input x_test
         if to_fidelity is not None and to_fidelity >= 1:
             fidelity_num = to_fidelity
@@ -35,17 +56,17 @@ class AR(nn.Module):
             fidelity_num = self.fidelity_num
         for i_fidelity in range(fidelity_num):
             if i_fidelity == 0:
-                x_train,y_train = data_manager.get_data(i_fidelity)
+                x_train, y_train = data_manager.get_data(i_fidelity)
                 y_pred_low, cov_pred_low = self.gpr_list[i_fidelity](x_train, y_train, x_test)
                 if fidelity_num == 1:
                     y_pred_high = y_pred_low
                     cov_pred_high = cov_pred_low
             else:
                 # get the residual data from data_manager using key word 'res-{}', which is created during model training
-                x_train,y_train = data_manager.get_data_by_name('res-{}'.format(i_fidelity))
-                y_pred_res, cov_pred_res= self.gpr_list[i_fidelity](x_train,y_train,x_test)
+                x_train, y_train = data_manager.get_data_by_name('res-{}'.format(i_fidelity))
+                y_pred_res, cov_pred_res = self.gpr_list[i_fidelity](x_train, y_train, x_test)
                 y_pred_high = y_pred_low + self.rho_list[i_fidelity - 1] * y_pred_res
-                cov_pred_high = cov_pred_low + (self.rho_list[i_fidelity - 1] **2) * cov_pred_res
+                cov_pred_high = cov_pred_low + (self.rho_list[i_fidelity - 1] ** 2) * cov_pred_res
 
                 ## update: high fidelity not become the low fidelity for the next iteration
                 y_pred_low = y_pred_high
@@ -56,6 +77,18 @@ class AR(nn.Module):
 #train_gp
     
 def train_AR(ARmodel, data_manager, max_iter = 1000, lr_init = 1e-1):
+    """
+    Trains an auto-regression model using the specified ARmodel and data_manager.
+
+    Parameters:
+    - ARmodel: The auto-regression model to be trained.
+    - data_manager: The data manager object that provides the training data.
+    - max_iter: The maximum number of iterations for training. Default is 1000.
+    - lr_init: The initial learning rate for the optimizer. Default is 0.1.
+
+    Returns:
+    None
+    """
     
     for i_fidelity in range(ARmodel.fidelity_num):
         optimizer = torch.optim.Adam(ARmodel.parameters(), lr = lr_init)
@@ -68,14 +101,14 @@ def train_AR(ARmodel, data_manager, max_iter = 1000, lr_init = 1e-1):
                 optimizer.step()
                 print('fidelity:', i_fidelity, 'iter', i, 'nll:{:.5f}'.format(loss.item()))
         else:
-            if ARmodel.nonsubset:
+            if ARmodel.if_nonsubset:
                 with torch.no_grad():
                     subset_x,y_low,y_high = data_manager.get_nonsubset_fill_data(ARmodel, i_fidelity - 1, i_fidelity)
             else:
                 _, y_low, subset_x,y_high = data_manager.get_overlap_input_data(i_fidelity - 1, i_fidelity)
             for i in range(max_iter):
                 optimizer.zero_grad()
-                if ARmodel.nonsubset:
+                if ARmodel.if_nonsubset:
                     y_residual_mean = y_high[0] - ARmodel.rho_list[i_fidelity - 1] * y_low[0]
                     y_residual_var = y_high[1] - ARmodel.rho_list[i_fidelity - 1] * y_low[1]
                 else:
@@ -119,7 +152,7 @@ if __name__ == "__main__":
 
     fidelity_manager = MultiFidelityDataManager(initial_data)
     kernel1 = kernel.SumKernel(kernel.LinearKernel(1), kernel.MaternKernel(1))
-    myAR = AR(fidelity_num=3,kernel=kernel1,rho_init=1.0,nonsubset=True)
+    myAR = AR(fidelity_num=3,kernel=kernel1,rho_init=1.0,if_nonsubset=True)
 
     ## if nonsubset is False, max_iter should be 100 ,lr can be 1e-2
     train_AR(myAR,fidelity_manager, max_iter=500, lr_init=1e-3)

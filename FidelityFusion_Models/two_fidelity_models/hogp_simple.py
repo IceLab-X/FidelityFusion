@@ -67,29 +67,6 @@ class HOGP_simple(nn.Module):
         S_product = tensorly.tenalg.multi_mode_dot(S_2, eigen_vectors)
         var_diag = diag_K + S_product
 
-        ## TODO how to calculate the variance of the prediction without diag?
-
-        # K_star = self.kernel_list[0](x_test, x_train)
-        # K_predict = [K_star] + self.K[1:]
-
-        # predict_u = tensorly.tenalg.multi_mode_dot(self.g, K_predict)
-        # n_dim = len(self.K_eigen) - 1
-        # _init_value = torch.tensor([1.0]).reshape(*[1 for i in range(n_dim)]).to(x_train.device)
-        # diag_K_dims = tucker_to_tensor(( _init_value, [K.diag().reshape(-1,1) for K in self.K[1:]]))
-        # diag_K_dims = diag_K_dims.unsqueeze(0)
-        # K_x = self.kernel_list[0](x_test, x_test)
-        # for i in range(n_dim):
-        #     K_x = K_x.unsqueeze(-1)
-        # K = K_x * diag_K_dims
-
-        # S = self.A * self.A.pow(-1/2)
-        # S_2 = S.pow(2)
-        # eigen_vectors_x = K_star@self.K[0]
-        # eigen_vectors_dims = [self.K_eigen[i+1].vector.pow(2) for i in range(n_dim)]
-        
-        # eigen_vectors = [eigen_vectors_x] + eigen_vectors_dims
-        # S_product = tensorly.tenalg.multi_mode_dot(S_2, eigen_vectors)
-        # var_diag = K + S_product
         
         return predict_u, var_diag
     
@@ -118,19 +95,20 @@ class HOGP_simple(nn.Module):
         A = tucker_to_tensor((_init_value, lambda_list))
         A = A + self.noise_variance.pow(-1) * tensorly.ones(A.shape,  device = list(self.parameters())[0].device)
 
+        # if y_train_var is not None:
+        #     A = A + y_train_var
         T_1 = tensorly.tenalg.multi_mode_dot(y_train, [eigen.vector.T for eigen in self.K_eigen])
         T_2 = T_1 * A.pow(-1/2) 
         T_3 = tensorly.tenalg.multi_mode_dot(T_2, [eigen.vector for eigen in self.K_eigen]) 
         b = tensorly.tensor_to_vec(T_3)
         g = tensorly.tenalg.multi_mode_dot(T_1 * A.pow(-1), [eigen.vector for eigen in self.K_eigen]) 
 
-        self.b = b
         self.A = A
         self.g = g
         nd = torch.prod(torch.tensor([value for value in self.A.shape]))
         loss = -1/2* nd * torch.log(torch.tensor(2 * math.pi, device=list(self.parameters())[0].device))
         loss += -1/2* torch.log(self.A).sum()
-        loss += -1/2* self.b.t() @ self.b
+        loss += -1/2* b.t() @ b
 
         loss = -loss/nd
         return loss

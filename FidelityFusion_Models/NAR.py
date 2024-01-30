@@ -10,18 +10,38 @@ import matplotlib.pyplot as plt
 
 class NAR(nn.Module):
     # initialize the model
-    def __init__(self, fidelity_num, kernel, nonsubset = False):
+    def __init__(self, fidelity_num, kernel, if_nonsubset=False):
+        """
+        Initialize the NAR class.
+
+        Args:
+            fidelity_num (int): The number of fidelity levels.
+            kernel: The kernel function for Gaussian Process Regression.
+            if_nonsubset (bool): Flag indicating whether to use non-subset data for training selection.
+        """
         super().__init__()
         self.fidelity_num = fidelity_num
         # create the model
-        self.gpr_list=[]
+        self.gpr_list = []
         for _ in range(self.fidelity_num):
-            self.gpr_list.append(GPR(kernel = kernel, noise_variance = 1.0))
-        
-        self.gpr_list = torch.nn.ModuleList(self.gpr_list)
-        self.nonsubset = nonsubset
+            self.gpr_list.append(GPR(kernel=kernel, noise_variance=1.0))
 
-    def forward(self, data_manager, x_test, to_fidelity = None):
+        self.gpr_list = torch.nn.ModuleList(self.gpr_list)
+        self.if_nonsubset = if_nonsubset
+
+    def forward(self, data_manager, x_test, to_fidelity=None):
+        """
+        Forward pass of the NAR model.
+
+        Args:
+            data_manager: The data manager object.
+            x_test: The input test data.
+            to_fidelity: The fidelity level to be used for prediction.
+
+        Returns:
+            y_pred_high: The predicted output at the highest fidelity level.
+            cov_pred_high: The covariance of the predicted output at the highest fidelity level.
+        """
         # predict the model
         if to_fidelity is not None and to_fidelity >= 1:
             fidelity_num = to_fidelity
@@ -29,14 +49,14 @@ class NAR(nn.Module):
             fidelity_num = self.fidelity_num
         for i_fidelity in range(fidelity_num):
             if i_fidelity == 0:
-                x_train,y_train = data_manager.get_data(i_fidelity)
+                x_train, y_train = data_manager.get_data(i_fidelity)
                 y_pred_low, cov_pred_low = self.gpr_list[i_fidelity](x_train, y_train, x_test)
                 if fidelity_num == 1:
                     y_pred_high = y_pred_low
                     cov_pred_high = cov_pred_low
             else:
-                x_train,y_train = data_manager.get_data_by_name('concat-{}'.format(i_fidelity))
-                concat_input = torch.cat([x_test,y_pred_low.reshape(-1,1)], dim = -1)
+                x_train, y_train = data_manager.get_data_by_name('concat-{}'.format(i_fidelity))
+                concat_input = torch.cat([x_test, y_pred_low.reshape(-1, 1)], dim=-1)
                 y_pred_high, cov_pred_high = self.gpr_list[i_fidelity](x_train, y_train, concat_input)
 
                 ## for next fidelity
@@ -46,12 +66,23 @@ class NAR(nn.Module):
         # return the prediction
         return y_pred_high, cov_pred_high
     
-def train_NAR(NARmodel, data_manager, max_iter = 1000, lr_init = 1e-1):
-    
+def train_NAR(NARmodel, data_manager, max_iter=1000, lr_init=1e-1):
+    """
+    Trains the NAR model using the specified data manager.
+
+    Args:
+        NARmodel: The NAR model to train.
+        data_manager: The data manager object that provides the training data.
+        max_iter: The maximum number of iterations for training (default: 1000).
+        lr_init: The initial learning rate for the optimizer (default: 0.1).
+
+    Returns:
+        None
+    """
     for i_fidelity in range(NARmodel.fidelity_num):
-        optimizer = torch.optim.Adam(NARmodel.parameters(), lr = lr_init)
+        optimizer = torch.optim.Adam(NARmodel.parameters(), lr=lr_init)
         if i_fidelity == 0:
-            x_low,y_low = data_manager.get_data(i_fidelity)
+            x_low, y_low = data_manager.get_data(i_fidelity)
             for i in range(max_iter):
                 optimizer.zero_grad()
                 loss = -NARmodel.gpr_list[i_fidelity].log_likelihood(x_low, y_low)
@@ -59,7 +90,7 @@ def train_NAR(NARmodel, data_manager, max_iter = 1000, lr_init = 1e-1):
                 optimizer.step()
                 print('fidelity:', i_fidelity, 'iter', i, 'nll:{:.5f}'.format(loss.item()))
         else:
-            if NARmodel.nonsubset:
+            if NARmodel.if_nonsubset:
                 with torch.no_grad():
                     subset_x, y_low, y_high = data_manager.get_nonsubset_fill_data(NARmodel, i_fidelity - 1, i_fidelity)
                 y_low_mean = y_low[0]
@@ -68,14 +99,14 @@ def train_NAR(NARmodel, data_manager, max_iter = 1000, lr_init = 1e-1):
             else:
                 _, y_low_mean, subset_x, y_high_mean = data_manager.get_overlap_input_data(i_fidelity - 1, i_fidelity)
                 y_high_var = None
-            concat_input= torch.cat([subset_x, y_low_mean], dim = -1)
-            data_manager.add_data(raw_fidelity_name = 'concat-{}'.format(i_fidelity), fidelity_index = None, x = concat_input, y = [y_high_mean, y_high_var])
+            concat_input = torch.cat([subset_x, y_low_mean], dim=-1)
+            data_manager.add_data(raw_fidelity_name='concat-{}'.format(i_fidelity), fidelity_index=None, x=concat_input, y=[y_high_mean, y_high_var])
             for i in range(max_iter):
                 optimizer.zero_grad()
                 loss = -NARmodel.gpr_list[i_fidelity].log_likelihood(concat_input, [y_high_mean, y_high_var])
                 loss.backward()
                 optimizer.step()
-                print('fidelity:', i_fidelity, 'iter', i,'nll:{:.5f}'.format(loss.item()))
+                print('fidelity:', i_fidelity, 'iter', i, 'nll:{:.5f}'.format(loss.item()))
     
 # demo 
 if __name__ == "__main__":
@@ -108,7 +139,7 @@ if __name__ == "__main__":
 
     fidelity_manager = MultiFidelityDataManager(initial_data)
     kernel1 = kernel.SumKernel(kernel.LinearKernel(1), kernel.MaternKernel(1))
-    myNAR = NAR(fidelity_num = 3, kernel = kernel1, nonsubset = True)
+    myNAR = NAR(fidelity_num = 3, kernel = kernel1, if_nonsubset = True)
 
     ## if nonsubset is False, max_iter should be 200 ,lr can be 1e-2
     train_NAR(myNAR,fidelity_manager, max_iter = 150, lr_init = 1e-2)

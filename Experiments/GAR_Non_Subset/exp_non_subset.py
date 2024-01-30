@@ -72,11 +72,11 @@ if __name__ == '__main__':
                         kernel1 = kernel.SquaredExponentialKernel(length_scale = 1., signal_variance = 1.)
 
                         if method == 'AR':
-                            model = model_dic[method](fidelity_num=2, kernel=kernel1, rho_init=1.0, nonsubset = True)
+                            model = model_dic[method](fidelity_num=2, kernel=kernel1, rho_init=1.0, if_nonsubset = True)
                         elif method in ['CIGAR', 'GAR']:
-                            model = model_dic[method](fidelity_num=2, kernel=kernel1, l_shape=low_shape, h_shape=high_shape, nonsubset = True)
+                            model = model_dic[method](fidelity_num=2, kernel=kernel1, l_shape=low_shape, h_shape=high_shape, if_nonsubset = True)
                         else:
-                            model = model_dic[method](fidelity_num=2, kernel=kernel1, nonsubset = True)
+                            model = model_dic[method](fidelity_num=2, kernel=kernel1, if_nonsubset = True)
 
                         train_dic[method](model, fidelity_manager, max_iter=100, lr_init=1e-3)
 

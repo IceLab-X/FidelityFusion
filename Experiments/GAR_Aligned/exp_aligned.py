@@ -58,9 +58,7 @@ if __name__ == '__main__':
                         x_test = torch.linspace(0, 20, 100).reshape(-1, 1)
                         y_test = torch.sin(x_test)
 
-                        # src_y_shape = y_high1.shape[1:]
-                        low_shape = [y_low[0].shape]
-                        high_shape = [y_high1[0].shape, y_high1[0].shape]
+                        data_shape = [y_low[0].shape, y_high1[0].shape]
                     
                         initial_data = [
                                             {'fidelity_indicator': 0,'raw_fidelity_name': '0', 'X': x_low, 'Y': y_low},
@@ -74,7 +72,7 @@ if __name__ == '__main__':
                         if method == 'AR':
                             model = model_dic[method](fidelity_num=2, kernel=kernel1, rho_init=1.0)
                         elif method in ['CIGAR', 'GAR']:
-                            model = model_dic[method](fidelity_num=2, kernel=kernel1, l_shape=low_shape, h_shape=high_shape)
+                            model = model_dic[method](fidelity_num=2, kernel=kernel1, data_shape_list=data_shape)
                         else:
                             model = model_dic[method](fidelity_num=2, kernel=kernel1)
 

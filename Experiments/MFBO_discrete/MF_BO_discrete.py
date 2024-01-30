@@ -67,11 +67,11 @@ def MF_BO_discrete(exp_config):
                 method = exp_config["MF_model"]
 
                 if method == 'AR':
-                    model_objective = model_dic[method](fidelity_num=total_fidelity_num, kernel=kernel1, rho_init=1.0, nonsubset = True)
+                    model_objective = model_dic[method](fidelity_num=total_fidelity_num, kernel=kernel1, rho_init=1.0, if_nonsubset = True)
                 elif method in ['CIGAR', 'GAR']:
-                    model_objective = model_dic[method](fidelity_num=total_fidelity_num, kernel=kernel1, l_shape=low_shape, h_shape=high_shape, nonsubset = True)
+                    model_objective = model_dic[method](fidelity_num=total_fidelity_num, kernel=kernel1, l_shape=low_shape, h_shape=high_shape, if_nonsubset = True)
                 else:
-                    model_objective = model_dic[method](fidelity_num=total_fidelity_num, kernel=kernel1, nonsubset = True)
+                    model_objective = model_dic[method](fidelity_num=total_fidelity_num, kernel=kernel1, if_nonsubset = True)
 
                 train_dic[method](model_objective, fidelity_manager, max_iter=MF_iterations, lr_init=MF_learning_rate)
 
@@ -100,11 +100,11 @@ def MF_BO_discrete(exp_config):
                         xall = np.random.rand(100)[:, None]
 
                         if method == 'AR':
-                             model_objective_new = model_dic[method](fidelity_num=total_fidelity_num, kernel=kernel1, rho_init=1.0, nonsubset = True)
+                             model_objective_new = model_dic[method](fidelity_num=total_fidelity_num, kernel=kernel1, rho_init=1.0, if_nonsubset = True)
                         elif method in ['CIGAR', 'GAR']:
-                            model_objective_new = model_dic[method](fidelity_num=total_fidelity_num, kernel=kernel1, l_shape=low_shape, h_shape=high_shape, nonsubset = True)
+                            model_objective_new = model_dic[method](fidelity_num=total_fidelity_num, kernel=kernel1, l_shape=low_shape, h_shape=high_shape, if_nonsubset = True)
                         else:
-                            model_objective_new = model_dic[method](fidelity_num=total_fidelity_num, kernel=kernel1, nonsubset = True)
+                            model_objective_new = model_dic[method](fidelity_num=total_fidelity_num, kernel=kernel1, if_nonsubset = True)
 
                         Acq_function = Acq_list[exp_config["Acq_function"]](x_dimension=xtr[0].shape[1],
                                                                             fidelity_num=total_fidelity_num,
@@ -119,11 +119,11 @@ def MF_BO_discrete(exp_config):
                         new_x, new_s = Acq_function.compute_next(xtr, ytr, xall)
                 elif exp_config["Acq_function"] == "cfKG":
                     if method == 'AR':
-                        model_objective_new = model_dic[method](fidelity_num=total_fidelity_num, kernel=kernel1, rho_init=1.0, nonsubset = True)
+                        model_objective_new = model_dic[method](fidelity_num=total_fidelity_num, kernel=kernel1, rho_init=1.0, if_nonsubset = True)
                     elif method in ['CIGAR', 'GAR']:
-                        model_objective_new = model_dic[method](fidelity_num=total_fidelity_num, kernel=kernel1, l_shape=low_shape, h_shape=high_shape, nonsubset = True)
+                        model_objective_new = model_dic[method](fidelity_num=total_fidelity_num, kernel=kernel1, l_shape=low_shape, h_shape=high_shape, if_nonsubset = True)
                     else:
-                        model_objective_new = model_dic[method](fidelity_num=total_fidelity_num, kernel=kernel1, nonsubset = True)
+                        model_objective_new = model_dic[method](fidelity_num=total_fidelity_num, kernel=kernel1, if_nonsubset = True)
                     # train_dic[method](model_objective, fidelity_manager, max_iter=MF_iterations, lr_init=MF_learning_rate)
                     Acq_function = Acq_list[exp_config["Acq_function"]](posterior_function=model_objective.forward,
                                                                         model_objective_new=model_objective_new,

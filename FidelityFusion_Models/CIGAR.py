@@ -10,35 +10,46 @@ from GaussianProcess.gp_computation_pack import Tensor_linear
 from FidelityFusion_Models.MF_data import MultiFidelityDataManager
 import matplotlib.pyplot as plt
         
-# if_nonsubset = False
-# model_train_mode = 'train'
-# model_train_if_use_only_subset = False
-# l_shape, h_shape do we need two list. maybe out_shape_list
-
-# LF present the low fidelity, HF present the high fidelity
-# cigp_list -> model_list/gpr_list
-
         
 class CIGAR(torch.nn.Module):
-    def __init__(self, fidelity_num, kernel, l_shape, h_shape, nonsubset = False):
+    def __init__(self, fidelity_num, kernel, data_shape_list, if_nonsubset=False):
+        """
+        Initialize the CIGAR class.
+
+        Args:
+            fidelity_num (int): The number of fidelity levels.
+            kernel: The kernel function for Gaussian Process Regression.
+            data_shape_list (list): A list of data shapes for each fidelity level.
+            if_nonsubset (bool): Flag indicating whether to use non-subset data for training selection.
+        
+        """
         super().__init__()
-        self.l_shape = l_shape
-        self.h_shape = h_shape
         self.fidelity_num = fidelity_num
-        self.cigp_list = []
+        self.gpr_list = []
         for i in range(self.fidelity_num):
-            self.cigp_list.append(GPR(kernel = kernel, noise_variance = 1.0))
-        self.cigp_list=torch.nn.ModuleList(self.cigp_list)
+            self.gpr_list.append(GPR(kernel=kernel, noise_variance=1.0))
+        self.gpr_list = torch.nn.ModuleList(self.gpr_list)
 
         self.Tensor_linear_list = []
         for i in range(self.fidelity_num - 1):
-            self.Tensor_linear_list.append(Tensor_linear(l_shape[i], h_shape[i]))
-        self.Tensor_linear_list=torch.nn.ModuleList(self.Tensor_linear_list)
+            self.Tensor_linear_list.append(Tensor_linear(data_shape_list[i], data_shape_list[i + 1]))
+        self.Tensor_linear_list = torch.nn.ModuleList(self.Tensor_linear_list)
 
-        self.nonsubset = nonsubset
+        self.if_nonsubset = if_nonsubset
 
-    def forward(self, data_manager, x_test, to_fidelity = None):
-        
+    def forward(self, data_manager, x_test, to_fidelity=None):
+        """
+        Forward pass of the CIGAR model.
+
+        Args:
+            data_manager: The data manager object.
+            x_test: The input test data.
+            to_fidelity: The fidelity level to evaluate. If None, the default fidelity level will be used.
+
+        Returns:
+            mean_high: The mean output at the highest fidelity level.
+            var_high: The variance output at the highest fidelity level.
+        """
         if to_fidelity is not None and to_fidelity >= 1:
             fidelity_num = to_fidelity
         else:
@@ -47,7 +58,7 @@ class CIGAR(torch.nn.Module):
         for i_fidelity in range(fidelity_num):
             if i_fidelity == 0:
                 x_train, y_train = data_manager.get_data(i_fidelity)
-                mean_low, var_low = self.cigp_list[i_fidelity].forward(x_train, y_train, x_test)
+                mean_low, var_low = self.gpr_list[i_fidelity].forward(x_train, y_train, x_test)
                 if len(mean_low.shape) == 1:
                     mean_low = mean_low.unsqueeze(dim = 1)
                 # if mean_low.shape == var_low.diag().shape:
@@ -60,7 +71,7 @@ class CIGAR(torch.nn.Module):
                     var_high = var_low
             else:
                 x_train, y_train = data_manager.get_data_by_name('res-{}'.format(i_fidelity))
-                mean_res, var_res = self.cigp_list[i_fidelity].forward(x_train, y_train, x_test)
+                mean_res, var_res = self.gpr_list[i_fidelity].forward(x_train, y_train, x_test)
                 if len(mean_res.shape) == 1:
                     mean_res = mean_res.unsqueeze(dim = 1)
                 # if mean_res.shape == var_res.diag().shape:
@@ -75,54 +86,55 @@ class CIGAR(torch.nn.Module):
                 mean_low = mean_high
                 var_low = var_high
 
-        return mean_high,var_high
+        return mean_high, var_high
         
-def train_CIGAR(GARmodel, data_manager, max_iter = 1000, lr_init =  1e-1):
-    
-    for i_fidelity in range(GARmodel.fidelity_num):
-        optimizer = torch.optim.Adam(GARmodel.parameters(), lr = lr_init)
+def train_CIGAR(CIGARmodel, data_manager, max_iter=1000, lr_init=1e-1):
+    """
+    Trains the CIGAR model using the specified data manager.
+
+    Args:
+        CIGARmodel: The CIGAR model to train.
+        data_manager: The data manager object that provides the training data.
+        max_iter: The maximum number of iterations for training (default: 1000).
+        lr_init: The initial learning rate for the optimizer (default: 0.1).
+
+    Returns:
+        None
+    """
+    for i_fidelity in range(CIGARmodel.fidelity_num):
+        optimizer = torch.optim.Adam(CIGARmodel.parameters(), lr=lr_init)
         if i_fidelity == 0:
-            x_low,y_low = data_manager.get_data(i_fidelity)
+            x_low, y_low = data_manager.get_data(i_fidelity)
             for i in range(max_iter):
                 optimizer.zero_grad()
-                loss = -GARmodel.cigp_list[i_fidelity].log_likelihood(x_low, y_low)
+                loss = -CIGARmodel.gpr_list[i_fidelity].log_likelihood(x_low, y_low)
                 loss.backward()
                 optimizer.step()
                 print('fidelity:', i_fidelity, 'iter', i, 'nll:{:.5f}'.format(loss.item()))
         else:
-            if GARmodel.nonsubset:
+            if CIGARmodel.if_nonsubset:
                 with torch.no_grad():
-                    subset_x, y_low, y_high = data_manager.get_nonsubset_fill_data(GARmodel, i_fidelity - 1, i_fidelity)
+                    subset_x, y_low, y_high = data_manager.get_nonsubset_fill_data(CIGARmodel, i_fidelity - 1, i_fidelity)
             else:
                 _, y_low, subset_x, y_high = data_manager.get_overlap_input_data(i_fidelity - 1, i_fidelity)
             for i in range(max_iter):
                 optimizer.zero_grad()
-                if GARmodel.nonsubset:
-                    y_residual_mean = y_high[0] - GARmodel.Tensor_linear_list[i_fidelity - 1](y_low[0])  #tensor linear layer
+                if CIGARmodel.if_nonsubset:
+                    y_residual_mean = y_high[0] - CIGARmodel.Tensor_linear_list[i_fidelity - 1](y_low[0])  # tensor linear layer
                     y_residual_var = y_high[1] - y_low[1]
                 else:
-                    y_residual_mean = y_high - GARmodel.Tensor_linear_list[i_fidelity - 1](y_low)
+                    y_residual_mean = y_high - CIGARmodel.Tensor_linear_list[i_fidelity - 1](y_low)
                     y_residual_var = None
 
-                if i == max_iter-1:
-                    data_manager.add_data(raw_fidelity_name='res-{}'.format(i_fidelity), fidelity_index = None, x = subset_x, y = [y_residual_mean, y_residual_var])
-                loss = -GARmodel.cigp_list[i_fidelity].log_likelihood(subset_x, [y_residual_mean,y_residual_var])
+                if i == max_iter - 1:
+                    data_manager.add_data(raw_fidelity_name='res-{}'.format(i_fidelity), fidelity_index=None, x=subset_x, y=[y_residual_mean, y_residual_var])
+                loss = -CIGARmodel.gpr_list[i_fidelity].log_likelihood(subset_x, [y_residual_mean, y_residual_var])
                 loss.backward()
                 optimizer.step()
-                print('fidelity:', i_fidelity, 'iter', i,'nll:{:.5f}'.format(loss.item()))
+                print('fidelity:', i_fidelity, 'iter', i, 'nll:{:.5f}'.format(loss.item()))
 
 if __name__ == "__main__":
     torch.manual_seed(1)
-
-    # x = np.load('assets\\MF_data\\Poisson_data\\input.npy')
-    # x = torch.tensor(x, dtype=torch.float32)
-    # yl=np.load('assets\\MF_data\\Poisson_data\\output_fidelity_0.npy')
-    # yl = torch.tensor(yl, dtype=torch.float32)
-    # yh = np.load('assets\\MF_data\\Poisson_data\\output_fidelity_1.npy')
-    # yh = torch.tensor(yh, dtype=torch.float32)
-    # yh2 = np.load('assets\\MF_data\\Poisson_data\\output_fidelity_2.npy')
-    # yh2 = torch.tensor(yh2, dtype = torch.float32)
-
 
     x = np.load('assets/MF_data/Poisson_data/input.npy')
     x = torch.tensor(x, dtype=torch.float32)
@@ -159,8 +171,8 @@ if __name__ == "__main__":
     y_h = y_h.reshape(y_h.shape[0],-1)
     y_h2 = y_h2.reshape(y_h2.shape[0],-1)
     
-    low_shape = [y_l[0].shape, y_h[0].shape]
-    high_shape = [y_h[0].shape, y_h2[0].shape, y_h2[0].shape] ##contain output shape
+
+    data_shape = [y_l[0].shape, y_h[0].shape, y_h2[0].shape]
 
     initial_data = [
         {'fidelity_indicator': 0,'raw_fidelity_name': '0', 'X': x_train, 'Y': y_l},
@@ -171,7 +183,7 @@ if __name__ == "__main__":
     fidelity_manager = MultiFidelityDataManager(initial_data)
 
     kernel1 = kernel.SquaredExponentialKernel(length_scale = 1., signal_variance = 1.)
-    myCIGAR = CIGAR(3,kernel1, low_shape, high_shape, nonsubset = True)
+    myCIGAR = CIGAR(3, kernel1, data_shape, if_nonsubset = True)
 
     train_CIGAR(myCIGAR, fidelity_manager, max_iter = 300, lr_init = 1e-3)
 
