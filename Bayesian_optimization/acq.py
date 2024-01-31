@@ -1,20 +1,10 @@
-import torch
-import torch.nn as nn
 import inspect
 import math
 from numbers import Real
-import numpy as np
-from scipy.stats import norm
 
-def acq_optimize(self, niteration, lr):
-    optimizer = torch.optim.Adam(self.parameters(), lr=lr)
-    # optimizer.zero_grad()
-    for i in range(niteration):
-        optimizer.zero_grad()
-        loss = self.negative_acq()
-        loss.backward()
-        optimizer.step()
-        print('iter'+str(i)+'/'+str(niteration), 'loss_negative_acq:', loss.item(), end='\r')
+import numpy as np
+import torch
+from scipy.stats import norm
 
 
 def find_next_batch(acq, bounds, batch_size=1, n_samples=1000, f_best=0):
@@ -82,34 +72,6 @@ class UCB:
         variance = self.variance_func(X)
         return mean + self.kappa * torch.sqrt(variance)
 
-#   TODO: find_next_batch is a common function for all acquisition functions, so it should be moved to a separate file
-#   TODO: this batch method is naive because it does not consider the interdependence between points in the batch
-    def find_next_batch(self, bounds, batch_size=1, n_samples=1000):
-        """
-        Find the next batch of points to sample by selecting the ones with the highest UCB from a large set of random samples.
-
-        Args:
-            bounds (np.ndarray): The bounds for each dimension of the input space.
-            batch_size (int): The number of points in the batch.
-            n_samples (int): The number of random points to sample for finding the maximum UCB.
-
-        Returns:
-            torch.Tensor: The next batch of points to sample.
-        """
-        X_selected = []
-        for _ in range(batch_size):
-            # Generate a large number of random points
-            X_random = torch.FloatTensor(n_samples, bounds.shape[0]).uniform_(bounds[0, 0], bounds[0, 1])
-
-            # Compute UCB for all random points
-            UCB_values = self.forward(X_random)
-
-            # Select the point with the highest UCB value
-            idx_max = torch.argmax(UCB_values)
-            X_selected.append(X_random[idx_max])
-        return torch.stack(X_selected)
-
-
 
 class EI:
     def __init__(self, mean_func, variance_func, xi=0.01):
@@ -147,36 +109,6 @@ class EI:
         ei = (mean - f_best - self.xi) * torch.tensor(norm.cdf(Z.numpy()), dtype=torch.float32) + std * torch.tensor(norm.pdf(Z.numpy()), dtype=torch.float32)
         return ei
 
-#   TODO: find_next_batch is a common function for all acquisition functions, so it should be moved to a separate file
-#   TODO: this batch method is naive because it does not consider the interdependence between points in the batch
-    def find_next_batch(self, bounds, batch_size=1, n_samples=1000, f_best=None):
-        """
-        Find the next batch of points to sample by selecting the ones with the highest EI from a large set of random samples.
-
-        Args:
-            bounds (np.ndarray): The bounds for each dimension of the input space.
-            batch_size (int): The number of points in the batch.
-            n_samples (int): The number of random points to sample for finding the maximum EI.
-            f_best (float): The best observed objective function value to date.
-
-        Returns:
-            torch.Tensor: The next batch of points to sample.
-        """
-        if f_best is None:
-            raise ValueError("f_best must be provided for EI calculation.")
-
-        X_selected = []
-        for _ in range(batch_size):
-            # Generate a large number of random points
-            X_random = torch.FloatTensor(n_samples, bounds.shape[0]).uniform_(bounds[0, 0], bounds[0, 1])
-
-            # Compute EI for all random points
-            EI_values = self.forward(X_random, f_best)
-
-            # Select the point with the highest EI value
-            idx_max = torch.argmax(EI_values)
-            X_selected.append(X_random[idx_max])
-        return torch.stack(X_selected)
 
 class PI:
     def __init__(self, mean_func, variance_func, sita=0.01):
@@ -213,37 +145,6 @@ class PI:
         Z = (mean - f_best - self.sita) / std
         pi = torch.tensor(norm.cdf(Z.numpy()), dtype=torch.float32)
         return pi
-
-#   TODO: find_next_batch is a common function for all acquisition functions, so it should be moved to a separate file
-#   TODO: this batch method is naive because it does not consider the interdependence between points in the batch
-    def find_next_batch(self, bounds, batch_size=1, n_samples=1000, f_best=None):
-        """
-        Find the next batch of points to sample by selecting the ones with the highest PI from a large set of random samples.
-
-        Args:
-            bounds (np.ndarray): The bounds for each dimension of the input space.
-            batch_size (int): The number of points in the batch.
-            n_samples (int): The number of random points to sample for finding the maximum PI.
-            f_best (float): The best observed objective function value to date.
-
-        Returns:
-            torch.Tensor: The next batch of points to sample.
-        """
-        if f_best is None:
-            raise ValueError("f_best must be provided for PI calculation.")
-
-        X_selected = []
-        for _ in range(batch_size):
-            # Generate a large number of random points
-            X_random = torch.FloatTensor(n_samples, bounds.shape[0]).uniform_(bounds[0, 0], bounds[0, 1])
-
-            # Compute PI for all random points
-            PI_values = self.forward(X_random, f_best)
-
-            # Select the point with the highest PI value
-            idx_max = torch.argmax(PI_values)
-            X_selected.append(X_random[idx_max])
-        return torch.stack(X_selected)
 
 
 class KG:
@@ -282,38 +183,3 @@ class KG:
         kg = expected_improvement.mean(dim=0)
 
         return kg
-
-#   TODO: find_next_batch is a common function for all acquisition functions, so it should be moved to a separate file
-#   TODO: this batch method is naive because it does not consider the interdependence between points in the batch
-    def find_next_batch(self, bounds, batch_size=1, n_samples=1000, f_best=None):
-        """
-        Find the next batch of points to sample by selecting the ones with the highest KG from a large set of random samples.
-
-        Args:
-            bounds (np.ndarray): The bounds for each dimension of the input space.
-            batch_size (int): The number of points in the batch.
-            n_samples (int): The number of random points to sample for finding the maximum KG.
-            f_best (float): The best observed objective function value to date.
-
-        Returns:
-            torch.Tensor: The next batch of points to sample.
-        """
-        if f_best is None:
-            raise ValueError("f_best must be provided for KG calculation.")
-
-        X_selected = []
-        for _ in range(batch_size):
-            # Generate a large number of random points
-            X_random = torch.FloatTensor(n_samples, bounds.shape[0]).uniform_(bounds[0, 0], bounds[0, 1])
-
-            # Compute KG for all random points
-            KG_values = self.forward(X_random, f_best)
-
-            # Select the point with the highest KG value
-            idx_max = torch.argmax(KG_values)
-            X_selected.append(X_random[idx_max])
-
-        return torch.stack(X_selected)
-
-        
-    
