@@ -1,26 +1,14 @@
+import sys
+import os
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 import torch
 import numpy as np
 import sys
 import os
-from assets.MF_data import *
-from emukit.core import ContinuousParameter, ParameterSpace
-from emukit.core.initial_designs.latin_design import LatinDesign  ##not importance
+from assets.MF_data.collected_data import *
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
-from emukit.test_functions.multi_fidelity import \
-    (multi_fidelity_borehole_function,
-     multi_fidelity_branin_function,
-     multi_fidelity_currin_function,
-     multi_fidelity_hartmann_3d,
-     multi_fidelity_park_function,
-     )
-
 data_mapping = {
-        "borehole": multi_fidelity_borehole_function,
-        "branin": multi_fidelity_branin_function,
-        "currin": multi_fidelity_currin_function,
-        "park": multi_fidelity_park_function,
-        "hartmann": multi_fidelity_hartmann_3d,
         "colville": multi_fidelity_Colville,
         "nonlinearsin": multi_fidelity_non_linear_sin,
         "toal": multi_fidelity_Toal,
@@ -69,34 +57,25 @@ def load_data(seed, data_name, n_train, n_test, x_normal=False, y_normal=False):
     torch.manual_seed(seed)
     np.random.seed(seed)
 
-    fcn = None
-    space = None
-
     data_func = data_mapping.get(data_name, None)
 
     if data_func is not None:
         result = data_func() # 调用函数获取数据和空间
-        fcn, space = result
-    
-    if data_name == "branin":
-        new_space = ParameterSpace([ContinuousParameter('x1', -5., 0.), ContinuousParameter('x2', 10., 15.)])
-    else:
-        new_space = ParameterSpace(space._parameters[:-1])
+        x, y_all = result
 
-    total_fidelity_num = len(fcn.f)
-    latin = LatinDesign(new_space)
+    total_fidelity_num = len(y_all)
 
     # generate new train data
-    xtr = latin.get_samples(n_train)
+    xtr = x[:n_train]
     Ytr = []
     for i in range(total_fidelity_num):
-        Ytr.append(fcn.f[i](xtr))
+        Ytr.append(y_all[i][:n_train])
 
     # generate new test data
-    xte = latin.get_samples(n_test)
+    xte = x[n_train:n_train + n_test]
     Yte = []
     for i in range(total_fidelity_num):
-        Yte.append(fcn.f[i](xte))
+        Yte.append(y_all[i][n_train:n_train + n_test])
 
     # normalize X data
     if x_normal == True:
@@ -123,22 +102,16 @@ def get_data_mu_std(seed, data_name, n_train):
 
     if data_func is not None:
         result = data_func()
-        fcn, space = result
+        x, y_all = result
 
-    if data_name == "branin":
-        new_space = ParameterSpace([ContinuousParameter('x1', -5., 0.), ContinuousParameter('x2', 10., 15.)])
-    else:
-        new_space = ParameterSpace(space._parameters[:-1])
-
-    total_fidelity_num = len(fcn.f)
-    latin = LatinDesign(new_space)
+    total_fidelity_num = len(y_all)
 
     # generate new train data
-    xtr = latin.get_samples(n_train)
+    xtr = x[:n_train]
     Ytr = []
 
     for i in range(total_fidelity_num):
-        Ytr.append(fcn.f[i](xtr))
+        Ytr.append(y_all[i][:n_train])
 
     xtr_mean, xtr_std = xtr.mean(axis=0), xtr.std(axis=0)
 
@@ -229,25 +202,17 @@ def get_full_name_list_with_fidelity(data_name_list):
 
 if __name__ == "__main__":
 
-    all_data_name_list = ["borehole", "branin", "currin", "park", "hartmann",
-                          "colville", "nonlinearsin", "toal", "forrester",
+    all_data_name_list = ["colville", "nonlinearsin", "toal", "forrester",
                           "tl1", "tl2", "tl3", "tl4", "tl5", "tl6", "tl7", "tl8", "tl9", "tl10",
                           "p1", "p2", "p3", "p4", "p5",
                           "maolin1", "maolin5", "maolin6", "maolin7", "maolin8", "maolin10", "maolin12", "maolin13",
                           "maolin15",
                           "maolin19", "maolin20",
                           "shuo6", "shuo11", "shuo15", "shuo16",
-                          "test3", "test4", "test5", "test6", "test7", "test8", "test9", ]
+                          "test3", "test4", "test5", "test6", "test7", "test8", "test9"]
+    # all_data_name_list = ["test7"]
     
     all_data_name_with_fi_list = get_full_name_list_with_fidelity(data_name_list=all_data_name_list)
-
-    # all_data_name_with_fi_list = ['borehole12', 'branin12', 'branin13', 'branin23', 'currin12', 'park12', 'hartmann12', 'hartmann13', 'hartmann23',
-    #                      'colville12', 'nonlinearsin12', 'toal12', 'forrester12', 'forrester13', 'forrester14', 'forrester23',
-    #                      'forrester24', 'forrester34', 'tl112', 'tl212', 'tl312', 'tl412', 'tl512', 'tl612', 'tl712', 'tl812', 'tl912',
-    #                      'tl1012', 'p112', 'p113', 'p123', 'p212', 'p213', 'p223', 'p312', 'p313', 'p323', 'p412', 'p413', 'p423', 'p512',
-    #                      'p513', 'p523', 'maolin112', 'maolin512', 'maolin612', 'maolin712', 'maolin812', 'maolin1012', 'maolin1212',
-    #                      'maolin1312', 'maolin1512', 'maolin1912', 'maolin2012', 'shuo612', 'shuo1112', 'shuo1512', 'shuo1612', 'test312',
-    #                      'test412', 'test512', 'test612', 'test712', 'test812', 'test912']
 
     for data_name in all_data_name_with_fi_list:
 

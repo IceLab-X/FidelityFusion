@@ -13,9 +13,9 @@ Dic = {'AR': ['#ff7f0e', "o", "solid", "AR"],
        'CIGAR': ['#1f77b4', "o", "dashed", "CIGAR"],
         }
 
-data_name = 'sample_data'
+data_name = 'forrester12'
+data_name_list = ["colville12", "nonlinearsin12", "toal12", "forrester12"]
 methods_name_list = ['NAR', 'AR', 'ResGP', 'GAR', 'CIGAR']
-
 for methods_name in methods_name_list:
     ct = []
     tem = []
@@ -35,7 +35,6 @@ for methods_name in methods_name_list:
 
     plt.xlabel("#HF Samples", fontsize=20)
     plt.ylabel("RMSE", fontsize = 20)
-
 
 plt.legend(loc="upper right", fontsize=20)
 plt.grid()

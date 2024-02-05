@@ -1,1 +1,0 @@
-from collected_data import *
