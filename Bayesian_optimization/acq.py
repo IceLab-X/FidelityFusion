@@ -47,7 +47,10 @@ def find_next_batch(acq, bounds, batch_size=1, n_samples=1000, f_best=0):
 class UCB:
     def __init__(self, mean_func, variance_func, kappa=2.0):
         """
-        Initialize the Batch Upper Confidence Bound (UCB) acquisition function.
+        UCB Formula:
+        UCB(x) = mean(x) + kappa * sqrt(variance(x)), where
+        mean(x) is the mean predicted by the GP at input x,
+        variance(x) is the variance predicted by the GP at input x,and kappa is the exploration-exploitation trade-off parameter.
 
         Args:
             mean_func (callable): Function to compute the mean of the GP at given points (PyTorch tensor).
@@ -76,8 +79,12 @@ class UCB:
 class EI:
     def __init__(self, mean_func, variance_func, xi=0.01):
         """
-        Initialize the Expected Improvement (EI) acquisition function.
-
+        EI formula:
+            EI(x) = (mean(x) - f_best - xi) * Phi(Z) + std(x) * phi(Z)
+            where Z = (mean(x) - f_best - xi) / std(x),
+            Phi(Z) is the cumulative distribution function of the standard normal distribution,
+            and phi(Z) is the probability density function of the standard normal distribution.
+            
         Args:
             mean_func (callable): Function to compute the mean of the GP at given points.
             variance_func (callable): Function to compute the variance of the GP at given points.
@@ -113,8 +120,10 @@ class EI:
 class PI:
     def __init__(self, mean_func, variance_func, sita=0.01):
         """
-        Initialize the Probability of Improvement (PI) acquisition function.
-
+        PI formula:
+            PI(x) = Phi((mean(x) - f_best - sita) / std(x)),
+            where Phi(Z) is the cumulative distribution function of the standard normal distribution.
+            
         Args:
             mean_func (callable): Function to compute the mean of the GP at given points.
             variance_func (callable): Function to compute the variance of the GP at given points.
@@ -150,7 +159,9 @@ class PI:
 class KG:
     def __init__(self,mean_func, variance_func, num_fantasies=10):
         """
-        Initialize the Knowledge Gradient (KG) acquisition function.
+        KG Formula:
+        KG(x) = E[max(f(x, z) - f_best)], where E is the expectation over fantasy samples,
+        f(x, z) is the objective function with input x and fantasy sample z.
 
         Args:
             mean_func (callable): Function to compute the mean of the GP at given points.
