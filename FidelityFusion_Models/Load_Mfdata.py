@@ -8,6 +8,7 @@ import os
 from assets.MF_data.collected_data import *
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
+## push to experiment
 data_mapping = {
         "colville": multi_fidelity_Colville,
         "nonlinearsin": multi_fidelity_non_linear_sin,

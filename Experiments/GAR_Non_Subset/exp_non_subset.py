@@ -49,7 +49,7 @@ if __name__ == '__main__':
         print(_data_name)
         for method in method_list:
             print(method)
-            for _seed in [0,1]:
+            for _seed in [0, 1, 2, 3, 4]:
                 print(_seed)
                 recording = {'train_sample_num':[], 'rmse':[], 'nrmse':[], 'r2':[], 'nll':[], 'time':[]}
                 for _high_fidelity_num in [4, 8, 16, 32]:

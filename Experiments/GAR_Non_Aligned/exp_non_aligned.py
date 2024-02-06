@@ -48,13 +48,13 @@ if __name__ == '__main__':
         print(_data_name)
         for method in method_list:
             print(method)
-            for _seed in [0,1]:
+            for _seed in [0 ,1, 2, 3, 4]:
                 print(_seed)
                 recording = {'train_sample_num':[], 'rmse':[], 'nrmse':[], 'r2':[], 'nll':[], 'time':[]}
                 for _high_fidelity_num in [4, 8, 16, 32]:
                     torch.manual_seed(_seed)
                     
-                    xtr, Ytr, xte, Yte = load_data_certain_fi(seed = 0, data_name_with_fi = _data_name, n_train = 100, n_test = 100, x_normal=True, y_normal=True)
+                    xtr, Ytr, xte, Yte = load_data_certain_fi(seed = 0, data_name_with_fi = _data_name, n_train = 100, n_test = 100, x_normal = True, y_normal = True)
                     
                     x_low = xtr
                     y_low = Ytr[0]

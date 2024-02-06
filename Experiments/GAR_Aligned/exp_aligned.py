@@ -36,7 +36,14 @@ gen_dataset = ['poisson_v4_02',
 #                           "shuo6", "shuo11", "shuo15", "shuo16",
 #                           "test3", "test4", "test5", "test6", "test7", "test8", "test9"]
 
-all_data_name_list = ["colville", "nonlinearsin", "toal", "forrester"]
+all_data_name_list = ["colville", "nonlinearsin", "toal", "forrester",
+                          "tl1", "tl2", "tl3", "tl4", "tl5", "tl6", "tl7", "tl8", "tl9", "tl10",
+                          "p1", "p2", "p3", "p4", "p5",
+                          "maolin1", "maolin5", "maolin6", "maolin7", "maolin8", "maolin10", "maolin12", "maolin13",
+                          "maolin15",
+                          "maolin19", "maolin20",
+                          "shuo6", "shuo11", "shuo15", "shuo16",
+                          "test3", "test4", "test5", "test6", "test7"]
 
 interp_data = False
 
@@ -51,7 +58,7 @@ if __name__ == '__main__':
         print(_data_name)
         for method in method_list:
             print(method)
-            for _seed in [0,1]:
+            for _seed in [0, 1, 2, 3, 4]:
                 print(_seed)
                 recording = {'train_sample_num':[], 'rmse':[], 'nrmse':[], 'r2':[], 'nll':[], 'time':[]}
                 for _high_fidelity_num in [4, 8, 16, 32]:

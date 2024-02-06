@@ -1,8 +1,13 @@
 import torch
+import warnings
 
-def multi_fidelity_forrester_my(min_value = 0, max_value = 1, std = 0, num_points = 200):
+def multi_fidelity_forrester_my(x = None, min_value = 0, max_value = 1, std = 0, num_points = 200):
 
-    x = torch.rand(num_points, 1) * (max_value - min_value) + min_value
+    if x is None:
+        x = torch.rand(num_points, 1) * (max_value - min_value) + min_value
+    else:
+        if not torch.all((x >= min_value) & (x <= max_value)):
+            warnings.warn("Input data is out of specified range [{}, {}].".format(min_value, max_value))
     def forrester_1(x, sd=std):
         """
         math:
@@ -42,7 +47,7 @@ def multi_fidelity_forrester_my(min_value = 0, max_value = 1, std = 0, num_point
 
     return x,[forrester_1(x), forrester_2(x), forrester_3(x), forrester_4(x)]
 
-def multi_fidelity_non_linear_sin(min_value = -5, max_value = 10, high_fidelity_noise_std_deviation=0, low_fidelity_noise_std_deviation=0, num_points = 200):
+def multi_fidelity_non_linear_sin(x = None, min_value = -5, max_value = 10, high_fidelity_noise_std_deviation=0, low_fidelity_noise_std_deviation=0, num_points = 200):
     """
     Two level non-linear sin function where high fidelity is given by:
 
@@ -59,8 +64,11 @@ def multi_fidelity_non_linear_sin(min_value = -5, max_value = 10, high_fidelity_
     P. Perdikaris, M. Raissi, A. Damianou, N. D. Lawrence and G. E. Karniadakis (2017)
     http://web.mit.edu/parisp/www/assets/20160751.full.pdf
     """
-
-    x = torch.rand(num_points, 1) * (max_value - min_value) + min_value
+    if x is None:
+        x = torch.rand(num_points, 1) * (max_value - min_value) + min_value
+    else:
+        if not torch.all((x >= min_value) & (x <= max_value)):
+            warnings.warn("Input data is out of specified range [{}, {}].".format(min_value, max_value))
     return x, [nonlinear_sin_low(x, low_fidelity_noise_std_deviation), nonlinear_sin_high(x, high_fidelity_noise_std_deviation)]
 
 def nonlinear_sin_low(x, sd=0):
@@ -77,10 +85,14 @@ def nonlinear_sin_high(x, sd=0):
 
     return (x - torch.sqrt(torch.tensor(2.0))) * nonlinear_sin_low(x, 0) ** 2 + torch.randn(x.size(0), 1) * sd
 
-def multi_fidelity_Colville(A=0.5, min_value = 0, max_value = 1, num_points = 200):
+def multi_fidelity_Colville(x = None, A=0.5, min_value = 0, max_value = 1, num_points = 200):
 
     # x_dim = 4
-    x = (max_value - min_value) * torch.rand(num_points, 4) + min_value
+    if x is None:
+        x = (max_value - min_value) * torch.rand(num_points, 4) + min_value
+    else:
+        if not torch.all((x >= min_value) & (x <= max_value)):
+            warnings.warn("Input data is out of specified range [{}, {}].".format(min_value, max_value))
 
     def test_high(x):
         '''
@@ -113,7 +125,7 @@ def multi_fidelity_Colville(A=0.5, min_value = 0, max_value = 1, num_points = 20
 
     return x, [test_low(x), test_high(x)]
 
-def test_function_d1(min_value = 0, max_value = 1, num_points = 200):
+def test_function_d1(x = None, min_value = 0, max_value = 1, num_points = 200):
     def high(x):
         '''
         math:
@@ -127,12 +139,15 @@ def test_function_d1(min_value = 0, max_value = 1, num_points = 200):
             f(x) = 0.56 * ((6x - 2)^2 \sin(12x - 4)) + 10(x - 0.5) - 5
         '''
         return 0.56 * ((6 * x - 2)**2 * torch.sin(12 * x - 4)) + 10 * (x - 0.5) - 5
-    
-    x = torch.rand(num_points, 1) * (max_value - min_value) + min_value
+    if x is None:
+        x = torch.rand(num_points, 1) * (max_value - min_value) + min_value
+    else:
+        if not torch.all((x >= min_value) & (x <= max_value)):
+            warnings.warn("Input data is out of specified range [{}, {}].".format(min_value, max_value))
 
     return x, [low(x), high(x)] 
 
-def test_function_d2(min_value = 0, max_value = 1, num_points = 200):
+def test_function_d2(x = None, min_value = 0, max_value = 1, num_points = 200):
     def high(x):
         '''
         math:
@@ -147,10 +162,14 @@ def test_function_d2(min_value = 0, max_value = 1, num_points = 200):
         '''
         return torch.sin(2 * torch.pi * (x - 0.1))
     
-    x = torch.rand(num_points, 1) * (max_value - min_value) + min_value
+    if x is None:
+        x = torch.rand(num_points, 1) * (max_value - min_value) + min_value
+    else:
+        if not torch.all((x >= min_value) & (x <= max_value)):
+            warnings.warn("Input data is out of specified range [{}, {}].".format(min_value, max_value))
     return x, [low(x), high(x)]  
 
-def test_function_d3(min_value = 0, max_value = 10, num_points = 200):
+def test_function_d3(x = None, min_value = 0, max_value = 10, num_points = 200):
     def high(x):
         '''
         math:
@@ -164,11 +183,14 @@ def test_function_d3(min_value = 0, max_value = 10, num_points = 200):
             f(x) = x \sin(x) / 10 + x / 10
         '''
         return x * torch.sin(x) / 10 + x / 10
-    
-    x = torch.rand(num_points, 1) * (max_value - min_value) + min_value
+    if x is None:
+        x = torch.rand(num_points, 1) * (max_value - min_value) + min_value
+    else:
+        if not torch.all((x >= min_value) & (x <= max_value)):
+            warnings.warn("Input data is out of specified range [{}, {}].".format(min_value, max_value))
     return x, [low(x), high(x)]
 
-def test_function_d4(min_value = 0, max_value = 1, num_points = 200):
+def test_function_d4(x = None, min_value = 0, max_value = 1, num_points = 200):
     def high(x):
         '''
         math:
@@ -183,11 +205,15 @@ def test_function_d4(min_value = 0, max_value = 1, num_points = 200):
         '''
         return torch.cos(3.5 * torch.pi * x) * torch.exp(-1.4 * x) + 0.75 * x ** 2
     
-    x = torch.rand(num_points, 1) * (max_value - min_value) + min_value
+    if x is None:
+        x = torch.rand(num_points, 1) * (max_value - min_value) + min_value
+    else:
+        if not torch.all((x >= min_value) & (x <= max_value)):
+            warnings.warn("Input data is out of specified range [{}, {}].".format(min_value, max_value))
     
     return x, [low(x), high(x)]
 
-def test_function_d5(min_value = -2, max_value = 2, num_points = 200):
+def test_function_d5(x = None, min_value = -2, max_value = 2, num_points = 200):
     def high(x):
         '''
         math:
@@ -207,11 +233,14 @@ def test_function_d5(min_value = -2, max_value = 2, num_points = 200):
         x2 = x[:, 1]
         s = 2 * x1**2 - 2.1 * x1**4 + 1/3 * x1**6 + 0.5 * x1 * x2 - 4 * x2**2 + 2 * x2**4
         return s.unsqueeze(1)
-    
-    x = torch.rand(num_points, 2) * (max_value - min_value) + min_value
+    if x is None:
+        x = torch.rand(num_points, 2) * (max_value - min_value) + min_value
+    else:
+        if not torch.all((x >= min_value) & (x <= max_value)):
+            warnings.warn("Input data is out of specified range [{}, {}].".format(min_value, max_value))
     return x, [low(x), high(x)]
 
-def test_function_d6(min_value = 0, max_value = 1, num_points = 200):
+def test_function_d6(x = None, min_value = 0, max_value = 1, num_points = 200):
     def high(x):
         '''
         math:
@@ -232,10 +261,14 @@ def test_function_d6(min_value = 0, max_value = 1, num_points = 200):
         s = 1/6 * ((30 + 5 * x1 * torch.sin(5 * x1)) * (4 + 2/5 * torch.exp(-5 * x2)) - 100)
         return s.unsqueeze(1)
     
-    x = torch.rand(num_points, 2) * (max_value - min_value) + min_value
+    if x is None:
+        x = torch.rand(num_points, 2) * (max_value - min_value) + min_value
+    else:
+        if not torch.all((x >= min_value) & (x <= max_value)):
+            warnings.warn("Input data is out of specified range [{}, {}].".format(min_value, max_value))
     return x, [low(x), high(x)]
 
-def test_function_d7(min_value = -3, max_value = 4, num_points = 200):
+def test_function_d7(x = None, min_value = -3, max_value = 4, num_points = 200):
     def high(x):
         '''
         math:
@@ -256,10 +289,14 @@ def test_function_d7(min_value = -3, max_value = 4, num_points = 200):
         s = x1**4 + x2**4 - 16*x1**2 - 16*x2**2
         return s.unsqueeze(1)
     
-    x = torch.rand(num_points, 2) * (max_value - min_value) + min_value
+    if x is None:
+        x = torch.rand(num_points, 2) * (max_value - min_value) + min_value
+    else:
+        if not torch.all((x >= min_value) & (x <= max_value)):
+            warnings.warn("Input data is out of specified range [{}, {}].".format(min_value, max_value))
     return x, [low(x), high(x)]
 
-def test_function_d8(min_value = 0, max_value = 1, num_points = 200):
+def test_function_d8(x = None, min_value = 0, max_value = 1, num_points = 200):
     def high(x):
         '''
         math:
@@ -280,10 +317,14 @@ def test_function_d8(min_value = 0, max_value = 1, num_points = 200):
         s = (1 - 2*x1 + 0.05*torch.sin(4*torch.pi*x2 - x1))**2 + 4*(x2 - 0.5*torch.sin(2*torch.pi*x1))**2
         return s.unsqueeze(1)
     
-    x = torch.rand(num_points, 2) * (max_value - min_value) + min_value
+    if x is None:
+        x = torch.rand(num_points, 2) * (max_value - min_value) + min_value
+    else:
+        if not torch.all((x >= min_value) & (x <= max_value)):
+            warnings.warn("Input data is out of specified range [{}, {}].".format(min_value, max_value))
     return x, [low(x), high(x)]
 
-def test_function_d9(min_value = 0, max_value = 1, num_points = 200):
+def test_function_d9(x = None, min_value = 0, max_value = 1, num_points = 200):
     def high(x):
         '''
         math:
@@ -306,10 +347,14 @@ def test_function_d9(min_value = 0, max_value = 1, num_points = 200):
         s = 0.2 * ((x1 - 1)**2 + (x1 - x2)**2 + x2 * x3 + 0.5) - 0.5 * x1 - 0.2 * x1 * x2 - 0.1
         return s.unsqueeze(1)
     
-    x = torch.rand(num_points, 3) * (max_value - min_value) + min_value
+    if x is None:
+        x = torch.rand(num_points, 3) * (max_value - min_value) + min_value
+    else:
+        if not torch.all((x >= min_value) & (x <= max_value)):
+            warnings.warn("Input data is out of specified range [{}, {}].".format(min_value, max_value))
     return x, [low(x), high(x)]
 
-def test_function_d10(min_value = -3, max_value = 3, num_points = 200):
+def test_function_d10(x = None, min_value = -3, max_value = 3, num_points = 200):
     def high(x):
         Sum = 0
         for i in range(8):
@@ -322,11 +367,15 @@ def test_function_d10(min_value = -3, max_value = 3, num_points = 200):
             Sum += 0.3 * x[:, i]**4 - 16 * x[:, i]**2 + 5 * x[:, i]
         return Sum.unsqueeze(1)
     
-    x = torch.rand(num_points, 8) * (max_value - min_value) + min_value
+    if x is None:
+        x = torch.rand(num_points, 8) * (max_value - min_value) + min_value
+    else:
+        if not torch.all((x >= min_value) & (x <= max_value)):
+            warnings.warn("Input data is out of specified range [{}, {}].".format(min_value, max_value))
     
     return x, [low(x), high(x)]
 
-def multi_fidelity_test3_function(min_value = 0, max_value = 1, num_points = 200):
+def multi_fidelity_test3_function(x = None, min_value = 0, max_value = 1, num_points = 200):
     r"""
     Reference:
 
@@ -351,12 +400,15 @@ def multi_fidelity_test3_function(min_value = 0, max_value = 1, num_points = 200
 
         return (torch.exp(x1) * torch.cos(x1) + 1 / (x1**2))[:, None]
 
-
-    x = torch.rand(num_points, 1) * (max_value - min_value) + min_value
+    if x is None:
+        x = torch.rand(num_points, 1) * (max_value - min_value) + min_value
+    else:
+        if not torch.all((x >= min_value) & (x <= max_value)):
+            warnings.warn("Input data is out of specified range [{}, {}].".format(min_value, max_value))
 
     return x, [test_low(x), test_high(x)]
 
-def multi_fidelity_test4_function(min_value = 0, max_value = 10, num_points = 200):
+def multi_fidelity_test4_function(x = None, min_value = 0, max_value = 10, num_points = 200):
     r"""
     Reference:
     [33]D. Higdon, “Space and space-time modeling using process convolutions,” in *Quantitative methods for current environmental issues*.Springer, 2002, pp. 37–56.
@@ -378,11 +430,15 @@ def multi_fidelity_test4_function(min_value = 0, max_value = 10, num_points = 20
         x1 = x[:, 0]
         return (torch.sin(2 * torch.pi * x1 / 2.5) + torch.cos(2 * torch.pi * x1 / 2.5))[:, None]
 
-    x = torch.rand(num_points, 1) * (max_value - min_value) + min_value
+    if x is None:
+        x = torch.rand(num_points, 1) * (max_value - min_value) + min_value
+    else:
+        if not torch.all((x >= min_value) & (x <= max_value)):
+            warnings.warn("Input data is out of specified range [{}, {}].".format(min_value, max_value))
 
     return x, [test_low(x), test_high(x)]
 
-def multi_fidelity_test5_function(min_value = -2, max_value = 2, num_points = 200):
+def multi_fidelity_test5_function(x = None, min_value = -2, max_value = 2, num_points = 200):
     r"""
     Reference:
     [34]X. Cai, H. Qiu, L. Gao, and X. Shao, “Metamodeling for high dimensional design problems by multi-fifidelity simulations,” *Structural and**Multidisciplinary Optimization*, vol. 56, no. 1, pp. 151–166, 2017.
@@ -404,11 +460,15 @@ def multi_fidelity_test5_function(min_value = -2, max_value = 2, num_points = 20
         x2 = x[:, 1]
         return (4 * (x1 ** 2) - 2.1 * (x1 ** 4) + (x1 ** 6) / 3 - 4 * (x2 ** 2) + 4 * x2 ** 4 + x1 * x2)[:, None]
 
-    x = torch.rand(num_points, 2) * (max_value - min_value) + min_value
+    if x is None:
+        x = torch.rand(num_points, 2) * (max_value - min_value) + min_value
+    else:
+        if not torch.all((x >= min_value) & (x <= max_value)):
+            warnings.warn("Input data is out of specified range [{}, {}].".format(min_value, max_value))
 
     return x, [test_low(x), test_high(x)]
 
-def multi_fidelity_test6_function(min_value = 0, max_value = 1, num_points = 200):
+def multi_fidelity_test6_function(x = None, min_value = 0, max_value = 1, num_points = 200):
     r"""
     Reference:
     [35] R. B. Gramacy and H. K. Lee, “Adaptive design and analysis of supercomputer experiments,” *Technometrics*, vol. 51, no. 2, pp. 130–145, 2009.
@@ -438,11 +498,15 @@ def multi_fidelity_test6_function(min_value = 0, max_value = 1, num_points = 200
         x4 = x[:, 3]
         return (torch.exp(torch.sin((0.9 * x1 + 0.9 * 0.48) ** 10)) + x2 * x3 + x4)[:, None]
     
-    x = torch.rand(num_points, 6) * (max_value - min_value) + min_value
+    if x is None:
+        x = torch.rand(num_points, 6) * (max_value - min_value) + min_value
+    else:
+        if not torch.all((x >= min_value) & (x <= max_value)):
+            warnings.warn("Input data is out of specified range [{}, {}].".format(min_value, max_value))
 
     return x, [test_low(x), test_high(x)]
 
-def multi_fidelity_test7_function(min1 = 0, max1 = 2 * torch.pi, min2 = 0, max2 = 1, num_points = 200):
+def multi_fidelity_test7_function(x = None, min1 = 0, max1 = 2 * torch.pi, min2 = 0, max2 = 1, num_points = 200):
     r"""
     Reference:
     [36]J. An and A. Owen, “Quasi-regression,” *Journal of complexity*, vol. 17, no. 4, pp. 588-607, 2001.
@@ -483,18 +547,24 @@ def multi_fidelity_test7_function(min1 = 0, max1 = 2 * torch.pi, min2 = 0, max2 
 
         return ( (res_sin**2 + res_cos**2)**0.5 )[:, None]
 
-    data_list = []
-
-    for _ in range(num_points):
-        x1_to_x4 = torch.rand(4) * (max1 - min1) + min1
-        x5_to_x8 = torch.rand(4) * (max2 - min2) + min2
-        x = torch.cat((x1_to_x4, x5_to_x8), dim=0)
-        data_list.append(x)
-    x = torch.stack(data_list)
+    if x is None:
+        data_list = []
+        for _ in range(num_points):
+            x1_to_x4 = torch.rand(4) * (max1 - min1) + min1
+            x5_to_x8 = torch.rand(4) * (max2 - min2) + min2
+            x = torch.cat((x1_to_x4, x5_to_x8), dim=0)
+            data_list.append(x)
+        x = torch.stack(data_list)
+    else:
+        if not torch.all((x[:, :4] >= min1) & (x[:, :4] <= max1)):
+            warnings.warn("The first four dimensions of input data are out of specified range [{}, {}].".format(min1, max1))
+        
+        if not torch.all((x[:, 4:] >= min2) & (x[:, 4:] <= max2)):
+            warnings.warn("The last four dimensions of input data are out of specified range [{}, {}].".format(min2, max2))
 
     return x, [test_low(x), test_high(x)]
 
-def multi_fidelity_test8_function(min_value = -3, max_value = 3, num_points = 200):
+def multi_fidelity_test8_function(x = None, min_value = -3, max_value = 3, num_points = 200):
     r"""
     Reference:
     [20]X. Meng and G. E. Karniadakis, “A composite neural network that learns from multi-fifidelity data: Application to function approximationand inverse pde problems,” *Journal of Computational Physics*, vol. 401, p. 109020, 2020.
@@ -526,11 +596,15 @@ def multi_fidelity_test8_function(min_value = -3, max_value = 3, num_points = 20
 
         return ( res + Xs[0]**2 )[:, None]
 
-    x = torch.rand(num_points, 20) * (max_value - min_value) + min_value
+    if x is None:
+        x = torch.rand(num_points, 20) * (max_value - min_value) + min_value
+    else:
+        if not torch.all((x >= min_value) & (x <= max_value)):
+            warnings.warn("Input data is out of specified range [{}, {}].".format(min_value, max_value))
 
     return x, [test_low(x), test_high(x)]
 
-def multi_fidelity_test9_function(min_value = -3, max_value = 2, num_points = 200):
+def multi_fidelity_test9_function(x = None, min_value = -3, max_value = 2, num_points = 200):
     r"""
     Reference:
     [37]G. H. Cheng, A. Younis, K. Haji Hajikolaei, and G. Gary Wang, “Trust region based mode pursuing sampling method for global optimization of high dimensional design problems,” *Journal of Mechanical Design*, vol. 137, no. 2, 2015.
@@ -557,11 +631,15 @@ def multi_fidelity_test9_function(min_value = -3, max_value = 2, num_points = 20
 
         return ( (Xs[0]-1)**2 + (Xs[29]-1)**2 + 30*res )[:, None]
 
-    x = torch.rand(num_points, 30) * (max_value - min_value) + min_value
+    if x is None:
+        x = torch.rand(num_points, 30) * (max_value - min_value) + min_value
+    else:
+        if not torch.all((x >= min_value) & (x <= max_value)):
+            warnings.warn("Input data is out of specified range [{}, {}].".format(min_value, max_value))
 
     return x, [test_low(x), test_high(x)]
 
-def multi_fidelity_p1_simp(A = 0, min_value = -3, max_value = 2, num_points = 200):
+def multi_fidelity_p1_simp(x = None, A = 0, min_value = -3, max_value = 2, num_points = 200):
 
     def sigmoid1(x):
         return 1 / (1 + torch.exp(32 * (x + 0.5)))
@@ -597,11 +675,15 @@ def multi_fidelity_p1_simp(A = 0, min_value = -3, max_value = 2, num_points = 20
 
         return sum[:, None]
 
-    x = torch.rand(num_points, 1) * (max_value - min_value) + min_value
+    if x is None:
+        x = torch.rand(num_points, 1) * (max_value - min_value) + min_value
+    else:
+        if not torch.all((x >= min_value) & (x <= max_value)):
+            warnings.warn("Input data is out of specified range [{}, {}].".format(min_value, max_value))
 
     return x, [test_low(x), test_mid(x), test_high(x)]
 
-def multi_fidelity_p2_simp(A = 0, min_value = 0, max_value = 1, num_points = 200):
+def multi_fidelity_p2_simp(x = None, A = 0, min_value = 0, max_value = 1, num_points = 200):
 
     def sigmoid2(x):
         return 1 / (1 + torch.exp(-32 * (x + 0.5)))
@@ -637,11 +719,15 @@ def multi_fidelity_p2_simp(A = 0, min_value = 0, max_value = 1, num_points = 200
 
         return sum[:, None]
 
-    x = torch.rand(num_points, 1) * (max_value - min_value) + min_value
+    if x is None:
+        x = torch.rand(num_points, 1) * (max_value - min_value) + min_value
+    else:
+        if not torch.all((x >= min_value) & (x <= max_value)):
+            warnings.warn("Input data is out of specified range [{}, {}].".format(min_value, max_value))
 
     return x, [test_low(x), test_mid(x), test_high(x)]
 
-def multi_fidelity_p3_simp(A = 0, min_value = -2, max_value = 2, num_points = 200):
+def multi_fidelity_p3_simp(x = None, A = 0, min_value = -2, max_value = 2, num_points = 200):
 
     def sigmoid1(x):
         return 1 / (1 + torch.exp(32 * (x + 0.5)))
@@ -679,11 +765,15 @@ def multi_fidelity_p3_simp(A = 0, min_value = -2, max_value = 2, num_points = 20
 
         return sum[:, None]
 
-    x = torch.rand(num_points, 2) * (max_value - min_value) + min_value
+    if x is None:
+        x = torch.rand(num_points, 2) * (max_value - min_value) + min_value
+    else:
+        if not torch.all((x >= min_value) & (x <= max_value)):
+            warnings.warn("Input data is out of specified range [{}, {}].".format(min_value, max_value))
 
     return x, [test_low(x), test_mid(x), test_high(x)]
 
-def multi_fidelity_p4_simp(A = 0, min_value = -6, max_value = 5, num_points = 200):
+def multi_fidelity_p4_simp(x = None, A = 0, min_value = -6, max_value = 5, num_points = 200):
 
     def sigmoid1(x):
         return 1 / (1 + torch.exp(32 * (x + 0.5)))
@@ -720,11 +810,15 @@ def multi_fidelity_p4_simp(A = 0, min_value = -6, max_value = 5, num_points = 20
 
         return sum[:, None]
 
-    x = torch.rand(num_points, 2) * (max_value - min_value) + min_value
+    if x is None:
+        x = torch.rand(num_points, 2) * (max_value - min_value) + min_value
+    else:
+        if not torch.all((x >= min_value) & (x <= max_value)):
+            warnings.warn("Input data is out of specified range [{}, {}].".format(min_value, max_value))
 
     return x, [test_low(x), test_mid(x), test_high(x)]
 
-def multi_fidelity_p5_simp(A = 0, min_value = -0.1, max_value = -0.2, num_points = 200):
+def multi_fidelity_p5_simp(x = None, A = 0, min_value = -0.1, max_value = -0.2, num_points = 200):
 
     def sigmoid3(x):
         return 1 / (1 + torch.exp(-128 * (x - 0.05)))
@@ -786,11 +880,15 @@ def multi_fidelity_p5_simp(A = 0, min_value = -0.1, max_value = -0.2, num_points
 
         return sum[:, None]
     
-    x = torch.rand(num_points, 2) * (max_value - min_value) + min_value
+    if x is None:
+        x = torch.rand(num_points, 2) * (max_value - min_value) + min_value
+    else:
+        if not torch.all((x >= min_value) & (x <= max_value)):
+            warnings.warn("Input data is out of specified range [{}, {}].".format(min_value, max_value))
 
     return x, [test_1(x), test_2(x), test_3(x)]
 
-def multi_fidelity_maolin1(min_value = 0, max_value = 1, num_points = 200):
+def multi_fidelity_maolin1(x = None, min_value = 0, max_value = 1, num_points = 200):
 
     def test_high(z):
         x1 = z[:, 0]
@@ -800,11 +898,15 @@ def multi_fidelity_maolin1(min_value = 0, max_value = 1, num_points = 200):
         x1 = z[:, 0]
         return ( torch.sin(10*torch.pi*x1) / (x1) + 2*(x1-1)**4 )[:, None]
     
-    x = torch.rand(num_points, 1) * (max_value - min_value) + min_value
+    if x is None:
+        x = torch.rand(num_points, 1) * (max_value - min_value) + min_value
+    else:
+        if not torch.all((x >= min_value) & (x <= max_value)):
+            warnings.warn("Input data is out of specified range [{}, {}].".format(min_value, max_value))
 
     return x, [test_low(x), test_high(x)]
 
-def multi_fidelity_maolin5(min_value = 0, max_value = 5, num_points = 200):
+def multi_fidelity_maolin5(x = None, min_value = 0, max_value = 5, num_points = 200):
 
     def test_high(z):
         x1 = z[:, 0]
@@ -817,11 +919,15 @@ def multi_fidelity_maolin5(min_value = 0, max_value = 5, num_points = 200):
 
         return ( (1-0.125*torch.pi) * torch.cos(x1) )[:, None]
     
-    x = torch.rand(num_points, 2) * (max_value - min_value) + min_value
+    if x is None:
+        x = torch.rand(num_points, 2) * (max_value - min_value) + min_value
+    else:
+        if not torch.all((x >= min_value) & (x <= max_value)):
+            warnings.warn("Input data is out of specified range [{}, {}].".format(min_value, max_value))
 
     return x, [test_low(x), test_high(x)]
 
-def multi_fidelity_maolin6(min_value = 0, max_value = 5, num_points = 200):
+def multi_fidelity_maolin6(x = None, min_value = 0, max_value = 5, num_points = 200):
 
     def test_high(z):
         '''
@@ -843,11 +949,15 @@ def multi_fidelity_maolin6(min_value = 0, max_value = 5, num_points = 200):
 
         return ( x1**2 + 100 * (x1**2 + x2**2)**4 )[:, None]
     
-    x = torch.rand(num_points, 2) * (max_value - min_value) + min_value
+    if x is None:
+        x = torch.rand(num_points, 2) * (max_value - min_value) + min_value
+    else:
+        if not torch.all((x >= min_value) & (x <= max_value)):
+            warnings.warn("Input data is out of specified range [{}, {}].".format(min_value, max_value))
 
     return x, [test_low(x), test_high(x)]
 
-def multi_fidelity_maolin7(min_value = -5, max_value = 10, num_points = 200):
+def multi_fidelity_maolin7(x = None, min_value = -5, max_value = 10, num_points = 200):
 
     def test_high(z):
         '''
@@ -869,11 +979,15 @@ def multi_fidelity_maolin7(min_value = -5, max_value = 10, num_points = 200):
 
         return ( (1-0.2*x2+0.05*torch.sin(4*torch.pi*x2-x1))**2 + 4*(x2-0.5*torch.sin(2*torch.pi*x1))**2 )[:, None]
     
-    x = torch.rand(num_points, 2) * (max_value - min_value) + min_value
+    if x is None:
+        x = torch.rand(num_points, 2) * (max_value - min_value) + min_value
+    else:
+        if not torch.all((x >= min_value) & (x <= max_value)):
+            warnings.warn("Input data is out of specified range [{}, {}].".format(min_value, max_value))
 
     return x, [test_low(x), test_high(x)]
 
-def multi_fidelity_maolin8(min_value = 0, max_value = 1, num_points = 200):
+def multi_fidelity_maolin8(x = None, min_value = 0, max_value = 1, num_points = 200):
 
     def test_high(z):
         '''
@@ -895,11 +1009,15 @@ def multi_fidelity_maolin8(min_value = 0, max_value = 1, num_points = 200):
 
         return ( (1.5-x1+x1*x2)**2 + x1 + x2 )[:, None]
     
-    x = torch.rand(num_points, 2) * (max_value - min_value) + min_value
+    if x is None:
+        x = torch.rand(num_points, 2) * (max_value - min_value) + min_value
+    else:
+        if not torch.all((x >= min_value) & (x <= max_value)):
+            warnings.warn("Input data is out of specified range [{}, {}].".format(min_value, max_value))
 
     return x, [test_low(x), test_high(x)]
 
-def multi_fidelity_maolin10(min_value = 0, max_value = 0.5, num_points = 200):
+def multi_fidelity_maolin10(x = None, min_value = 0, max_value = 0.5, num_points = 200):
 
     def test_high(z):
         x1 = z[:, 0]
@@ -935,11 +1053,15 @@ def multi_fidelity_maolin10(min_value = 0, max_value = 0.5, num_points = 200):
 
         return ( -0.4 * high1 + (high2 + high3 + high4) / 4 )[:, None]
     
-    x = torch.rand(num_points, 2) * (max_value - min_value) + min_value
+    if x is None:
+        x = torch.rand(num_points, 2) * (max_value - min_value) + min_value
+    else:
+        if not torch.all((x >= min_value) & (x <= max_value)):
+            warnings.warn("Input data is out of specified range [{}, {}].".format(min_value, max_value))
 
     return x, [test_low(x), test_high(x)]
 
-def multi_fidelity_maolin12(min_value = -2, max_value = 2, num_points = 200):
+def multi_fidelity_maolin12(x = None, min_value = -2, max_value = 2, num_points = 200):
 
     def test_high(z):
         '''
@@ -961,10 +1083,14 @@ def multi_fidelity_maolin12(min_value = -2, max_value = 2, num_points = 200):
 
         return ( x1 * torch.exp(-x1**2-x2**2) + x1/10 )[:, None]
 
-    x = torch.rand(num_points, 2) * (max_value - min_value) + min_value
+    if x is None:
+        x = torch.rand(num_points, 2) * (max_value - min_value) + min_value
+    else:
+        if not torch.all((x >= min_value) & (x <= max_value)):
+            warnings.warn("Input data is out of specified range [{}, {}].".format(min_value, max_value))
     return x, [test_low(x), test_high(x)]
 
-def multi_fidelity_maolin13(min_value = -1, max_value = 1, num_points = 200):
+def multi_fidelity_maolin13(x = None, min_value = -1, max_value = 1, num_points = 200):
 
     def test_high(z):
         '''
@@ -986,11 +1112,15 @@ def multi_fidelity_maolin13(min_value = -1, max_value = 1, num_points = 200):
 
         return ( torch.exp(x1+x2) * torch.cos(x1*x2) + torch.cos(x1**2+x2**2) )[:, None]
     
-    x = torch.rand(num_points, 2) * (max_value - min_value) + min_value
+    if x is None:
+        x = torch.rand(num_points, 2) * (max_value - min_value) + min_value
+    else:
+        if not torch.all((x >= min_value) & (x <= max_value)):
+            warnings.warn("Input data is out of specified range [{}, {}].".format(min_value, max_value))
 
     return x, [test_low(x), test_high(x)]
 
-def multi_fidelity_maolin15(min_value = 0, max_value = 1, num_points = 200):
+def multi_fidelity_maolin15(x = None, min_value = 0, max_value = 1, num_points = 200):
 
     def test_high(z):
         '''
@@ -1014,11 +1144,15 @@ def multi_fidelity_maolin15(min_value = 0, max_value = 1, num_points = 200):
 
         return ( 100 * ( torch.exp(-2/(x1**1.75)) + torch.exp(-2/(x2**1.75)) + 0.2*torch.exp(-2/(x3**1.75)) ) )[:, None]
     
-    x = torch.rand(num_points, 3) * (max_value - min_value) + min_value
+    if x is None:
+        x = torch.rand(num_points, 3) * (max_value - min_value) + min_value
+    else:
+        if not torch.all((x >= min_value) & (x <= max_value)):
+            warnings.warn("Input data is out of specified range [{}, {}].".format(min_value, max_value))
 
     return x, [test_low(x), test_high(x)]
 
-def multi_fidelity_maolin19(min_value = -5, max_value = 10, num_points = 200):
+def multi_fidelity_maolin19(x = None, min_value = -5, max_value = 10, num_points = 200):
     
     x_dim = 6
 
@@ -1040,11 +1174,15 @@ def multi_fidelity_maolin19(min_value = -5, max_value = 10, num_points = 200):
 
         return ( sum )[:, None]
     
-    x = torch.rand(num_points, x_dim) * (max_value - min_value) + min_value
+    if x is None:
+        x = torch.rand(num_points, x_dim) * (max_value - min_value) + min_value
+    else:
+        if not torch.all((x >= min_value) & (x <= max_value)):
+            warnings.warn("Input data is out of specified range [{}, {}].".format(min_value, max_value))
 
     return x, [test_low(x), test_high(x)]
 
-def multi_fidelity_maolin20(min_value = 0, max_value = 1, num_points = 200):
+def multi_fidelity_maolin20(x = None, min_value = 0, max_value = 1, num_points = 200):
 
     def test_high(z):
         x1 = z[:, 0]
@@ -1084,11 +1222,15 @@ def multi_fidelity_maolin20(min_value = 0, max_value = 1, num_points = 200):
 
         return ( 4*(x1-2+8*x2+8*x2**2)**2 + (3-4*x2)**2 + sum )[:, None]
     
-    x = torch.rand(num_points, 8) * (max_value - min_value) + min_value
+    if x is None:
+        x = torch.rand(num_points, 8) * (max_value - min_value) + min_value
+    else:
+        if not torch.all((x >= min_value) & (x <= max_value)):
+            warnings.warn("Input data is out of specified range [{}, {}].".format(min_value, max_value))
 
     return x, [test_low(x), test_high(x)]
 
-def multi_fidelity_Toal(A = 0.5, min_value = -100, max_value = 100, num_points = 200):
+def multi_fidelity_Toal(x = None, A = 0.5, min_value = -100, max_value = 100, num_points = 200):
     
     x_dim = 10
 
@@ -1126,11 +1268,15 @@ def multi_fidelity_Toal(A = 0.5, min_value = -100, max_value = 100, num_points =
 
         return (sum1-sum2)[:, None]
     
-    x = torch.rand(num_points, x_dim) * (max_value - min_value) + min_value
+    if x is None:
+        x = torch.rand(num_points, x_dim) * (max_value - min_value) + min_value
+    else:
+        if not torch.all((x >= min_value) & (x <= max_value)):
+            warnings.warn("Input data is out of specified range [{}, {}].".format(min_value, max_value))
 
     return x, [test_low(x), test_high(x)]
 
-def multi_fidelity_shuo6(min1 = -5, max1 = 10, min2 = 0, max2 = 15, num_points = 200):
+def multi_fidelity_shuo6(x = None, min1 = -5, max1 = 10, min2 = 0, max2 = 15, num_points = 200):
 
     def test_high(z):
         x1 = z[:, 0]
@@ -1150,18 +1296,24 @@ def multi_fidelity_shuo6(min1 = -5, max1 = 10, min2 = 0, max2 = 15, num_points =
 
         return ( term1 + term2 )[:, None]
     
-    data_list = []
-
-    for _ in range(num_points):
-        x1 = torch.rand(1) * (max1 - min1) + min1
-        x2 = torch.rand(1) * (max2 - min2) + min2
-        x = torch.cat((x1, x2), dim=0)
-        data_list.append(x)
-    x = torch.stack(data_list)
+    if x is None:
+        data_list = []
+        for _ in range(num_points):
+            x1 = torch.rand(1) * (max1 - min1) + min1
+            x2 = torch.rand(1) * (max2 - min2) + min2
+            x = torch.cat((x1, x2), dim=0)
+            data_list.append(x)
+        x = torch.stack(data_list)
+    else:
+        if not torch.all((x[:, :1] >= min1) & (x[:, :1] <= max1)):
+            warnings.warn("The first dimensions of input data are out of specified range [{}, {}].".format(min1, max1))
+        
+        if not torch.all((x[:, 1:] >= min2) & (x[:, 1:] <= max2)):
+            warnings.warn("The last dimensions of input data are out of specified range [{}, {}].".format(min2, max2))
 
     return x, [test_low(x), test_high(x)]
 
-def multi_fidelity_shuo11(min_value = -1, max_value = 1, num_points = 200):
+def multi_fidelity_shuo11(x = None, min_value = -1, max_value = 1, num_points = 200):
     
     x_dim = 3
 
@@ -1181,11 +1333,15 @@ def multi_fidelity_shuo11(min_value = -1, max_value = 1, num_points = 200):
 
         return ( sum )[:, None]
     
-    x = torch.rand(num_points, x_dim) * (max_value - min_value) + min_value
+    if x is None:
+        x = torch.rand(num_points, x_dim) * (max_value - min_value) + min_value
+    else:
+        if not torch.all((x >= min_value) & (x <= max_value)):
+            warnings.warn("Input data is out of specified range [{}, {}].".format(min_value, max_value))
 
     return x, [test_low(x), test_high(x)]
 
-def multi_fidelity_shuo15(min_value = 0, max_value = 1, num_points = 200):
+def multi_fidelity_shuo15(x = None, min_value = 0, max_value = 1, num_points = 200):
 
     def test_high(z):
 
@@ -1212,11 +1368,15 @@ def multi_fidelity_shuo15(min_value = 0, max_value = 1, num_points = 200):
 
         return ( sum )[:, None]
     
-    x = torch.rand(num_points, 8) * (max_value - min_value) + min_value
+    if x is None:
+        x = torch.rand(num_points, 8) * (max_value - min_value) + min_value
+    else:
+        if not torch.all((x >= min_value) & (x <= max_value)):
+            warnings.warn("Input data is out of specified range [{}, {}].".format(min_value, max_value))
 
     return x, [test_low(x), test_high(x)]
 
-def multi_fidelity_shuo16(min_value = -2, max_value = 3, num_points = 200):
+def multi_fidelity_shuo16(x = None, min_value = -2, max_value = 3, num_points = 200):
     
     x_dim = 10
 
@@ -1247,7 +1407,11 @@ def multi_fidelity_shuo16(min_value = -2, max_value = 3, num_points = 200):
 
         return ( sum )[:, None]
     
-    x = torch.rand(num_points, x_dim) * (max_value - min_value) + min_value
+    if x is None:
+        x = torch.rand(num_points, x_dim) * (max_value - min_value) + min_value
+    else:
+        if not torch.all((x >= min_value) & (x <= max_value)):
+            warnings.warn("Input data is out of specified range [{}, {}].".format(min_value, max_value))
 
     return x, [test_low(x), test_high(x)]
 
