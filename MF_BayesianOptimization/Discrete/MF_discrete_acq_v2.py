@@ -11,14 +11,9 @@ class DiscreteAcquisitionFunction(nn.Module):
         mean_function (function): The mean function for posterior distribution.
         variance_function (function): The variance function for posterior distribution.
         fidelity_num (int): Total fidelity number e.g. 2 or 5.
-
-    Attributes:
-        UCB_MF:
-
-
     """
     def __init__(self, mean_function, variance_function, fidelity_num, x_dimension):
-        super().__init__()
+        super(DiscreteAcquisitionFunction, self).__init__()
         self.mean_function = mean_function
         self.variance_function = variance_function
         self.fidelity_num = fidelity_num
@@ -59,28 +54,35 @@ class DiscreteAcquisitionFunction(nn.Module):
         return entropy
 
 
-
     def UCB_optimize(self):
         self.gamma = 0.1
         N_UCB = []
         UCB_x = []
         for i in range(self.fidelity_num):
-            tt = torch.rand(self.x_dimension)
-            self.x = nn.Parameter(torch.from_numpy(tt.reshape(1, self.x_dimension)).double())
-            self.optimise_adam(fidelity_indicator=i+1, niteration=15, lr=0.01)
+            tt = torch.rand(self.x_dimension).reshape(-1, 1)
+            self.x = nn.Parameter(tt)
+            optimizer = torch.optim.Adam(self.parameters(), lr=0.001)
+            optimizer.zero_grad()
+            for i in range(15):
+                # optimizer.zero_grad()
+                loss = - self.UCB_MF(self.x, i)
+                loss.backward(retain_graph = True)
+                optimizer.step()
+                # self.x.data.clamp_(0.0, 1.0)
+                print('iter', i, 'x:', self.x, 'loss_negative_ucb:',loss.item(), end='\n')
             UCB_x.append(self.x.detach())
             N_UCB.append(self.UCB_MF(self.x, fidelity_indicator=i+1))
 
         new_x = UCB_x[N_UCB.index(min(N_UCB))]
 
 
-        m = self.mean_function(new_x, 1)
-        v = self.variance_func(new_x, 1)
+        m = self.mean_function(new_x, 0)
+        v = self.variance_func(new_x, 0)
 
         if self.beta * v > self.gamma:
-            new_s = 1
+            new_s = 0
         else:
-            new_s = 2
+            new_s = 1
         return new_x, new_s
     
     def ES_optimize(self):
@@ -96,13 +98,13 @@ class DiscreteAcquisitionFunction(nn.Module):
 
         new_x = ES_x[N_ES.index(min(N_ES))]
 
-        m = self.mean_function(new_x, 1)
-        v = self.variance_func(new_x, 1)
+        m = self.mean_function(new_x, 0)
+        v = self.variance_func(new_x, 0)
 
         if self.beta * v > self.gamma:
-            new_s = 1
+            new_s = 0
         else:
-            new_s = 2
+            new_s = 1
 
         return new_x, new_s
         
