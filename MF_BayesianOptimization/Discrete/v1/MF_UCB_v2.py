@@ -1,20 +1,21 @@
-# -*- coding = utf-8 -*-
-# @Time : 25/9/23 14:31
-# @Author : Alison_W
-# @File : MF_UCB_optimise.py
-# @Software : PyCharm
 import torch
 import numpy as np
 import torch.nn as nn
 
-# class MF_acquisition_function(nn.Module):
+class MF_acquisition_function(nn.Module):
+
 
 def MF_acq_optimise(self, niteration, lr):
     
-def MF_acq_next():
+def MF_acq_next_x():
     
-def MF_acq_compute_next(mf_acq_func, search_range, model_cost, seed):
+def MF_acq_next_s(mf_acq_func, search_range, model_cost, seed):
     
+    
+    
+    def __init__(self, x_dimension, fidelity_num, posterior_function, model_cost, seed):
+
+        
     # optimize x
     np.random.seed(self.seed+10086)
     tem = []
@@ -66,17 +67,11 @@ class MF_UCB(nn.Module):
        # the input to MF_UCB is also x, t
        # they should be considered as two concatenating layers of a neural network
     def __init__(self, mean_func, var_func, cost_func):
-        super(upper_confidence_bound_continuous, self).__init__()
+        super(MF_UCB, self).__init__()
         self.mean_func = mean_func
         self.var_func = var_func
         self.cost_func = cost_func
-        
-        # select criteria
-        self.seed = seed
-        self.beta = 1.0
-        self.d = x_dimension
-        self.k_0 = 1
-        self.p = 1
+    
 
     def information_gap(self, input):
         if input == None:
@@ -96,23 +91,8 @@ class MF_UCB(nn.Module):
         gamma_z = np.sqrt(self.k_0) * ksin_z * lambda_balance
         return gamma_z
 
-    def negative_ucb(self):
+    def evaluate(self):
         mean, var = self.pre_func(self.x, np.ones(1).reshape(-1, 1)*self.search_range[-1][-1])
         # mean, var = self.pre_func(self.x)
         ucb = mean + self.beta * var
         return -ucb
-    
-  
-  class MF_ES():
-    def __init__(self, mean_func, var_func, cost_func):
-        super(upper_confidence_bound_continuous, self).__init__()
-        self.mean_func = mean_func
-        self.var_func = var_func
-        self.cost_func = cost_func
-        
-        # select criteria
-        self.seed = seed
-        self.beta = 1.0
-        self.d = x_dimension
-        self.k_0 = 1
-        self.p = 1

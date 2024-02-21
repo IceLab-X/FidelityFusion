@@ -155,7 +155,7 @@ if __name__ == "__main__":
     myAR = AR(fidelity_num=3,kernel=kernel1,rho_init=1.0,if_nonsubset=True)
 
     ## if nonsubset is False, max_iter should be 100 ,lr can be 1e-2
-    train_AR(myAR,fidelity_manager, max_iter=500, lr_init=1e-3)
+    train_AR(myAR, fidelity_manager, max_iter=500, lr_init=1e-3)
 
     with torch.no_grad():
         ypred, ypred_var = myAR(fidelity_manager,x_test)

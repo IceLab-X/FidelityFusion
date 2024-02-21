@@ -91,7 +91,7 @@ class ContinuousAutoRegression_large(nn.Module):
         self.fidelity_num = fidelity_num
         self.b = torch.nn.Parameter(torch.tensor(b_init))
 
-        kernel_full = fidelity_kernel_MCMC(kernel_x.length_scales.shape[0], kernel_x, self.b)
+        kernel_full = fidelity_kernel_MC(kernel_x.length_scales.shape[0], kernel_x, self.b)
         self.cigp = GPR(kernel=kernel_full, noise_variance=1.0)
 
     def forward(self, data_manager, x_test):

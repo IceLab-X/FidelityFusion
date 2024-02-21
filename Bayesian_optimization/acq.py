@@ -57,6 +57,7 @@ class UCB:
         self.mean_func = mean_func
         self.variance_func = variance_func
         self.kappa = kappa
+        
     # forward
     def forward(self, X):
         """
