@@ -2,15 +2,15 @@ import torch
 import numpy as np
 import matplotlib.pyplot as plt
 from scipy.optimize import minimize
-from BO.Acquisition.acq import UCB, EI, PI, KG, find_next_batch
-
-# Define the objective function
-
-import gpytorch
+from acq import UCB, EI, PI, KG, find_next_batch
 import numpy as np
 import matplotlib.pyplot as plt
-import kernel as kernel
-from GaussianProcess.cigp_withMean import CIGP_withMean
+import sys
+import os
+sys.path.append('../')
+sys.path.append("../GaussianProcess")
+import GaussianProcess.kernel as kernel
+from cigp import CIGP_withMean
 
 def objective_function(x):
     # Simple sum of sine functions for demonstration

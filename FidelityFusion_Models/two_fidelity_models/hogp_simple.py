@@ -141,15 +141,15 @@ if __name__ == '__main__':
     dnm_y = Normalize0_layer(y)
 
     #normalize the data
-    x=dnm_x.forward(x)
-    y=dnm_y.forward(y)
+    x = dnm_x.forward(x)
+    y = dnm_y.forward(y)
 
     xtr = x[:128, :]
     ytr = y[:128, :]
     xte = x[128:, :]
     yte = y[128:, :]
 
-    output_shape=ytr[0,...].shape
+    output_shape = ytr[0,...].shape
 
     GPmodel=HOGP_simple(kernel = kernel.ARDKernel(1), noise_variance = 1.0, output_shape = output_shape)
 
