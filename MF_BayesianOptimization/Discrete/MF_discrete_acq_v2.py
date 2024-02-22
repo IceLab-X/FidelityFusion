@@ -91,11 +91,19 @@ class DiscreteAcquisitionFunction(nn.Module):
         N_ES = []
         ES_x = []
         for i in range(self.fidelity_num):
-            tt = torch.rand(self.x_dimension)
-            self.x = nn.Parameter(torch.from_numpy(tt.reshape(1, self.x_dimension)).double())
-            self.optimise_adam(fidelity_indicator=i+1, niteration=15, lr=0.01)
+            tt = torch.rand(self.x_dimension).reshape(-1, 1)
+            self.x = nn.Parameter(tt)
+            optimizer = torch.optim.Adam(self.parameters(), lr=0.001)
+            optimizer.zero_grad()
+            for i in range(15):
+                # optimizer.zero_grad()
+                loss = - self.UCB_MF(self.x, i)
+                loss.backward(retain_graph = True)
+                optimizer.step()
+                # self.x.data.clamp_(0.0, 1.0)
+                print('iter', i, 'x:', self.x, 'loss_negative_ucb:',loss.item(), end='\n')
             ES_x.append(self.x.detach())
-            N_ES.append(self.ES_MF(self.x, fidelity_indicator=i+1))
+            N_ES.append(self.UCB_MF(self.x, fidelity_indicator=i+1))
 
         new_x = ES_x[N_ES.index(min(N_ES))]
 
