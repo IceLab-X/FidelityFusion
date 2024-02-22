@@ -7,6 +7,78 @@ import torch
 from scipy.stats import norm
 
 
+def optimize_acqf(acq, q, raw_samples, bounds, f_best=0, num_restarts=30, options=None, return_best_only=False):
+    """
+    Optimize the acquisition function to get the next candidate point.
+
+    Args:
+        acq (AcquisitionFunction): An instance of the AcquisitionFunction class.
+        X_initial (torch.Tensor): The initial points to start optimization from.
+        f_best (float): The best observed objective function value to date.
+        q: The number of candidate.
+        bounds (torch.Tensor): The bounds of the search space.
+        num_restarts (int): The number of random restarts for optimization.
+        raw_samples (int, optional): The number of samples for initialization. Defaults to None.
+        options (dict, optional): Options for optimization. Defaults to None.
+        return_best_only (bool, optional): Whether to return only the best candidate or all candidates. Defaults to True.
+
+    Returns:
+        torch.Tensor: The next candidate point.
+    """
+    if options is None:
+        options = {}
+
+
+    # 获取forward函数的参数信息
+    signature = inspect.signature(acq.forward)
+    parameters = signature.parameters
+
+    # 打印参数数量
+    num_params = len(parameters)
+    print(f"Number of parameters in forward function: {num_params}")
+
+    # Define the optimization objective
+    def obj_func(X):
+      
+        if num_params == 1:
+            # Compute UCB for all random points
+            acq_values = acq.forward(X)
+        if num_params == 2:
+            acq_values = acq.forward(X, f_best)
+        return -acq_values.sum()  # Minimize negative EI
+
+    X_initial = nn.Parameter(torch.rand((raw_samples, len(bounds)), dtype=torch.float32, requires_grad=True) * (bounds[:, 1] - bounds[:, 0]) + bounds[:, 0])
+    X_initial = X_initial.to(torch.float32)
+    # Perform optimization
+    optimizer = torch.optim.Adam([X_initial], lr=0.1)  # Adam optimizer for initial point update
+    best_x = X_initial.clone().detach()
+    best_value = obj_func(best_x)
+
+    for _ in range(num_restarts):
+        # Update initial point
+        optimizer.zero_grad()
+        loss = obj_func(X_initial)
+        loss.requires_grad_(True) 
+        loss.backward()
+        optimizer.step()
+
+        # Compare with the best value
+        if loss.item() < best_value:
+            best_value = loss.item()
+            best_x = X_initial.clone().detach()
+
+    if return_best_only:
+        return best_x
+    else:
+        # Select Q candidates with the highest acquisition values
+        if num_params == 1:
+            # Compute UCB for all random points
+            acq_va = acq.forward(X_initial)
+        if num_params == 2:
+            acq_va = acq.forward(X_initial, f_best)
+        top_indices = torch.topk(acq_va.reshape(-1), q).indices
+        return X_initial[top_indices]
+
 def find_next_batch(acq, bounds, batch_size=1, n_samples=1000, f_best=0):
     """
     Find the next batch of points to sample by selecting the ones with the highest UCB from a large set of random samples.
