@@ -50,15 +50,16 @@ class AR(nn.Module):
             Tuple: A tuple containing the predicted output `y_pred_high` and the covariance `cov_pred_high`.
         """
         # predict the posterior given a new input x_test
-        if to_fidelity is not None and to_fidelity >= 1:
+        # if to_fidelity is not None and to_fidelity >= 1:
+        if to_fidelity is not None :
             fidelity_num = to_fidelity
         else:
-            fidelity_num = self.fidelity_num
-        for i_fidelity in range(fidelity_num):
+            fidelity_num = self.fidelity_num - 1
+        for i_fidelity in range(fidelity_num + 1):
             if i_fidelity == 0:
                 x_train, y_train = data_manager.get_data(i_fidelity)
                 y_pred_low, cov_pred_low = self.gpr_list[i_fidelity](x_train, y_train, x_test)
-                if fidelity_num == 1:
+                if fidelity_num == 0:
                     y_pred_high = y_pred_low
                     cov_pred_high = cov_pred_low
             else:

@@ -34,7 +34,7 @@ initial_data = [
 
 fidelity_manager = MultiFidelityDataManager(initial_data)
 kernel1 = kernel.SquaredExponentialKernel(length_scale = 1., signal_variance = 1.)
-model = AR(fidelity_num=2, kernel=kernel1, rho_init=1.0)
+model = AR(fidelity_num=2, kernel=kernel1, rho_init=1.0, if_nonsubset=True)
 train_AR(model, fidelity_manager, max_iter=100, lr_init=1e-3)
 
 def mean_function(x, s):

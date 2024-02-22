@@ -31,6 +31,7 @@ class DiscreteAcquisitionFunction(nn.Module):
             torch.Tensor: The score of UCB
         '''
         self.beta = 0.2 * int(self.x_dimension)
+        mean = self.mean_function(x, s)
         ucb = self.mean_function(x, s) + self.beta * self.variance_function(x, s)
 
         return ucb
