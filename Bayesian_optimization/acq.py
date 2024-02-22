@@ -1,7 +1,7 @@
 import inspect
 import math
 from numbers import Real
-
+import torch.nn as nn
 import numpy as np
 import torch
 from scipy.stats import norm
