@@ -4,7 +4,7 @@ from matplotlib import pyplot as plt
 import sys
 import os
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..')))
-from FidelityFusion_Models.Load_Mfdata import get_full_name_list_with_fidelity
+from Experiments.Load_Mfdata import get_full_name_list_with_fidelity
 
 Dic = {'AR': ['#ff7f0e', "o", "solid", "AR"],
        'NAR': ['#708090', "o", "solid", "NAR"],

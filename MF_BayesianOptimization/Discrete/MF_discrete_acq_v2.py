@@ -33,7 +33,6 @@ class DiscreteAcquisitionFunction(nn.Module):
         self.beta = 0.2 * int(self.x_dimension)
         mean = self.mean_function(x, s)
         ucb = self.mean_function(x, s) + self.beta * self.variance_function(x, s)
-
         return ucb
     
     def ES_MF(self, x, s):
@@ -63,11 +62,11 @@ class DiscreteAcquisitionFunction(nn.Module):
             tt = torch.rand(self.x_dimension).reshape(-1, 1)
             self.x = nn.Parameter(tt)
             optimizer = torch.optim.Adam(self.parameters(), lr=0.001)
-            optimizer.zero_grad()
+            # optimizer.zero_grad()
             for i in range(15):
-                # optimizer.zero_grad()
+                optimizer.zero_grad()
                 loss = - self.UCB_MF(self.x, i)
-                loss.backward(retain_graph = True)
+                loss.backward()
                 optimizer.step()
                 # self.x.data.clamp_(0.0, 1.0)
                 print('iter', i, 'x:', self.x, 'loss_negative_ucb:',loss.item(), end='\n')

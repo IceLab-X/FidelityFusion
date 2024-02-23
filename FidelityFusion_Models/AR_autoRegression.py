@@ -45,6 +45,7 @@ class AR(nn.Module):
             data_manager: The data manager object.
             x_test: The input data for prediction.
             to_fidelity: The fidelity level to use for prediction. If None, the default fidelity level will be used.
+                         The lowest prediction fidelity is 0
 
         Returns:
             Tuple: A tuple containing the predicted output `y_pred_high` and the covariance `cov_pred_high`.
@@ -52,14 +53,14 @@ class AR(nn.Module):
         # predict the posterior given a new input x_test
         # if to_fidelity is not None and to_fidelity >= 1:
         if to_fidelity is not None :
-            fidelity_num = to_fidelity
+            fidelity_level = to_fidelity
         else:
-            fidelity_num = self.fidelity_num - 1
-        for i_fidelity in range(fidelity_num + 1):
+            fidelity_level = self.fidelity_num - 1
+        for i_fidelity in range(fidelity_level + 1):
             if i_fidelity == 0:
                 x_train, y_train = data_manager.get_data(i_fidelity)
                 y_pred_low, cov_pred_low = self.gpr_list[i_fidelity](x_train, y_train, x_test)
-                if fidelity_num == 0:
+                if fidelity_level == 0:
                     y_pred_high = y_pred_low
                     cov_pred_high = cov_pred_low
             else:

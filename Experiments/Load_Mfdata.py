@@ -2,11 +2,9 @@ import sys
 import os
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 import torch
-import numpy as np
 import sys
 import os
 from assets.MF_data.collected_data import *
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 ## push to experiment
 data_mapping = {
@@ -54,14 +52,31 @@ data_mapping = {
     }
 
 def load_data(seed, data_name, n_train, n_test, x_normal=False, y_normal=False):
+    """
+    Load data for training and testing.
+
+    Args:
+        seed (int): Random seed for reproducibility.
+        data_name (str): Name of the data to load.
+        n_train (int): Number of samples for training.
+        n_test (int): Number of samples for testing.
+        x_normal (bool, optional): Flag indicating whether to normalize the X data. Defaults to False.
+        y_normal (bool, optional): Flag indicating whether to normalize the Y data. Defaults to False.
+
+    Returns:
+        tuple: A tuple containing the following elements:
+            - xtr (tensor): Training data for X.
+            - Ytr (list): Training data for Y.
+            - xte (tensor): Testing data for X.
+            - Yte (list): Testing data for Y.
+    """
 
     torch.manual_seed(seed)
-    np.random.seed(seed)
 
     data_func = data_mapping.get(data_name, None)
 
     if data_func is not None:
-        result = data_func() # 调用函数获取数据和空间
+        result = data_func() # Call the function to get data and space
         x, y_all = result
 
     total_fidelity_num = len(y_all)
@@ -95,9 +110,20 @@ def load_data(seed, data_name, n_train, n_test, x_normal=False, y_normal=False):
 
 
 def get_data_mu_std(seed, data_name, n_train):
+    """
+    Calculate the mean and standard deviation of the training data and fidelity means and standard deviations.
+
+    Args:
+        seed (int): The random seed for reproducibility.
+        data_name (str): The name of the data.
+        n_train (int): The number of training samples.
+
+    Returns:
+        tuple: A tuple containing the mean and standard deviation of the training data (xtr_mean, xtr_std),
+               and the fidelity means and standard deviations (ytr_f_mean, ytr_f_std).
+    """
 
     torch.manual_seed(seed)
-    np.random.seed(seed)
 
     data_func = data_mapping.get(data_name, None)
 
@@ -128,9 +154,23 @@ def get_data_mu_std(seed, data_name, n_train):
     return xtr_mean, xtr_std, ytr_f_mean, ytr_f_std
 
 def load_data_certain_fi(seed, data_name_with_fi, n_train, n_test, x_normal=False, y_normal=False):
-
     """
-        load data with certain fidelity, coupled with load_data_v2
+    Load data for a certain feature importance (fi) range.
+
+    Args:
+        seed(int): Random seed for data loading.
+        data_name_with_fi (str): Name of the data with fidelity range.
+        n_train (int): Number of training samples.
+        n_test (int): Number of testing samples.
+        x_normal (bool, optional): Flag indicating whether to normalize the input features. Defaults to False.
+        y_normal (bool, optional): Flag indicating whether to normalize the output labels. Defaults to False.
+
+    Returns:
+        tuple: A tuple containing the following elements:
+            - xtr (tensor): Training input features.
+            - Ytr (list): List of training output labels for the specified fidelity range.
+            - xte (tensor): Testing input features.
+            - Yte (list): List of testing output labels for the specified fidelity range.
     """
 
     data_name = data_name_with_fi[:-2]
@@ -147,12 +187,21 @@ def load_data_certain_fi(seed, data_name_with_fi, n_train, n_test, x_normal=Fals
 
 def get_data_std_certain_fi(seed, data_name, n_train):
     """
+    Calculate the mean and standard deviation of the training data and target variables.
 
-    add function of choosing fidelity
+    Args:
+        seed (int): The random seed value.
+        data_name (str): The name of the data.
+        n_train (int): The number of training samples.
 
+    Returns:
+        tuple: A tuple containing the mean and standard deviation of the training data and target variables.
+            - xtr_mean (tensor): The mean of the training data.
+            - xtr_std (tensor): The standard deviation of the training data.
+            - ytr_f_mean (list): A list of means for each target variable.
+            - ytr_f_std (list): A list of standard deviations for each target variable.
     """
     torch.manual_seed(seed)
-    np.random.seed(seed)
 
     xtr, Ytr, xte, Yte = load_data_certain_fi(seed=seed, data_name_with_fi=data_name, n_train=n_train, n_test=100)
 
@@ -172,9 +221,18 @@ def get_data_std_certain_fi(seed, data_name, n_train):
 
 def get_full_name_list_with_fidelity(data_name_list):
     """
-        get data name list with detail fidelity
-    """
+    Returns a list of data names with fidelity values appended based on the length of the input data names.
 
+    Args:
+        data_name_list (list): A list of data names.
+
+    Returns:
+        list: A list of data names with fidelity values appended.
+
+    Raises:
+        AssertionError: If the length of the input data names is not 2.
+
+    """
     all_data_name_with_fi_list = []
 
     for name in data_name_list:

@@ -2,7 +2,9 @@
 # Author: Wei W. Xing (wxing.me)
 # Email: wayne.xingle@gmail.com
 # Date: 2023-11-26
-
+import sys
+import os
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 import numpy as np
 import torch
 import torch.nn as nn
@@ -187,7 +189,7 @@ if __name__ == '__main__':
         ypred, ypred_var = GPmodel.forward(xtr, ytr, xte)
         
     plt.figure()
-    plt.errorbar(xte, ypred.reshape(-1).detach(), ypred_var.diag().sqrt().squeeze().detach(), fmt='r-.' ,alpha = 0.2)
+    # plt.errorbar(xte, ypred.reshape(-1).detach(), ypred_var.diag().sqrt().squeeze().detach(), fmt='r-.' ,alpha = 0.2)
     plt.plot(xtr, ytr, 'b+')
     plt.fill_between(xte.squeeze(), ypred.reshape(-1).detach() - ypred_var.diag().sqrt().squeeze().detach(), ypred.reshape(-1).detach() + ypred_var.diag().sqrt().squeeze().detach(), alpha=0.2)
     plt.draw()
