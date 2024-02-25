@@ -44,21 +44,22 @@ class GAR(torch.nn.Module):
             data_manager: The data manager object.
             x_test: The input test data.
             to_fidelity: The fidelity level to be used. If None, the default fidelity level is used.
+                         The lowest prediction fidelity is 0
 
         Returns:
             mean_high: The mean output at the highest fidelity level.
             var_high: The variance output at the highest fidelity level.
         """
-        if to_fidelity is not None and to_fidelity >= 1:
-            fidelity_num = to_fidelity
+        if to_fidelity is not None:
+            fidelity_level = to_fidelity
         else:
-            fidelity_num = self.fidelity_num
+            fidelity_level = self.fidelity_num -1
 
-        for i_fidelity in range(fidelity_num):
+        for i_fidelity in range(fidelity_level + 1):
             if i_fidelity == 0:
                 x_train, _ = data_manager.get_data(i_fidelity)
                 mean_low, var_low = self.hogp_list[i_fidelity].forward(x_train, x_test)
-                if fidelity_num == 1:
+                if fidelity_level == 0:
                     mean_high = mean_low
                     var_high = var_low
                     # var_high = torch.diag_embed(torch.flatten(var_high))

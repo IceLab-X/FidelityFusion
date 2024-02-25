@@ -2,13 +2,13 @@ import inspect
 import math
 import torch.nn as nn
 from numbers import Real
-
+import torch.nn as nn
 import numpy as np
 import torch
 from scipy.stats import norm
 
 
-def optimize_acqf(acq, q, raw_samples, bounds, f_best=0, num_restarts=30, options=None, return_best_only=False):
+def optimize_acqf(acq, raw_samples, bounds, f_best=0, num_restarts=30, options=None):
     """
     Optimize the acquisition function to get the next candidate point.
 
@@ -16,13 +16,11 @@ def optimize_acqf(acq, q, raw_samples, bounds, f_best=0, num_restarts=30, option
         acq (AcquisitionFunction): An instance of the AcquisitionFunction class.
         X_initial (torch.Tensor): The initial points to start optimization from.
         f_best (float): The best observed objective function value to date.
-        q: The number of candidate.
         bounds (torch.Tensor): The bounds of the search space.
         num_restarts (int): The number of random restarts for optimization.
         raw_samples (int, optional): The number of samples for initialization. Defaults to None.
         options (dict, optional): Options for optimization. Defaults to None.
-        return_best_only (bool, optional): Whether to return only the best candidate or all candidates. Defaults to True.
-
+       
     Returns:
         torch.Tensor: The next candidate point.
     """
@@ -68,17 +66,18 @@ def optimize_acqf(acq, q, raw_samples, bounds, f_best=0, num_restarts=30, option
             best_value = loss.item()
             best_x = X_initial.clone().detach()
 
-    if return_best_only:
-        return best_x
-    else:
-        # Select Q candidates with the highest acquisition values
-        if num_params == 1:
-            # Compute UCB for all random points
-            acq_va = acq.forward(X_initial)
-        if num_params == 2:
-            acq_va = acq.forward(X_initial, f_best)
-        top_indices = torch.topk(acq_va.reshape(-1), q).indices
-        return X_initial[top_indices]
+    #if return_best_only:
+    return best_x
+    # else:
+    #     # Select Q candidates with the highest acquisition values
+    #     if num_params == 1:
+    #         # Compute UCB for all random points
+    #         acq_va = acq.forward(X_initial)
+    #     if num_params == 2:
+    #         acq_va = acq.forward(X_initial, f_best)
+    #     top_indices = torch.topk(acq_va.reshape(-1), q).indices
+    #     return X_initial[top_indices]
+
 
 def find_next_batch(acq, bounds, batch_size=1, n_samples=1000, f_best=0):
     """
@@ -120,10 +119,7 @@ def find_next_batch(acq, bounds, batch_size=1, n_samples=1000, f_best=0):
 class UCB:
     def __init__(self, mean_func, variance_func, kappa=2.0):
         """
-        UCB Formula:
-        UCB(x) = mean(x) + kappa * sqrt(variance(x)), where
-        mean(x) is the mean predicted by the GP at input x,
-        variance(x) is the variance predicted by the GP at input x,and kappa is the exploration-exploitation trade-off parameter.
+        Initialize the Batch Upper Confidence Bound (UCB) acquisition function.
 
         Args:
             mean_func (callable): Function to compute the mean of the GP at given points (PyTorch tensor).
@@ -133,7 +129,6 @@ class UCB:
         self.mean_func = mean_func
         self.variance_func = variance_func
         self.kappa = kappa
-        
     # forward
     def forward(self, X):
         """
@@ -153,12 +148,8 @@ class UCB:
 class EI:
     def __init__(self, mean_func, variance_func, xi=0.01):
         """
-        EI formula:
-            EI(x) = (mean(x) - f_best - xi) * Phi(Z) + std(x) * phi(Z)
-            where Z = (mean(x) - f_best - xi) / std(x),
-            Phi(Z) is the cumulative distribution function of the standard normal distribution,
-            and phi(Z) is the probability density function of the standard normal distribution.
-            
+        Initialize the Expected Improvement (EI) acquisition function.
+
         Args:
             mean_func (callable): Function to compute the mean of the GP at given points.
             variance_func (callable): Function to compute the variance of the GP at given points.
@@ -187,17 +178,15 @@ class EI:
         std = torch.clamp(std, min=1e-9)
 
         Z = (mean - f_best - self.xi) / std
-        ei = (mean - f_best - self.xi) * torch.tensor(norm.cdf(Z.numpy()), dtype=torch.float32) + std * torch.tensor(norm.pdf(Z.numpy()), dtype=torch.float32)
+        ei = (mean - f_best - self.xi) * torch.tensor(norm.cdf(Z.detach().numpy()), dtype=torch.float32) + std * torch.tensor(norm.pdf(Z.detach().numpy()), dtype=torch.float32)
         return ei
 
 
 class PI:
     def __init__(self, mean_func, variance_func, sita=0.01):
         """
-        PI formula:
-            PI(x) = Phi((mean(x) - f_best - sita) / std(x)),
-            where Phi(Z) is the cumulative distribution function of the standard normal distribution.
-            
+        Initialize the Probability of Improvement (PI) acquisition function.
+
         Args:
             mean_func (callable): Function to compute the mean of the GP at given points.
             variance_func (callable): Function to compute the variance of the GP at given points.
@@ -233,9 +222,7 @@ class PI:
 class KG:
     def __init__(self,mean_func, variance_func, num_fantasies=10):
         """
-        KG Formula:
-        KG(x) = E[max(f(x, z) - f_best)], where E is the expectation over fantasy samples,
-        f(x, z) is the objective function with input x and fantasy sample z.
+        Initialize the Knowledge Gradient (KG) acquisition function.
 
         Args:
             mean_func (callable): Function to compute the mean of the GP at given points.
@@ -268,3 +255,26 @@ class KG:
         kg = expected_improvement.mean(dim=0)
 
         return kg
+    
+
+# Example usage
+if __name__ == "__main__":
+    # Define mean and variance functions (dummy functions for demonstration)
+    def mean_func(X):
+        return torch.sin(X)
+
+    def variance_func(X):
+        return torch.abs(X)
+
+    # Initialize acquisition function
+    acq_function = EI(mean_func, variance_func)
+
+    # Set initial points and search space bounds
+    X_initial = torch.tensor([[0.5]])
+    f_best = 0.0
+    bounds = torch.tensor([[-1.0,1.0]])
+
+    # Optimize acquisition function
+    next_candidate = optimize_acqf(acq_function, q=5, raw_samples=500, bounds=bounds, f_best=0, num_restarts=30)
+
+    print("Next candidate point:", next_candidate)

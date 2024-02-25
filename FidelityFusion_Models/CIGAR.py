@@ -45,17 +45,17 @@ class CIGAR(torch.nn.Module):
             data_manager: The data manager object.
             x_test: The input test data.
             to_fidelity: The fidelity level to evaluate. If None, the default fidelity level will be used.
-
+                         The lowest prediction fidelity is 0
         Returns:
             mean_high: The mean output at the highest fidelity level.
             var_high: The variance output at the highest fidelity level.
         """
-        if to_fidelity is not None and to_fidelity >= 1:
-            fidelity_num = to_fidelity
+        if to_fidelity is not None:
+            fidelity_level = to_fidelity
         else:
-            fidelity_num = self.fidelity_num
+            fidelity_level = self.fidelity_num -1
 
-        for i_fidelity in range(fidelity_num):
+        for i_fidelity in range(fidelity_level + 1):
             if i_fidelity == 0:
                 x_train, y_train = data_manager.get_data(i_fidelity)
                 mean_low, var_low = self.gpr_list[i_fidelity].forward(x_train, y_train, x_test)
@@ -66,7 +66,7 @@ class CIGAR(torch.nn.Module):
                 # else:
                 #     var_low = var_low.diag().unsqueeze(dim = 1).expand_as(mean_low)
                 var_low = var_low.diag().unsqueeze(dim = 1).expand_as(mean_low)
-                if fidelity_num == 1:
+                if fidelity_level == 0:
                     mean_high = mean_low
                     var_high = var_low
             else:

@@ -6,7 +6,7 @@ import GaussianProcess.kernel as kernel
 from FidelityFusion_Models import *
 from FidelityFusion_Models.MF_data import MultiFidelityDataManager
 from Experiments.calculate_metrix import calculate_metrix
-from FidelityFusion_Models.Load_Mfdata import get_full_name_list_with_fidelity, load_data_certain_fi
+from Experiments.Load_Mfdata import get_full_name_list_with_fidelity, load_data_certain_fi
 
 import torch
 import time
