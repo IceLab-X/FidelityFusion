@@ -1,5 +1,6 @@
 import inspect
 import math
+import torch.nn as nn
 from numbers import Real
 
 import numpy as np

@@ -7,6 +7,7 @@ import GaussianProcess.kernel as kernel
 from FidelityFusion_Models import *
 from FidelityFusion_Models.MF_data import MultiFidelityDataManager
 from MF_discrete_acq_v2 import DiscreteAcquisitionFunction
+from MF_discrete_acq_v2 import optimize_acq_mf
 
 def objective_function(x, s):
     xtr = x
@@ -52,4 +53,5 @@ def variance_function(x, s):
     return variance
     
 acq = DiscreteAcquisitionFunction(mean_function, variance_function, 2, train_xl.shape[1])
-new_x, new_s = acq.UCB_optimize()
+new_x = optimize_acq_mf(fidelity_manager, acq.UCB_MF, 10, 0.01)
+new_s = acq.UCB_selection_fidelity(gamma=0.1, new_x=new_x)
