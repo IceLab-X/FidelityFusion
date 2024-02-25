@@ -53,6 +53,6 @@ def variance_function(x, s):
     _, variance = model.forward(fidelity_manager, x, s)
     return variance
     
-acq = DiscreteAcquisitionFunction(mean_function, variance_function, 2, train_xl.shape[1])
+acq = DiscreteAcquisitionFunction(mean_function, variance_function, 2, train_xl.shape[1], None)
 new_x = optimize_acq_mf(fidelity_manager, acq.UCB_MF, 10, 0.01) 
-new_s = acq.UCB_selection_fidelity(gamma=0.1, new_x=new_x)
+new_s = acq.acq_selection_fidelity(gamma=0.1, new_x=new_x)
