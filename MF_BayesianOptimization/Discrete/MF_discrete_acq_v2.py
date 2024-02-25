@@ -25,6 +25,7 @@ class DiscreteAcquisitionFunction(nn.Module):
         self.fidelity_num = fidelity_num
         self.x_dimension = x_dimension
 
+
     def UCB_MF(self, x, s):
         '''
         Compute the score of upper confidence bound for input x and targeted fidelity s.
@@ -37,7 +38,7 @@ class DiscreteAcquisitionFunction(nn.Module):
             torch.Tensor: The score of UCB
         '''
         self.beta = 0.2 * int(self.x_dimension)
-        mean = self.mean_function(x, s)
+        # mean = self.mean_function(x, s)
         ucb = self.mean_function(x, s) + self.beta * self.variance_function(x, s)
         return ucb
     
@@ -58,67 +59,61 @@ class DiscreteAcquisitionFunction(nn.Module):
         entropy = normal.entropy()
 
         return entropy
-
-
-    def UCB_optimize(self):
-        self.gamma = 0.1
-        N_UCB = []
-        UCB_x = []
-        for i in range(self.fidelity_num):
-            tt = torch.rand(self.x_dimension).reshape(-1, 1)
-            self.x = nn.Parameter(tt)
-            optimizer = torch.optim.Adam(self.parameters(), lr=0.001)
-            # optimizer.zero_grad()
-            for i in range(15):
-                optimizer.zero_grad()
-                loss = - self.UCB_MF(self.x, i)
-                loss.backward()
-                optimizer.step()
-                # self.x.data.clamp_(0.0, 1.0)
-                print('iter', i, 'x:', self.x, 'loss_negative_ucb:',loss.item(), end='\n')
-            UCB_x.append(self.x.detach())
-            N_UCB.append(self.UCB_MF(self.x, fidelity_indicator=i+1))
-
-        new_x = UCB_x[N_UCB.index(min(N_UCB))]
-
-
-        m = self.mean_function(new_x, 0)
-        v = self.variance_func(new_x, 0)
-
-        if self.beta * v > gamma:
-            new_s = 0
-        else:
-            new_s = 1
-        return new_x, new_s
     
-    def ES_optimize(self):
-        self.gamma = 0.1
-        N_ES = []
-        ES_x = []
+    def UCB_selection_fidelity(self, gamma, new_x):
+        '''
+        According to MF_GP_UCB to select fidelity.
+
+        Args:
+            gamma (list): The threshold for whether choose the higher fidelity
+            x (torch.Tensor): Targeted input.
+
+        Returns:
+            int: The next candidate fidelity
+        '''
+
         for i in range(self.fidelity_num):
-            tt = torch.rand(self.x_dimension).reshape(-1, 1)
-            self.x = nn.Parameter(tt)
-            optimizer = torch.optim.Adam(self.parameters(), lr=0.001)
-            optimizer.zero_grad()
-            for i in range(15):
-                # optimizer.zero_grad()
-                loss = - self.UCB_MF(self.x, i)
-                loss.backward(retain_graph = True)
-                optimizer.step()
-                # self.x.data.clamp_(0.0, 1.0)
-                print('iter', i, 'x:', self.x, 'loss_negative_ucb:',loss.item(), end='\n')
-            ES_x.append(self.x.detach())
-            N_ES.append(self.UCB_MF(self.x, fidelity_indicator=i+1))
+            v = self.variance_function(new_x, i)
 
-        new_x = ES_x[N_ES.index(min(N_ES))]
+            if self.beta * v > gamma[i]:
+                new_s = i + 1
+            else:
+                new_s = i
 
-        m = self.mean_function(new_x, 0)
-        v = self.variance_func(new_x, 0)
+        return new_s
 
-        if self.beta * v > self.gamma:
-            new_s = 0
-        else:
-            new_s = 1
 
-        return new_x, new_s
-        
+def optimize_acq_mf(fidelity_manager, acq_mf, n_iterations = 10, learning_rate = 0.001):
+    '''
+    Optimize the acquisition function to get the next candidate point for UCB.
+    Args:
+        fidelity_manager (module):The data manager object.
+        acq_mf (AcquisitionFunction): An instance of the AcquisitionFunction class.
+        n_iterations (int): Iteration times for optimize x.
+        learning_rate (float): learning rate for optimize x.
+    Returns:
+        torch.Tensor: The next candidate input without fidelity
+    '''
+
+    fidelity_num = int((len(fidelity_manager.data_dict) +1) / 2)
+    x_dimension = fidelity_manager.data_dict['0']['X'].shape[1]
+
+    acquisiton_score_by_fidelity = []
+    acquisiton_x_by_fidelity = []
+    for i in range(fidelity_num):
+        X_initial = nn.Parameter(torch.rand(x_dimension).reshape(-1, 1), requires_grad = True)
+        optimizer = torch.optim.Adam([X_initial], lr=learning_rate)
+        # optimizer.zero_grad()
+        for j in range(n_iterations):
+            # optimizer.zero_grad()
+            loss = -1 * acq_mf(X_initial, i)
+            loss.backward()
+            optimizer.step()
+            print('iter', j, 'x:', X_initial, 'Negative Acquisition Function:', loss.item(), end='\n')
+
+        acquisiton_x_by_fidelity.append(X_initial.detach())
+        acquisiton_score_by_fidelity.append(loss.item())
+
+    new_x = acquisiton_x_by_fidelity[acquisiton_score_by_fidelity.index(min(acquisiton_score_by_fidelity))]
+
+    return new_x
