@@ -16,11 +16,11 @@ class DiscreteAcquisitionFunction(nn.Module):
 
     Attributes:
         UCB_MF: Compute the score of upper confidence bound for input x and targeted fidelity s.
-        ES_MF: Compute the score of Entropy Search for input x and targeted fidelity s.
+        # ES_MF: Compute the score of Entropy Search for input x and targeted fidelity s.
         EI_MF: Compute the score of Expectation Improvement for input x and targeted fidelity s.
         PI_MF: Compute the score of Probability Improvement for input x and targeted fidelity s.
         KG_MF: Compute the score of Knowledge Gradient for input x and targeted fidelity s.
-        UCB_selection_fidelity: According to MF_GP_UCB to select fidelity.
+        acq_selection_fidelity: According to MF_GP_UCB to select fidelity strategy.
 
     """
     def __init__(self, mean_function, variance_function, fidelity_num, x_dimension, f_best):
@@ -52,23 +52,23 @@ class DiscreteAcquisitionFunction(nn.Module):
         ucb = self.mean_function(x, s) + self.beta * self.variance_function(x, s)
         return ucb
     
-    def ES_MF(self, x, s):
-        '''
-        Compute the score of Entropy Search for input x and targeted fidelity s.
+    # def ES_MF(self, x, s):
+    #     '''
+    #     Compute the score of Entropy Search for input x and targeted fidelity s.
 
-        Args:
-            x (torch.Tensor): Targeted input.
-            s (int): Targeted fidelity s.
+    #     Args:
+    #         x (torch.Tensor): Targeted input.
+    #         s (int): Targeted fidelity s.
 
-        Returns:
-            torch.Tensor: The score of UCB
-        '''
-        mean = self.mean_function(x, s)
-        var = self.variance_function(x, s)
-        normal = torch.normal(mean, var)
-        entropy = normal.entropy()
+    #     Returns:
+    #         torch.Tensor: The score of UCB
+    #     '''
+    #     mean = self.mean_function(x, s)
+    #     var = self.variance_function(x, s)
+    #     normal = torch.normal(mean, var)
+    #     entropy = normal.entropy()
 
-        return entropy
+    #     return entropy
     
     def EI_MF(self, x, s):
         """
@@ -175,12 +175,14 @@ class DiscreteAcquisitionFunction(nn.Module):
 
 def optimize_acq_mf(fidelity_manager, acq_mf, n_iterations = 10, learning_rate = 0.001):
     '''
-    Optimize the acquisition function to get the next candidate point for UCB.
+    Optimize the acquisition function to get the next candidate point for acq.
+
     Args:
         fidelity_manager (module):The data manager object.
         acq_mf (AcquisitionFunction): An instance of the AcquisitionFunction class.
         n_iterations (int): Iteration times for optimize x.
         learning_rate (float): learning rate for optimize x.
+
     Returns:
         torch.Tensor: The next candidate input without fidelity
     '''
