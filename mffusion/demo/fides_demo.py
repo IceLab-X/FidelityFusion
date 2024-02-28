@@ -155,7 +155,7 @@ def gp_model_block_test(dataset, exp_config):
         predict_y = fides_block.predict([eval_inputs[0], predict_y_mean])
         predict_y_mean = predict_y[0]
 
-    # plot_result(eval_outputs[len(train_outputs)-1], predict_y_mean, source_shape)
+    plot_result(eval_outputs[len(train_outputs)-1], predict_y_mean, source_shape)
 
     from mffusion.utils.performance_evaluator import performance_evaluator
     eval_result = performance_evaluator(eval_outputs[len(train_outputs)-1], predict_y_mean, ['rmse', 'r2'])

@@ -108,7 +108,7 @@ def dmfal_test(dataset, exp_config):
     # predict
     predict_y = dmfal_model.predict(eval_inputs)
     predict_y = data_norm_manager.denormalize_output(predict_y, -1)
-    # plot_result(eval_outputs[-1], predict_y, source_shape)
+    plot_result(eval_outputs[-1], predict_y, source_shape)
 
     from mffusion.utils.performance_evaluator import performance_evaluator
     eval_result = performance_evaluator(eval_outputs[-1], predict_y, ['rmse', 'r2'])
