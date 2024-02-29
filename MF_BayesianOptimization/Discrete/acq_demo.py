@@ -41,18 +41,19 @@ model = ResGP(fidelity_num=2, kernel=kernel1, if_nonsubset=True)
 train_ResGP(model, fidelity_manager, max_iter=100, lr_init=1e-3)
 
 def mean_function(x, s):
-    # with torch.no_grad():
-    #     mean, _ = model.forward(fidelity_manager, x, s)
     mean, _ = model.forward(fidelity_manager, x, s)
     return mean.reshape(-1, 1)
     
 def variance_function(x, s):
-    # with torch.no_grad():
-    #     _, variance = model.forward(fidelity_manager, x, s)
     _, variance = model.forward(fidelity_manager, x, s)
     return variance
-    
-acq = DiscreteAcquisitionFunction(mean_function, variance_function, 2, train_xl.shape[1], None)
-new_x = optimize_acq_mf(fidelity_manager, acq.UCB_MF, 10, 0.01) 
+
+# if want to use the KG/EI/PI acq, need specify the current best function (f_best) when initiate
+# UCB do not need the f_best    
+acq = DiscreteAcquisitionFunction(mean_function, variance_function, 2, train_xl.shape[1], torch.ones(1).reshape(-1, 1))
+
+# Use Opitmizer to find the new_x
+new_x = optimize_acq_mf(fidelity_manager, acq.PI_MF, 10, 0.01) 
+# Use different selection strategy to select next_s
 new_s = acq.acq_selection_fidelity(gamma=[0.1, 0.1], new_x=new_x)
 print(new_x, new_s)

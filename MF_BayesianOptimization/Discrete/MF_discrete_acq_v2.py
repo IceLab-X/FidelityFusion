@@ -4,6 +4,8 @@ from scipy.stats import norm
 
 from torch.distributions import  Normal
 
+PI = 3.1415926
+
 class DiscreteAcquisitionFunction(nn.Module):
     """
     Discrete Acquisition Base Function for UCB, ES, EI and KG
@@ -81,6 +83,7 @@ class DiscreteAcquisitionFunction(nn.Module):
         Returns:
             torch.Tensor: The EI values for the input points.
         """
+        self.beta = 0.2 * int(self.x_dimension)
         xi = 0.01
         mean = self.mean_function(x, s)
         variance = self.variance_function(x, s)
@@ -104,6 +107,7 @@ class DiscreteAcquisitionFunction(nn.Module):
         Returns:
             torch.Tensor: The PI values for the input points.
         """
+        self.beta = 0.2 * int(self.x_dimension)
         theta = 0.01
         mean = self.mean_function(x, s)
         variance = self.variance_function(x, s)
@@ -113,7 +117,9 @@ class DiscreteAcquisitionFunction(nn.Module):
         std = torch.clamp(std, min=1e-9)
 
         Z = (mean - self.f_best - theta) / std
-        pi = torch.tensor(norm.cdf(Z.numpy()), dtype=torch.float32)
+        pi = - torch.pow(Z, 2) * 0.5 - torch.log(torch.ones(1, 1)) - torch.log(torch.sqrt(2 * PI * torch.ones(1, 1) ))
+
+        # pi = torch.tensor(normal.log_prob(Z).exp(), dtype=torch.float32)
         return pi
     
     def KG_MF(self, x, s):
@@ -127,7 +133,7 @@ class DiscreteAcquisitionFunction(nn.Module):
         Returns:
             torch.Tensor: The KG values for the input points.
         """
-        
+        self.beta = 0.2 * int(self.x_dimension)
         # 使用模型的predict_mean和predict_var方法获取预测均值和方差
         mean = self.mean_function(x, s)
         variance = self.variance_function(x, s)
@@ -138,8 +144,9 @@ class DiscreteAcquisitionFunction(nn.Module):
         std = torch.nan_to_num(std, nan=1e-6)
 
         # 生成幻想样本
+        num_fantasies = 10
         normal_dist = torch.distributions.Normal(mean, std)
-        fantasies = normal_dist.rsample(sample_shape=torch.Size([self.num_fantasies]))
+        fantasies = normal_dist.rsample(sample_shape=torch.Size([num_fantasies]))
 
         # 计算每个幻想样本的预期改善
         best_fantasies, _ = fantasies.max(dim=0)
@@ -172,7 +179,41 @@ class DiscreteAcquisitionFunction(nn.Module):
 
         return new_s
 
+    # def acq_selection_fidelity_ei(self, new_x, initial_data, cost):
+    #     '''
+    #     According to MF_EI to select fidelity.
 
+    #     Args:
+    #         xtr (torch.Tensor): Trained data.
+    #         ytr (torch.Tensor): Trained data.
+    #         x (torch.Tensor): Targeted input.
+
+    #     Returns:
+    #         int: The next candidate fidelity
+    #     '''
+    #     var = self.variance_function(new_x, self.fidelity_num-1)
+    #     min_mark = float(sys.maxsize)
+    #     for i in range(self.fidelity_num):
+    #         initial_data_new = copy.deepcopy(initial_data)
+    #         initial_data_new[i]['X'] = np.concatenate((initial_data_new[i]['X'], new_x), axis=0)
+    #         new_y = objective_function(new_x, i)
+    #         if len(new_y.shape) == 1:
+    #             d = new_y.shape[0]
+    #             new_y = new_y.reshape(1, d)
+    #         initial_data_new[i]['Y'] = np.concatenate((initial_data_new[i]['Y'], new_y), axis=0)
+    #         fidelity_manager = MultiFidelityDataManager(initial_data_new)
+    #         kernel1 = kernel.SquaredExponentialKernel(length_scale=1., signal_variance=1.)
+    #         # model = AR(fidelity_num=2, kernel=kernel1, rho_init=1.0, if_nonsubset=True)
+    #         # train_AR(model, fidelity_manager, max_iter=100, lr_init=1e-3)
+    #         model = ResGP(fidelity_num=2, kernel=kernel1, if_nonsubset=True)
+    #         train_ResGP(model, fidelity_manager, max_iter=100, lr_init=1e-3)
+    #         _, var_m = model.forward(fidelity_manager, new_x, i)
+    #         mark = cost(i) / (var.detach().numpy() - var_m.detach().numpy())
+    #         if mark < min_mark:
+    #             min_mark = mark
+    #             new_s = i
+    #     return new_s
+    
 def optimize_acq_mf(fidelity_manager, acq_mf, n_iterations = 10, learning_rate = 0.001):
     '''
     Optimize the acquisition function to get the next candidate point for acq.
