@@ -166,6 +166,8 @@ class MultiFidelityDataManager:
         ## full nonsubset: 
         if len(subset_x2) == 0: 
             y_low_filling_mean,y_low_filling_var = model.forward(self, unique_x2, to_fidelity = fidelity_index1)
+            if(y_low_filling_var.shape[0] != y_low_filling_var.shape[1]): ## because hogp only diagonal elements returned
+                y_low_filling_var = torch.diag_embed(y_low_filling_var.squeeze())
             # y_high_var is zero because the outputs are observed
             y_high_var = torch.zeros((unique_y2.shape[0], unique_y2.shape[0]))
             return unique_x2 , [y_low_filling_mean.reshape(-1,1) , y_low_filling_var] , [unique_y2 , y_high_var]
@@ -177,7 +179,11 @@ class MultiFidelityDataManager:
         else: 
             y_low_filling_mean, y_low_filling_var = model.forward(self, unique_x2, to_fidelity = fidelity_index1)
             y_low_mean = torch.cat([subset_y1, y_low_filling_mean.reshape(-1,1)], dim = 0)
+            if len(y_low_filling_mean.shape) == 0: ## if the y_low_filling_mean is a scalar
+                y_low_filling_mean = y_low_filling_mean.reshape(1) #do it to make the y_low_filling_mean.shape[0] code work
             y_low_var = torch.zeros((subset_y1.shape[0] + y_low_filling_mean.shape[0], subset_y1.shape[0] + y_low_filling_mean.shape[0]))
+            if(y_low_filling_var.shape[0] != y_low_filling_var.shape[1]): ## because hogp only diagonal elements returned
+                y_low_filling_var = torch.diag_embed(y_low_filling_var.squeeze())
             y_low_var[-y_low_filling_var.shape[0]:, -y_low_filling_var.shape[1]:] = y_low_filling_var
             y_high_mean = torch.cat([subset_y2, unique_y2], dim = 0)
             y_high_var = torch.zeros((subset_y2.shape[0] + unique_y2.shape[0], subset_y2.shape[0] + unique_y2.shape[0]))

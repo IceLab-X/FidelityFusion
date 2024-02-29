@@ -252,8 +252,8 @@ class SquaredExponentialKernel(nn.Module):
 
     def __init__(self, length_scale=1.0, signal_variance=1.0):
         super().__init__()
-        self.length_scale = nn.Parameter(torch.tensor([length_scale]))
-        self.signal_variance = nn.Parameter(torch.tensor([signal_variance]))
+        self.length_scale = nn.Parameter(torch.log(torch.tensor([length_scale])))
+        self.signal_variance = nn.Parameter(torch.log(torch.tensor([signal_variance])))
 
     def forward(self, x1, x2):
         """
@@ -267,8 +267,9 @@ class SquaredExponentialKernel(nn.Module):
             torch.Tensor: The covariance matrix.
 
         """
+
         sqdist = torch.sum(x1**2, 1).reshape(-1, 1) + torch.sum(x2**2, 1) - 2 * torch.matmul(x1, x2.T)
-        return self.signal_variance.pow(2) * torch.exp(-0.5 * sqdist / self.length_scale.pow(2))
+        return self.signal_variance.exp().pow(2) * torch.exp(-0.5 * sqdist / self.length_scale.exp().pow(2))
     
     # need to check if this is correct
 class RationalQuadraticKernel(nn.Module):

@@ -153,6 +153,43 @@ def get_data_mu_std(seed, data_name, n_train):
 
     return xtr_mean, xtr_std, ytr_f_mean, ytr_f_std
 
+def generate_nonsubset_data(data_name_with_fi, x_dim, min_value, max_value, num_points = 250, n_train = 100, n_test = 100):
+    x_all = torch.rand(num_points, x_dim) * (max_value - min_value) + min_value
+    xlow_indices = torch.randperm(n_train+50)[:n_train]
+    xlow_indices = torch.sort(xlow_indices).values
+    x_low = x_all[xlow_indices]
+    xhigh_indices = torch.randperm(n_test+50)[:n_test]
+    xhigh_indices = torch.sort(xhigh_indices).values
+    x_high = x_all[xhigh_indices]
+    x_test = x_all[num_points - n_train:]
+
+    data_name = data_name_with_fi[:-2]
+    f_high_idx = int(data_name_with_fi[-1]) - 1
+    f_low_idx = int(data_name_with_fi[-2]) - 1
+
+    data_func = data_mapping.get(data_name, None)
+
+    if data_func is not None:
+        result_low = data_func(x_low) # Call the function to get data and space
+        _, y = result_low
+        y_low = y[f_low_idx]
+        result_high = data_func(x_high)
+        _, y = result_high
+        y_high = y[f_high_idx]
+        result_test = data_func(x_test)
+        _, y = result_test
+        y_test = y[f_high_idx]
+
+    # normalize data
+    # x_low = (x_low - x_low.mean()) / x_low.std()
+    # x_high = (x_high - x_high.mean()) / x_high.std()
+    # x_test = (x_test - x_test.mean()) / x_test.std()
+    # y_low = (y_low - y_low.mean()) / y_low.std()
+    # y_high = (y_high - y_high.mean()) / y_high.std()
+    # y_test = (y_test - y_test.mean()) / y_test.std()
+
+    return [x_low, x_high], [y_low, y_high], x_test, y_test
+
 def load_data_certain_fi(seed, data_name_with_fi, n_train, n_test, x_normal=False, y_normal=False):
     """
     Load data for a certain feature importance (fi) range.
@@ -261,30 +298,32 @@ def get_full_name_list_with_fidelity(data_name_list):
 
 if __name__ == "__main__":
 
-    all_data_name_list = ["colville", "nonlinearsin", "toal", "forrester",
-                          "tl1", "tl2", "tl3", "tl4", "tl5", "tl6", "tl7", "tl8", "tl9", "tl10",
-                          "p1", "p2", "p3", "p4", "p5",
-                          "maolin1", "maolin5", "maolin6", "maolin7", "maolin8", "maolin10", "maolin12", "maolin13",
-                          "maolin15",
-                          "maolin19", "maolin20",
-                          "shuo6", "shuo11", "shuo15", "shuo16",
-                          "test3", "test4", "test5", "test6", "test7", "test8", "test9"]
-    # all_data_name_list = ["test7"]
+    # all_data_name_list = ["colville", "nonlinearsin", "toal", "forrester",
+    #                       "tl1", "tl2", "tl3", "tl4", "tl5", "tl6", "tl7", "tl8", "tl9", "tl10",
+    #                       "p1", "p2", "p3", "p4", "p5",
+    #                       "maolin1", "maolin5", "maolin6", "maolin7", "maolin8", "maolin10", "maolin12", "maolin13",
+    #                       "maolin15",
+    #                       "maolin19", "maolin20",
+    #                       "shuo6", "shuo11", "shuo15", "shuo16",
+    #                       "test3", "test4", "test5", "test6", "test7", "test8", "test9"]
+    # # all_data_name_list = ["test7"]
     
-    all_data_name_with_fi_list = get_full_name_list_with_fidelity(data_name_list=all_data_name_list)
+    # all_data_name_with_fi_list = get_full_name_list_with_fidelity(data_name_list=all_data_name_list)
 
-    for data_name in all_data_name_with_fi_list:
+    # for data_name in all_data_name_with_fi_list:
 
-        xtr, Ytr, xte, Yte = load_data_certain_fi(seed=0, data_name_with_fi=data_name, n_train=100, n_test=100, x_normal=True, y_normal=True)
+    #     xtr, Ytr, xte, Yte = load_data_certain_fi(seed=0, data_name_with_fi=data_name, n_train=100, n_test=100, x_normal=True, y_normal=True)
 
-        xtr_mean, xtr_std, ytr_f_mean, ytr_f_std = get_data_std_certain_fi(seed=0,data_name=data_name, n_train=100)
+    #     xtr_mean, xtr_std, ytr_f_mean, ytr_f_std = get_data_std_certain_fi(seed=0,data_name=data_name, n_train=100)
 
-        print(f"[ {data_name} ]: xtr_shape:{xtr.shape}")
-        for i,y in enumerate(Ytr):
-            print(f"Ytr{i+1}_shape: {y.shape}")
+    #     print(f"[ {data_name} ]: xtr_shape:{xtr.shape}")
+    #     for i,y in enumerate(Ytr):
+    #         print(f"Ytr{i+1}_shape: {y.shape}")
 
-        print(f"xte_shape:{xte.shape}")
-        for i, y in enumerate(Yte):
-            print(f"Yte{i + 1}_shape: {y.shape}")
+    #     print(f"xte_shape:{xte.shape}")
+    #     for i, y in enumerate(Yte):
+    #         print(f"Yte{i + 1}_shape: {y.shape}")
 
-        print(" ")
+    #     print(" ")
+
+    generate_nonsubset_data("forrester12", x_dim = 1, min_value = 0, max_value = 1, num_points = 250, n_train = 100, n_test = 100)

@@ -52,7 +52,8 @@ train_dic = {'AR': train_AR,'ResGP': train_ResGP, 'NAR': train_NAR,'CIGAR': trai
 
 if __name__ == '__main__':
         
-    method_list = ['AR','ResGP','NAR','GAR','CIGAR']
+    # method_list = ['AR','ResGP','NAR','GAR','CIGAR']
+    method_list = ['GAR','CIGAR']
     all_data_name_with_fi_list = get_full_name_list_with_fidelity(data_name_list=all_data_name_list)   
     for _data_name in all_data_name_with_fi_list:
         print(_data_name)

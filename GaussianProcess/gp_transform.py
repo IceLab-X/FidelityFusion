@@ -54,9 +54,9 @@ class Normalize_DistributionLayer(nn.Module):
         self.std = nn.Parameter(X0.std(dim), requires_grad=if_trainable)    # std vector
     def forward(self, x, Sigma=0):
         mean_result = (x - self.mean) / self.std
-        Sigma_result = self.std.inverse().view(-1, 1) * Sigma * self.std.inverse().view(1, -1)
+        Sigma_result = self.std.inverse().view(-1, 1) @ Sigma @ self.std.inverse().view(1, -1)
         return mean_result, Sigma_result 
     def inverse(self, x,  Sigma=0):
         mean_result = x * self.std + self.mean
-        Sigma_result = self.std.view(-1, 1) * Sigma * self.std.view(1, -1)
+        Sigma_result = self.std.view(-1, 1) @ Sigma @ self.std.view(1, -1)
         return mean_result, Sigma_result

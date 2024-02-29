@@ -143,10 +143,10 @@ if __name__ == "__main__":
     dnm_yh2 = Normalize0_layer(yh2)
 
     #normalize the data
-    x=dnm_x.forward(x)
-    y_l=dnm_yl.forward(yl)
-    y_h=dnm_yh.forward(yh)
-    y_h2=dnm_yh.forward(yh2)
+    x = dnm_x.forward(x)
+    y_l = dnm_yl.forward(yl)
+    y_h = dnm_yh.forward(yh)
+    y_h2 = dnm_yh2.forward(yh2)
 
     x_train = x[:128, :]
     y_l = yl[:128, :]
@@ -174,6 +174,7 @@ if __name__ == "__main__":
     with torch.no_grad():
         ypred, ypred_var = myGAR(fidelity_manager, x_test)
         ypred = dnm_yh2.inverse(ypred)
+        ypred_var = ypred_var * dnm_yh2.std**2
 
     ##plot the results
     fig, axs = plt.subplots(1, 3, figsize=(15, 5))

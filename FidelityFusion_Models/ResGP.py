@@ -5,6 +5,7 @@ import torch
 import torch.nn as nn
 import GaussianProcess.kernel as kernel
 from GaussianProcess.gp_basic import GP_basic as GPR
+from GaussianProcess.gp_transform import Normalize0_layer
 from FidelityFusion_Models.MF_data import MultiFidelityDataManager
 import matplotlib.pyplot as plt
 
@@ -133,6 +134,24 @@ if __name__ == "__main__":
     y_high2 = torch.sin(x_high2) + torch.rand(250, 1) * 0.1 - 0.05
     y_test = torch.sin(x_test)
 
+    # dnm_xlow = Normalize0_layer(x_low)
+    # dnm_ylow = Normalize0_layer(y_low)
+    # dnm_xhigh1 = Normalize0_layer(x_high1)
+    # dnm_yhigh1 = Normalize0_layer(y_high1)
+    # dnm_xhigh2 = Normalize0_layer(x_high2)
+    # dnm_yhigh2 = Normalize0_layer(y_high2)
+    # dnm_xtest = Normalize0_layer(x_test)
+    # dnm_ytest = Normalize0_layer(y_test)
+
+    # x_low = dnm_xlow.forward(x_low)
+    # y_low = dnm_ylow.forward(y_low)
+    # x_high1 = dnm_xhigh1.forward(x_high1)
+    # y_high1 = dnm_yhigh1.forward(y_high1)
+    # x_high2 = dnm_xhigh2.forward(x_high2)
+    # y_high2 = dnm_yhigh2.forward(y_high2)
+    # x_test1 = dnm_xtest.forward(x_test)
+    # y_test1 = dnm_ytest.forward(y_test)
+
     initial_data = [
         {'raw_fidelity_name': '0','fidelity_indicator': 0, 'X': x_low, 'Y': y_low},
         {'raw_fidelity_name': '1','fidelity_indicator': 1, 'X': x_high1, 'Y': y_high1},
@@ -148,6 +167,8 @@ if __name__ == "__main__":
 
     with torch.no_grad():
         ypred, ypred_var = myResGP(fidelity_manager, x_test)
+        # ypred = dnm_ytest.inverse(ypred)
+        # ypred_var = ypred_var * dnm_ytest.std**2
 
     plt.figure()
     plt.errorbar(x_test.flatten(), ypred.reshape(-1).detach(), ypred_var.diag().sqrt().squeeze().detach(), fmt = 'r-.' ,alpha = 0.2)

@@ -24,6 +24,7 @@ data_name_list = ["colville", "nonlinearsin", "toal", "forrester",
                           "maolin19", "maolin20",
                           "shuo6", "shuo11", "shuo15", "shuo16",
                           "test3", "test4", "test5", "test6", "test7"]
+data_name_list = ["forrester"]
 methods_name_list = ['AR','NAR','ResGP','GAR','CIGAR']
 
 all_data_name_with_fi_list = get_full_name_list_with_fidelity(data_name_list=data_name_list)   
@@ -48,6 +49,7 @@ for data_name in all_data_name_with_fi_list:
 
         plt.xlabel("#HF Samples", fontsize=20)
         plt.ylabel("RMSE", fontsize = 20)
+        
 
 
     plt.legend(loc="upper right", fontsize=20)
@@ -59,3 +61,4 @@ for data_name in all_data_name_with_fi_list:
             os.makedirs(fig_file)
     plt.savefig(fig_file  + '/' + data_name + '.png',
                 bbox_inches='tight')
+    break

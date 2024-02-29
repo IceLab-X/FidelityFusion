@@ -2,7 +2,9 @@ import torch
 import warnings
 
 def multi_fidelity_forrester_my(x = None, min_value = 0, max_value = 1, std = 0, num_points = 200):
-
+    '''
+    x_dim = 1
+    '''
     if x is None:
         x = torch.rand(num_points, 1) * (max_value - min_value) + min_value
     else:
@@ -49,6 +51,8 @@ def multi_fidelity_forrester_my(x = None, min_value = 0, max_value = 1, std = 0,
 
 def multi_fidelity_non_linear_sin(x = None, min_value = -5, max_value = 10, high_fidelity_noise_std_deviation=0, low_fidelity_noise_std_deviation=0, num_points = 200):
     """
+    x_dim = 1
+
     Two level non-linear sin function where high fidelity is given by:
 
     .. math::
@@ -86,8 +90,9 @@ def nonlinear_sin_high(x, sd=0):
     return (x - torch.sqrt(torch.tensor(2.0))) * nonlinear_sin_low(x, 0) ** 2 + torch.randn(x.size(0), 1) * sd
 
 def multi_fidelity_Colville(x = None, A=0.5, min_value = 0, max_value = 1, num_points = 200):
-
-    # x_dim = 4
+    '''
+    x_dim = 4
+    '''
     if x is None:
         x = (max_value - min_value) * torch.rand(num_points, 4) + min_value
     else:
@@ -126,6 +131,9 @@ def multi_fidelity_Colville(x = None, A=0.5, min_value = 0, max_value = 1, num_p
     return x, [test_low(x), test_high(x)]
 
 def test_function_d1(x = None, min_value = 0, max_value = 1, num_points = 200):
+    '''
+    x_dim = 1
+    '''
     def high(x):
         '''
         math:
@@ -148,6 +156,9 @@ def test_function_d1(x = None, min_value = 0, max_value = 1, num_points = 200):
     return x, [low(x), high(x)] 
 
 def test_function_d2(x = None, min_value = 0, max_value = 1, num_points = 200):
+    '''
+    x_dim = 1
+    '''
     def high(x):
         '''
         math:
@@ -170,6 +181,9 @@ def test_function_d2(x = None, min_value = 0, max_value = 1, num_points = 200):
     return x, [low(x), high(x)]  
 
 def test_function_d3(x = None, min_value = 0, max_value = 10, num_points = 200):
+    '''
+    x_dim = 1
+    '''
     def high(x):
         '''
         math:
@@ -191,6 +205,9 @@ def test_function_d3(x = None, min_value = 0, max_value = 10, num_points = 200):
     return x, [low(x), high(x)]
 
 def test_function_d4(x = None, min_value = 0, max_value = 1, num_points = 200):
+    '''
+    x_dim = 1
+    '''
     def high(x):
         '''
         math:
@@ -214,6 +231,9 @@ def test_function_d4(x = None, min_value = 0, max_value = 1, num_points = 200):
     return x, [low(x), high(x)]
 
 def test_function_d5(x = None, min_value = -2, max_value = 2, num_points = 200):
+    '''
+    x_dim = 2
+    '''
     def high(x):
         '''
         math:
@@ -241,6 +261,9 @@ def test_function_d5(x = None, min_value = -2, max_value = 2, num_points = 200):
     return x, [low(x), high(x)]
 
 def test_function_d6(x = None, min_value = 0, max_value = 1, num_points = 200):
+    '''
+    x_dim = 2
+    '''
     def high(x):
         '''
         math:
@@ -269,6 +292,9 @@ def test_function_d6(x = None, min_value = 0, max_value = 1, num_points = 200):
     return x, [low(x), high(x)]
 
 def test_function_d7(x = None, min_value = -3, max_value = 4, num_points = 200):
+    '''
+    x_dim = 2
+    '''
     def high(x):
         '''
         math:
@@ -297,6 +323,9 @@ def test_function_d7(x = None, min_value = -3, max_value = 4, num_points = 200):
     return x, [low(x), high(x)]
 
 def test_function_d8(x = None, min_value = 0, max_value = 1, num_points = 200):
+    '''
+    x_dim = 2
+    '''
     def high(x):
         '''
         math:
@@ -325,6 +354,9 @@ def test_function_d8(x = None, min_value = 0, max_value = 1, num_points = 200):
     return x, [low(x), high(x)]
 
 def test_function_d9(x = None, min_value = 0, max_value = 1, num_points = 200):
+    '''
+    x_dim = 3
+    '''
     def high(x):
         '''
         math:
@@ -355,6 +387,9 @@ def test_function_d9(x = None, min_value = 0, max_value = 1, num_points = 200):
     return x, [low(x), high(x)]
 
 def test_function_d10(x = None, min_value = -3, max_value = 3, num_points = 200):
+    '''
+    x_dim = 8
+    '''
     def high(x):
         Sum = 0
         for i in range(8):
@@ -377,6 +412,8 @@ def test_function_d10(x = None, min_value = -3, max_value = 3, num_points = 200)
 
 def multi_fidelity_test3_function(x = None, min_value = 0, max_value = 1, num_points = 200):
     r"""
+    x_dim = 1
+
     Reference:
 
     R. Tuo, P. Z. Qian, and C. J. Wu, “Comment: A brownian motion model for stochastic simulation with tunable precision,” *Technometrics*, vol. 55, no. 1, pp. 29–31, 2013
@@ -410,6 +447,8 @@ def multi_fidelity_test3_function(x = None, min_value = 0, max_value = 1, num_po
 
 def multi_fidelity_test4_function(x = None, min_value = 0, max_value = 10, num_points = 200):
     r"""
+    x_dim = 1
+
     Reference:
     [33]D. Higdon, “Space and space-time modeling using process convolutions,” in *Quantitative methods for current environmental issues*.Springer, 2002, pp. 37–56.
     """
@@ -440,6 +479,7 @@ def multi_fidelity_test4_function(x = None, min_value = 0, max_value = 10, num_p
 
 def multi_fidelity_test5_function(x = None, min_value = -2, max_value = 2, num_points = 200):
     r"""
+    x_dim = 2
     Reference:
     [34]X. Cai, H. Qiu, L. Gao, and X. Shao, “Metamodeling for high dimensional design problems by multi-fifidelity simulations,” *Structural and**Multidisciplinary Optimization*, vol. 56, no. 1, pp. 151–166, 2017.
     """
@@ -470,6 +510,7 @@ def multi_fidelity_test5_function(x = None, min_value = -2, max_value = 2, num_p
 
 def multi_fidelity_test6_function(x = None, min_value = 0, max_value = 1, num_points = 200):
     r"""
+    x_dim = 6
     Reference:
     [35] R. B. Gramacy and H. K. Lee, “Adaptive design and analysis of supercomputer experiments,” *Technometrics*, vol. 51, no. 2, pp. 130–145, 2009.
     """
@@ -508,6 +549,7 @@ def multi_fidelity_test6_function(x = None, min_value = 0, max_value = 1, num_po
 
 def multi_fidelity_test7_function(x = None, min1 = 0, max1 = 2 * torch.pi, min2 = 0, max2 = 1, num_points = 200):
     r"""
+    x_dim = 8
     Reference:
     [36]J. An and A. Owen, “Quasi-regression,” *Journal of complexity*, vol. 17, no. 4, pp. 588-607, 2001.
     """
@@ -566,6 +608,7 @@ def multi_fidelity_test7_function(x = None, min1 = 0, max1 = 2 * torch.pi, min2 
 
 def multi_fidelity_test8_function(x = None, min_value = -3, max_value = 3, num_points = 200):
     r"""
+    x_dim = 20
     Reference:
     [20]X. Meng and G. E. Karniadakis, “A composite neural network that learns from multi-fifidelity data: Application to function approximationand inverse pde problems,” *Journal of Computational Physics*, vol. 401, p. 109020, 2020.
 
@@ -606,6 +649,7 @@ def multi_fidelity_test8_function(x = None, min_value = -3, max_value = 3, num_p
 
 def multi_fidelity_test9_function(x = None, min_value = -3, max_value = 2, num_points = 200):
     r"""
+    x_dim = 30
     Reference:
     [37]G. H. Cheng, A. Younis, K. Haji Hajikolaei, and G. Gary Wang, “Trust region based mode pursuing sampling method for global optimization of high dimensional design problems,” *Journal of Mechanical Design*, vol. 137, no. 2, 2015.
     """
@@ -640,7 +684,9 @@ def multi_fidelity_test9_function(x = None, min_value = -3, max_value = 2, num_p
     return x, [test_low(x), test_high(x)]
 
 def multi_fidelity_p1_simp(x = None, A = 0, min_value = -3, max_value = 2, num_points = 200):
-
+    '''
+    x_dim = 1
+    '''
     def sigmoid1(x):
         return 1 / (1 + torch.exp(32 * (x + 0.5)))
 
@@ -684,7 +730,9 @@ def multi_fidelity_p1_simp(x = None, A = 0, min_value = -3, max_value = 2, num_p
     return x, [test_low(x), test_mid(x), test_high(x)]
 
 def multi_fidelity_p2_simp(x = None, A = 0, min_value = 0, max_value = 1, num_points = 200):
-
+    '''
+    x_dim = 1
+    '''
     def sigmoid2(x):
         return 1 / (1 + torch.exp(-32 * (x + 0.5)))
 
@@ -729,6 +777,9 @@ def multi_fidelity_p2_simp(x = None, A = 0, min_value = 0, max_value = 1, num_po
 
 def multi_fidelity_p3_simp(x = None, A = 0, min_value = -2, max_value = 2, num_points = 200):
 
+    '''
+    x_dim = 2
+    '''
     def sigmoid1(x):
         return 1 / (1 + torch.exp(32 * (x + 0.5)))
 
@@ -774,7 +825,9 @@ def multi_fidelity_p3_simp(x = None, A = 0, min_value = -2, max_value = 2, num_p
     return x, [test_low(x), test_mid(x), test_high(x)]
 
 def multi_fidelity_p4_simp(x = None, A = 0, min_value = -6, max_value = 5, num_points = 200):
-
+    '''
+    x_dim = 2
+    '''
     def sigmoid1(x):
         return 1 / (1 + torch.exp(32 * (x + 0.5)))
 
@@ -819,7 +872,9 @@ def multi_fidelity_p4_simp(x = None, A = 0, min_value = -6, max_value = 5, num_p
     return x, [test_low(x), test_mid(x), test_high(x)]
 
 def multi_fidelity_p5_simp(x = None, A = 0, min_value = -0.1, max_value = -0.2, num_points = 200):
-
+    '''
+    x_dim = 2
+    '''
     def sigmoid3(x):
         return 1 / (1 + torch.exp(-128 * (x - 0.05)))
 
@@ -889,7 +944,9 @@ def multi_fidelity_p5_simp(x = None, A = 0, min_value = -0.1, max_value = -0.2, 
     return x, [test_1(x), test_2(x), test_3(x)]
 
 def multi_fidelity_maolin1(x = None, min_value = 0, max_value = 1, num_points = 200):
-
+    '''
+    x_dim = 1
+    '''
     def test_high(z):
         x1 = z[:, 0]
         return ( torch.sin(10*torch.pi*x1) / (2*x1) + (x1-1)**4 )[:, None]
@@ -908,6 +965,9 @@ def multi_fidelity_maolin1(x = None, min_value = 0, max_value = 1, num_points = 
 
 def multi_fidelity_maolin5(x = None, min_value = 0, max_value = 5, num_points = 200):
 
+    '''
+    x_dim = 2
+    '''
     def test_high(z):
         x1 = z[:, 0]
         x2 = z[:, 1]
@@ -929,6 +989,9 @@ def multi_fidelity_maolin5(x = None, min_value = 0, max_value = 5, num_points = 
 
 def multi_fidelity_maolin6(x = None, min_value = 0, max_value = 5, num_points = 200):
 
+    '''
+    x_dim = 2
+    '''
     def test_high(z):
         '''
         math:
@@ -959,6 +1022,9 @@ def multi_fidelity_maolin6(x = None, min_value = 0, max_value = 5, num_points = 
 
 def multi_fidelity_maolin7(x = None, min_value = -5, max_value = 10, num_points = 200):
 
+    '''
+    x_dim = 2
+    '''
     def test_high(z):
         '''
         math:
@@ -988,7 +1054,9 @@ def multi_fidelity_maolin7(x = None, min_value = -5, max_value = 10, num_points 
     return x, [test_low(x), test_high(x)]
 
 def multi_fidelity_maolin8(x = None, min_value = 0, max_value = 1, num_points = 200):
-
+    '''
+    x_dim = 2
+    '''
     def test_high(z):
         '''
         math:
@@ -1018,7 +1086,9 @@ def multi_fidelity_maolin8(x = None, min_value = 0, max_value = 1, num_points = 
     return x, [test_low(x), test_high(x)]
 
 def multi_fidelity_maolin10(x = None, min_value = 0, max_value = 0.5, num_points = 200):
-
+    '''
+    x_dim = 2
+    '''
     def test_high(z):
         x1 = z[:, 0]
         x2 = z[:, 1]
@@ -1062,7 +1132,9 @@ def multi_fidelity_maolin10(x = None, min_value = 0, max_value = 0.5, num_points
     return x, [test_low(x), test_high(x)]
 
 def multi_fidelity_maolin12(x = None, min_value = -2, max_value = 2, num_points = 200):
-
+    '''
+    x_dim = 2
+    '''
     def test_high(z):
         '''
         math:
@@ -1092,6 +1164,9 @@ def multi_fidelity_maolin12(x = None, min_value = -2, max_value = 2, num_points 
 
 def multi_fidelity_maolin13(x = None, min_value = -1, max_value = 1, num_points = 200):
 
+    '''
+    x_dim = 2
+    '''
     def test_high(z):
         '''
         math:
@@ -1121,7 +1196,9 @@ def multi_fidelity_maolin13(x = None, min_value = -1, max_value = 1, num_points 
     return x, [test_low(x), test_high(x)]
 
 def multi_fidelity_maolin15(x = None, min_value = 0, max_value = 1, num_points = 200):
-
+    '''
+    x_dim = 3
+    '''
     def test_high(z):
         '''
         math:
@@ -1153,7 +1230,9 @@ def multi_fidelity_maolin15(x = None, min_value = 0, max_value = 1, num_points =
     return x, [test_low(x), test_high(x)]
 
 def multi_fidelity_maolin19(x = None, min_value = -5, max_value = 10, num_points = 200):
-    
+    '''
+    x_dim = 6
+    '''
     x_dim = 6
 
     def test_high(z):
@@ -1183,7 +1262,9 @@ def multi_fidelity_maolin19(x = None, min_value = -5, max_value = 10, num_points
     return x, [test_low(x), test_high(x)]
 
 def multi_fidelity_maolin20(x = None, min_value = 0, max_value = 1, num_points = 200):
-
+    '''
+    x_dim = 8
+    '''
     def test_high(z):
         x1 = z[:, 0]
         x2 = z[:, 1]
@@ -1231,7 +1312,9 @@ def multi_fidelity_maolin20(x = None, min_value = 0, max_value = 1, num_points =
     return x, [test_low(x), test_high(x)]
 
 def multi_fidelity_Toal(x = None, A = 0.5, min_value = -100, max_value = 100, num_points = 200):
-    
+    '''
+    x_dim = 10
+    '''
     x_dim = 10
 
     def test_high(z):
@@ -1277,7 +1360,9 @@ def multi_fidelity_Toal(x = None, A = 0.5, min_value = -100, max_value = 100, nu
     return x, [test_low(x), test_high(x)]
 
 def multi_fidelity_shuo6(x = None, min1 = -5, max1 = 10, min2 = 0, max2 = 15, num_points = 200):
-
+    '''
+    x_dim = 2
+    '''
     def test_high(z):
         x1 = z[:, 0]
         x2 = z[:, 1]
@@ -1315,6 +1400,9 @@ def multi_fidelity_shuo6(x = None, min1 = -5, max1 = 10, min2 = 0, max2 = 15, nu
 
 def multi_fidelity_shuo11(x = None, min_value = -1, max_value = 1, num_points = 200):
     
+    '''
+    x_dim = 3
+    '''
     x_dim = 3
 
     def test_high(z):
@@ -1342,7 +1430,9 @@ def multi_fidelity_shuo11(x = None, min_value = -1, max_value = 1, num_points = 
     return x, [test_low(x), test_high(x)]
 
 def multi_fidelity_shuo15(x = None, min_value = 0, max_value = 1, num_points = 200):
-
+    '''
+    x_dim = 8
+    '''
     def test_high(z):
 
         sum = 0
@@ -1377,7 +1467,9 @@ def multi_fidelity_shuo15(x = None, min_value = 0, max_value = 1, num_points = 2
     return x, [test_low(x), test_high(x)]
 
 def multi_fidelity_shuo16(x = None, min_value = -2, max_value = 3, num_points = 200):
-    
+    '''
+    x_dim = 10
+    '''
     x_dim = 10
 
     def test_high(z):

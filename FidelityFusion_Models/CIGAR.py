@@ -59,6 +59,8 @@ class CIGAR(torch.nn.Module):
             if i_fidelity == 0:
                 x_train, y_train = data_manager.get_data(i_fidelity)
                 mean_low, var_low = self.gpr_list[i_fidelity].forward(x_train, y_train, x_test)
+                if len(mean_low.shape) == 0:
+                    mean_low = mean_low.reshape(1).unsqueeze(dim = 0)
                 if len(mean_low.shape) == 1:
                     mean_low = mean_low.unsqueeze(dim = 1)
                 # if mean_low.shape == var_low.diag().shape:
@@ -155,7 +157,7 @@ if __name__ == "__main__":
     x=dnm_x.forward(x)
     y_l=dnm_yl.forward(yl)
     y_h=dnm_yh.forward(yh)
-    y_h2=dnm_yh.forward(yh2)
+    y_h2=dnm_yh2.forward(yh2)
 
     x_train = x[:128, :]
     y_l = yl[:128, :]

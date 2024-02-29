@@ -6,7 +6,7 @@ import GaussianProcess.kernel as kernel
 from FidelityFusion_Models import *
 from FidelityFusion_Models.MF_data import MultiFidelityDataManager
 from Experiments.calculate_metrix import calculate_metrix
-from Experiments.Load_Mfdata import get_full_name_list_with_fidelity, load_data_certain_fi
+from Experiments.Load_Mfdata import get_full_name_list_with_fidelity, generate_nonsubset_data
 
 import torch
 import time
@@ -34,17 +34,29 @@ all_data_name_list = ["colville", "nonlinearsin", "toal", "forrester",
                           "maolin15",
                           "maolin19", "maolin20",
                           "shuo6", "shuo11", "shuo15", "shuo16",
-                          "test3", "test4", "test5", "test6", "test7", "test8", "test9"]
+                          "test3", "test4", "test5", "test6", "test7"]
 
-interp_data = False
+data_name_list_dim1 = ["forrester","nonlinearsin","tl1","tl2","tl3","tl4",
+                       "test3","test4","p1","p2","maolin1"]
+data_name_list_dim2 = ["tl5","tl6","tl7","tl8","test5","p3","p4","p5","maolin5","maolin6","maolin7","maolin8"
+                       ,"maolin10","maolin12","maolin13","shuo6",]
+data_name_list_dim3 = ["tl9","maolin15","shuo11"]
+data_name_list_dim4 = ["colville",]
+data_name_list_dim6 = ["test6","maolin19"]
+data_name_list_dim8 = ["tl10","test7","maolin20","shuo15"]
+data_name_list_dim10 = ["toal","shuo16"]
+data_name_list_dim20 = ["test8"]
+data_name_list_dim30 = ["test9"]
 
 model_dic = {'AR': AR, 'ResGP': ResGP, 'NAR': NAR, 'CIGAR': CIGAR, 'GAR': GAR}
 train_dic = {'AR': train_AR,'ResGP': train_ResGP, 'NAR': train_NAR,'CIGAR': train_CIGAR, 'GAR': train_GAR}
 
+
 if __name__ == '__main__':
         
     method_list = ['AR','ResGP','NAR','GAR','CIGAR']
-    all_data_name_with_fi_list = get_full_name_list_with_fidelity(data_name_list=all_data_name_list)   
+    # method_list = ['GAR']
+    all_data_name_with_fi_list = get_full_name_list_with_fidelity(data_name_list = data_name_list_dim1)   
     for _data_name in all_data_name_with_fi_list:
         print(_data_name)
         for method in method_list:
@@ -55,31 +67,14 @@ if __name__ == '__main__':
                 for _high_fidelity_num in [4, 8, 16, 32]:
                     torch.manual_seed(_seed)
                     
-                    xtr, Ytr, xte, Yte = load_data_certain_fi(seed = 0, data_name_with_fi = _data_name, n_train = 100, n_test = 100, x_normal=True, y_normal=True)
+                    xtr, Ytr, xte, Yte = generate_nonsubset_data(_data_name, x_dim = 1, min_value = 0, max_value = 1, num_points = 250, n_train = 100, n_test = 100)
                     
-                    x_low = xtr
+                    x_low = xtr[0]
                     y_low = Ytr[0]
-                    x_high1 = x_low[:_high_fidelity_num]
+                    x_high1 = xtr[1][:_high_fidelity_num]
                     y_high1 = Ytr[1][:_high_fidelity_num]
                     x_test = xte
-                    y_test = Yte[1]
-
-                    # generate the data
-                    # x_all = torch.rand(500, 1) * 20
-
-                    # xlow_indices = torch.randperm(500)[:300]
-                    # xlow_indices = torch.sort(xlow_indices).values
-                    # x_low = x_all[xlow_indices]
-
-                    # xhigh_indices = torch.randperm(300)[:_high_fidelity_num]
-                    # xhigh_indices = torch.sort(xhigh_indices).values
-                    # x_high1 = x_low[xhigh_indices]
-
-                    # y_low = torch.sin(x_low) - 0.5 * torch.sin(2 * x_low) + torch.rand(300, 1) * 0.1 - 0.05
-                    # y_high1 = torch.sin(x_high1) - torch.rand(_high_fidelity_num, 1) * 0.1 - 0.05
-
-                    # x_test = torch.linspace(0, 20, 100).reshape(-1, 1)
-                    # y_test = torch.sin(x_test)
+                    y_test = Yte
 
                     data_shape = [y_low[0].shape, y_high1[0].shape]
                 
@@ -99,7 +94,7 @@ if __name__ == '__main__':
                     else:
                         model = model_dic[method](fidelity_num=2, kernel=kernel1, if_nonsubset = True)
 
-                    train_dic[method](model, fidelity_manager, max_iter=100, lr_init=1e-3)
+                    train_dic[method](model, fidelity_manager, max_iter=300, lr_init=1e-3)
 
                     with torch.no_grad():
                         ypred, ypred_var = model(fidelity_manager,x_test)
