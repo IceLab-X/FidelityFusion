@@ -27,11 +27,14 @@ data_name_list = ["colville", "nonlinearsin", "toal", "forrester",
 methods_name_list = ['NAR', 'AR', 'ResGP', 'GAR', 'CIGAR']
 all_data_name_with_fi_list = get_full_name_list_with_fidelity(data_name_list=data_name_list)   
 for data_name in all_data_name_with_fi_list:
+    print(data_name)
     plt.figure()
     for methods_name in methods_name_list:
+        print(methods_name)
         ct = []
         tem = []
         for seed in [0, 1, 2, 3, 4]:
+            print(seed)
             path = os.path.join(sys.path[0], 'exp_results', data_name, methods_name + '_seed_' + str(seed) + '.csv')
             data = pd.DataFrame(pd.read_csv(path))
             orders = data['train_sample_num'].to_numpy().reshape(-1, 1).flatten()

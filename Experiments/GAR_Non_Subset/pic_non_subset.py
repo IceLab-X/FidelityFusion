@@ -22,18 +22,22 @@ data_name_list = ["colville", "nonlinearsin", "toal", "forrester",
                           "maolin1", "maolin5", "maolin6", "maolin7", "maolin8", "maolin10", "maolin12", "maolin13",
                           "maolin15",
                           "maolin19", "maolin20",
-                          "shuo6", "shuo11", "shuo15", "shuo16",
+                          "shuo6", "shuo15", "shuo16",
                           "test3", "test4", "test5", "test6", "test7"]
-data_name_list = ["forrester"]
+# data_name_list = ["shuo16","test3", "test4", "test5", "test6", "test7"]
+data_name_list = ["shuo11"]
 methods_name_list = ['AR','NAR','ResGP','GAR','CIGAR']
 
 all_data_name_with_fi_list = get_full_name_list_with_fidelity(data_name_list=data_name_list)   
 for data_name in all_data_name_with_fi_list:
     plt.figure()
+    print(data_name)
     for methods_name in methods_name_list:
         ct = []
         tem = []
+        print(methods_name)
         for seed in [0, 1, 2, 3, 4]:
+            print(seed)
             path = os.path.join(sys.path[0], 'exp_results', data_name, methods_name + '_seed_' + str(seed) + '.csv')
             data = pd.DataFrame(pd.read_csv(path))
             orders = data['train_sample_num'].to_numpy().reshape(-1, 1).flatten()
@@ -61,4 +65,3 @@ for data_name in all_data_name_with_fi_list:
             os.makedirs(fig_file)
     plt.savefig(fig_file  + '/' + data_name + '.png',
                 bbox_inches='tight')
-    break

@@ -298,17 +298,18 @@ def get_full_name_list_with_fidelity(data_name_list):
 
 if __name__ == "__main__":
 
-    # all_data_name_list = ["colville", "nonlinearsin", "toal", "forrester",
-    #                       "tl1", "tl2", "tl3", "tl4", "tl5", "tl6", "tl7", "tl8", "tl9", "tl10",
-    #                       "p1", "p2", "p3", "p4", "p5",
-    #                       "maolin1", "maolin5", "maolin6", "maolin7", "maolin8", "maolin10", "maolin12", "maolin13",
-    #                       "maolin15",
-    #                       "maolin19", "maolin20",
-    #                       "shuo6", "shuo11", "shuo15", "shuo16",
-    #                       "test3", "test4", "test5", "test6", "test7", "test8", "test9"]
+    all_data_name_list = ["colville", "nonlinearsin", "toal", "forrester",
+                          "tl1", "tl2", "tl3", "tl4", "tl5", "tl6", "tl7", "tl8", "tl9", "tl10",
+                          "p1", "p2", "p3", "p4", "p5",
+                          "maolin1", "maolin5", "maolin6", "maolin7", "maolin8", "maolin10", "maolin12", "maolin13",
+                          "maolin15",
+                          "maolin19", "maolin20",
+                          "shuo6", "shuo11", "shuo15", "shuo16",
+                          "test3", "test4", "test5", "test6", "test7", "test8", "test9"]
     # # all_data_name_list = ["test7"]
     
-    # all_data_name_with_fi_list = get_full_name_list_with_fidelity(data_name_list=all_data_name_list)
+    all_data_name_with_fi_list = get_full_name_list_with_fidelity(data_name_list=all_data_name_list)
+    print(all_data_name_with_fi_list)
 
     # for data_name in all_data_name_with_fi_list:
 
@@ -326,4 +327,4 @@ if __name__ == "__main__":
 
     #     print(" ")
 
-    generate_nonsubset_data("forrester12", x_dim = 1, min_value = 0, max_value = 1, num_points = 250, n_train = 100, n_test = 100)
+    # generate_nonsubset_data("forrester12", x_dim = 1, min_value = 0, max_value = 1, num_points = 250, n_train = 100, n_test = 100)

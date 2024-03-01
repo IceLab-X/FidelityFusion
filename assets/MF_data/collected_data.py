@@ -871,7 +871,7 @@ def multi_fidelity_p4_simp(x = None, A = 0, min_value = -6, max_value = 5, num_p
 
     return x, [test_low(x), test_mid(x), test_high(x)]
 
-def multi_fidelity_p5_simp(x = None, A = 0, min_value = -0.1, max_value = -0.2, num_points = 200):
+def multi_fidelity_p5_simp(x = None, A = 0, min_value = -0.2, max_value = -0.1, num_points = 200):
     '''
     x_dim = 2
     '''

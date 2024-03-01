@@ -38,8 +38,9 @@ all_data_name_list = ["colville", "nonlinearsin", "toal", "forrester",
 
 data_name_list_dim1 = ["forrester","nonlinearsin","tl1","tl2","tl3","tl4",
                        "test3","test4","p1","p2","maolin1"]
-data_name_list_dim2 = ["tl5","tl6","tl7","tl8","test5","p3","p4","p5","maolin5","maolin6","maolin7","maolin8"
+data_name_list_dim2 = ["tl5","tl6","tl7","tl8","test5","p3","p4","maolin5","maolin6","maolin7","maolin8"
                        ,"maolin10","maolin12","maolin13","shuo6",]
+data_name_list_dim2_01_02 = ["p5"]
 data_name_list_dim3 = ["tl9","maolin15","shuo11"]
 data_name_list_dim4 = ["colville",]
 data_name_list_dim6 = ["test6","maolin19"]
@@ -48,26 +49,32 @@ data_name_list_dim10 = ["toal","shuo16"]
 data_name_list_dim20 = ["test8"]
 data_name_list_dim30 = ["test9"]
 
+#test7 shuo6 范围不同
+# p5的 -0.1到-0.2
+
+#shuo11的seed1 GAR 矩阵分解nan
+data_name_list_dim3 = ["shuo11"]
+
 model_dic = {'AR': AR, 'ResGP': ResGP, 'NAR': NAR, 'CIGAR': CIGAR, 'GAR': GAR}
 train_dic = {'AR': train_AR,'ResGP': train_ResGP, 'NAR': train_NAR,'CIGAR': train_CIGAR, 'GAR': train_GAR}
 
 
 if __name__ == '__main__':
         
-    method_list = ['AR','ResGP','NAR','GAR','CIGAR']
-    # method_list = ['GAR']
-    all_data_name_with_fi_list = get_full_name_list_with_fidelity(data_name_list = data_name_list_dim1)   
+    # method_list = ['NAR']
+    method_list = ['GAR','AR','ResGP','CIGAR']
+    all_data_name_with_fi_list = get_full_name_list_with_fidelity(data_name_list = data_name_list_dim30)   
     for _data_name in all_data_name_with_fi_list:
         print(_data_name)
         for method in method_list:
             print(method)
-            for _seed in [0, 1, 2, 3, 4]:
+            for _seed in [0,2,3,4,5]:
                 print(_seed)
                 recording = {'train_sample_num':[], 'rmse':[], 'nrmse':[], 'r2':[], 'nll':[], 'time':[]}
                 for _high_fidelity_num in [4, 8, 16, 32]:
                     torch.manual_seed(_seed)
                     
-                    xtr, Ytr, xte, Yte = generate_nonsubset_data(_data_name, x_dim = 1, min_value = 0, max_value = 1, num_points = 250, n_train = 100, n_test = 100)
+                    xtr, Ytr, xte, Yte = generate_nonsubset_data(_data_name, x_dim = 30, min_value = 0, max_value = 1, num_points = 250, n_train = 100, n_test = 100)
                     
                     x_low = xtr[0]
                     y_low = Ytr[0]
