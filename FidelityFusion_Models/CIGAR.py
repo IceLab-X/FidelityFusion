@@ -3,31 +3,31 @@ import os
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 import torch
 import numpy as np
-from GaussianProcess.gp_basic import GP_basic as GPR
+from GaussianProcess.cigp_v10 import cigp as GPR
 import GaussianProcess.kernel as kernel
-from GaussianProcess.gp_transform import Normalize0_layer
 from GaussianProcess.gp_computation_pack import Tensor_linear
 from FidelityFusion_Models.MF_data import MultiFidelityDataManager
+from Experiments.log_debugger import log_debugger
 import matplotlib.pyplot as plt
         
         
 class CIGAR(torch.nn.Module):
-    def __init__(self, fidelity_num, kernel, data_shape_list, if_nonsubset=False):
-        """
-        Initialize the CIGAR class.
+    """
+    CIGAR (ConditionalIndependentGAR) module.
 
-        Args:
-            fidelity_num (int): The number of fidelity levels.
-            kernel: The kernel function for Gaussian Process Regression.
-            data_shape_list (list): A list of data shapes for each fidelity level.
-            if_nonsubset (bool): Flag indicating whether to use non-subset data for training selection.
-        
-        """
+    Args:
+        fidelity_num (int): Number of fidelity levels.
+        kernel_list (list): List of kernels for each fidelity level.
+        data_shape_list (list): List of data shapes for each fidelity level.
+        if_nonsubset (bool, optional): Flag indicating if non-subset data is used. Defaults to False.
+    """
+
+    def __init__(self, fidelity_num, kernel_list, data_shape_list, if_nonsubset=False):
         super().__init__()
         self.fidelity_num = fidelity_num
         self.gpr_list = []
         for i in range(self.fidelity_num):
-            self.gpr_list.append(GPR(kernel=kernel, noise_variance=1.0))
+            self.gpr_list.append(GPR(kernel=kernel_list[i], log_beta=1.0))
         self.gpr_list = torch.nn.ModuleList(self.gpr_list)
 
         self.Tensor_linear_list = []
@@ -39,35 +39,30 @@ class CIGAR(torch.nn.Module):
 
     def forward(self, data_manager, x_test, to_fidelity=None):
         """
-        Forward pass of the CIGAR model.
+        Forward pass of the CIGAR module.
 
         Args:
-            data_manager: The data manager object.
-            x_test: The input test data.
-            to_fidelity: The fidelity level to evaluate. If None, the default fidelity level will be used.
-                         The lowest prediction fidelity is 0
+            data_manager: Data manager object.
+            x_test: Test input data.
+            to_fidelity (int, optional): Fidelity level to evaluate. Defaults to None.
+
         Returns:
-            mean_high: The mean output at the highest fidelity level.
-            var_high: The variance output at the highest fidelity level.
+            tuple: Tuple containing the mean and variance of the output.
         """
         if to_fidelity is not None:
             fidelity_level = to_fidelity
         else:
-            fidelity_level = self.fidelity_num -1
+            fidelity_level = self.fidelity_num - 1
 
         for i_fidelity in range(fidelity_level + 1):
             if i_fidelity == 0:
-                x_train, y_train = data_manager.get_data(i_fidelity)
+                x_train, y_train = data_manager.get_data(i_fidelity, normal=True)
                 mean_low, var_low = self.gpr_list[i_fidelity].forward(x_train, y_train, x_test)
                 if len(mean_low.shape) == 0:
-                    mean_low = mean_low.reshape(1).unsqueeze(dim = 0)
+                    mean_low = mean_low.reshape(1).unsqueeze(dim=0)
                 if len(mean_low.shape) == 1:
-                    mean_low = mean_low.unsqueeze(dim = 1)
-                # if mean_low.shape == var_low.diag().shape:
-                #     var_low = var_low.diag()
-                # else:
-                #     var_low = var_low.diag().unsqueeze(dim = 1).expand_as(mean_low)
-                var_low = var_low.diag().unsqueeze(dim = 1).expand_as(mean_low)
+                    mean_low = mean_low.unsqueeze(dim=1)
+                var_low = var_low.diag().unsqueeze(dim=1).expand_as(mean_low)
                 if fidelity_level == 0:
                     mean_high = mean_low
                     var_high = var_low
@@ -75,12 +70,8 @@ class CIGAR(torch.nn.Module):
                 x_train, y_train = data_manager.get_data_by_name('res-{}'.format(i_fidelity))
                 mean_res, var_res = self.gpr_list[i_fidelity].forward(x_train, y_train, x_test)
                 if len(mean_res.shape) == 1:
-                    mean_res = mean_res.unsqueeze(dim = 1)
-                # if mean_res.shape == var_res.diag().shape:
-                #     var_res = var_low.diag()
-                # else:
-                #     var_res = var_low.diag().unsqueeze(dim = 1).expand_as(mean_res)
-                var_res = var_low.diag().unsqueeze(dim = 1).expand_as(mean_res)
+                    mean_res = mean_res.unsqueeze(dim=1)
+                var_res = var_low.diag().unsqueeze(dim=1).expand_as(mean_res)
                 mean_high = self.Tensor_linear_list[i_fidelity - 1](mean_low) + mean_res
                 var_high = self.Tensor_linear_list[i_fidelity - 1](var_low) + var_res
 
@@ -90,7 +81,7 @@ class CIGAR(torch.nn.Module):
 
         return mean_high, var_high
         
-def train_CIGAR(CIGARmodel, data_manager, max_iter=1000, lr_init=1e-1):
+def train_CIGAR(CIGARmodel, data_manager, max_iter=1000, lr_init=1e-1, debugger=None):
     """
     Trains the CIGAR model using the specified data manager.
 
@@ -99,17 +90,18 @@ def train_CIGAR(CIGARmodel, data_manager, max_iter=1000, lr_init=1e-1):
         data_manager: The data manager object that provides the training data.
         max_iter: The maximum number of iterations for training (default: 1000).
         lr_init: The initial learning rate for the optimizer (default: 0.1).
-
-    Returns:
-        None
+        debugger: Optional debugger object for monitoring the training process (default: None).
     """
+
     for i_fidelity in range(CIGARmodel.fidelity_num):
         optimizer = torch.optim.Adam(CIGARmodel.parameters(), lr=lr_init)
         if i_fidelity == 0:
-            x_low, y_low = data_manager.get_data(i_fidelity)
+            x_low, y_low = data_manager.get_data(i_fidelity, normal=True)
             for i in range(max_iter):
                 optimizer.zero_grad()
-                loss = -CIGARmodel.gpr_list[i_fidelity].log_likelihood(x_low, y_low)
+                loss = -CIGARmodel.gpr_list[i_fidelity].negative_log_likelihood(x_low, y_low)
+                if debugger is not None:
+                    debugger.get_status(CIGARmodel, optimizer, i, loss)
                 loss.backward()
                 optimizer.step()
                 print('fidelity:', i_fidelity, 'iter', i, 'nll:{:.5f}'.format(loss.item()))
@@ -118,25 +110,28 @@ def train_CIGAR(CIGARmodel, data_manager, max_iter=1000, lr_init=1e-1):
                 with torch.no_grad():
                     subset_x, y_low, y_high = data_manager.get_nonsubset_fill_data(CIGARmodel, i_fidelity - 1, i_fidelity)
             else:
-                _, y_low, subset_x, y_high = data_manager.get_overlap_input_data(i_fidelity - 1, i_fidelity)
+                _, y_low, subset_x, y_high = data_manager.get_overlap_input_data(i_fidelity - 1, i_fidelity, normal=True)
             for i in range(max_iter):
                 optimizer.zero_grad()
                 if CIGARmodel.if_nonsubset:
                     y_residual_mean = y_high[0] - CIGARmodel.Tensor_linear_list[i_fidelity - 1](y_low[0])  # tensor linear layer
-                    y_residual_var = y_high[1] - y_low[1]
+                    y_residual_var = abs(y_high[1] - y_low[1])
                 else:
                     y_residual_mean = y_high - CIGARmodel.Tensor_linear_list[i_fidelity - 1](y_low)
                     y_residual_var = None
 
                 if i == max_iter - 1:
                     data_manager.add_data(raw_fidelity_name='res-{}'.format(i_fidelity), fidelity_index=None, x=subset_x, y=[y_residual_mean, y_residual_var])
-                loss = -CIGARmodel.gpr_list[i_fidelity].log_likelihood(subset_x, [y_residual_mean, y_residual_var])
+                loss = -CIGARmodel.gpr_list[i_fidelity].negative_log_likelihood(subset_x, [y_residual_mean, y_residual_var])
+                if debugger is not None:
+                    debugger.get_status(CIGARmodel, optimizer, i, loss)
                 loss.backward()
                 optimizer.step()
                 print('fidelity:', i_fidelity, 'iter', i, 'nll:{:.5f}'.format(loss.item()))
 
 if __name__ == "__main__":
     torch.manual_seed(1)
+    debugger=log_debugger("CIGAR")
 
     x = np.load('assets/MF_data/Poisson_data/input.npy')
     x = torch.tensor(x, dtype=torch.float32)
@@ -146,18 +141,6 @@ if __name__ == "__main__":
     yh = torch.tensor(yh, dtype=torch.float32)
     yh2 = np.load('assets/MF_data/Poisson_data/output_fidelity_2.npy')
     yh2 = torch.tensor(yh2, dtype = torch.float32)
-
-    ## Standardization layer, currently using full dimensional standardization
-    dnm_x = Normalize0_layer(x)
-    dnm_yl = Normalize0_layer(yl)
-    dnm_yh = Normalize0_layer(yh)
-    dnm_yh2 = Normalize0_layer(yh2)
-
-    #normalize the data
-    x=dnm_x.forward(x)
-    y_l=dnm_yl.forward(yl)
-    y_h=dnm_yh.forward(yh)
-    y_h2=dnm_yh2.forward(yh2)
 
     x_train = x[:128, :]
     y_l = yl[:128, :]
@@ -181,23 +164,28 @@ if __name__ == "__main__":
         {'fidelity_indicator': 1,'raw_fidelity_name': '1', 'X': x_train, 'Y': y_h},
         {'fidelity_indicator': 2,'raw_fidelity_name': '2', 'X': x_train, 'Y': y_h2}
     ]
+    fidelity_num = len(initial_data)
 
     fidelity_manager = MultiFidelityDataManager(initial_data)
 
-    kernel1 = kernel.SquaredExponentialKernel(length_scale = 1., signal_variance = 1.)
-    myCIGAR = CIGAR(3, kernel1, data_shape, if_nonsubset = True)
+    kernel_list = [kernel.SquaredExponentialKernel() for _ in range(fidelity_num)]
+    myCIGAR = CIGAR(fidelity_num, kernel_list, data_shape, if_nonsubset = True)
 
-    train_CIGAR(myCIGAR, fidelity_manager, max_iter = 300, lr_init = 1e-3)
+    train_CIGAR(myCIGAR, fidelity_manager, max_iter = 100, lr_init = 1e-3, debugger = debugger)
 
+    debugger.logger.info('training finished,start predicting')
     with torch.no_grad():
+        x_test = fidelity_manager.normalizelayer[myCIGAR.fidelity_num-1].normalize_x(x_test)
         ypred, ypred_var = myCIGAR(fidelity_manager, x_test)
-        ypred = dnm_yh2.inverse(ypred)
+        ypred, ypred_var = fidelity_manager.normalizelayer[myCIGAR.fidelity_num-1].denormalize(ypred, ypred_var)
     
     ypred = ypred.reshape(-1, * src_y_shape)
 
+    debugger.logger.info('prepare to plot')
     ##plot the results
     fig, axs = plt.subplots(1, 3, figsize=(15, 5))
-    yte = dnm_yh.inverse(y_test)
+    # yte = dnm_yh.inverse(y_test)
+    yte = y_test
     vmin = torch.min(yte[1])
     vmax = torch.max(yte[1])
 

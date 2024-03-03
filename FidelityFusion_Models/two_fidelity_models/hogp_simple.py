@@ -87,9 +87,8 @@ class HOGP_simple(nn.Module):
         #clear K
         self.K.clear()
         self.K_eigen.clear()
-
         # if y_train_var is not None:
-        #     self.K.append(self.kernel_list[0](x_train, x_train) + y_train_var)
+        #     self.K.append(self.kernel_list[0](x_train, x_train) + y_train_var.diag()* torch.eye(x_train.size(0)))
         # else:
         self.K.append(self.kernel_list[0](x_train, x_train))
         self.K_eigen.append(eigen_pairs(self.K[-1]))

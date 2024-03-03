@@ -4,30 +4,27 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 import torch
 import torch.nn as nn
 import GaussianProcess.kernel as kernel
-from GaussianProcess.gp_basic import GP_basic as GPR
-from GaussianProcess.gp_transform import Normalize0_layer
+from GaussianProcess.cigp_v10 import cigp as GPR
 from FidelityFusion_Models.MF_data import MultiFidelityDataManager
+from Experiments.log_debugger import log_debugger
 import matplotlib.pyplot as plt
 
 class ResGP(nn.Module):
-    # initialize the model
-    def __init__(self, fidelity_num, kernel, if_nonsubset = False):
-        """
-        Initialize the ResGP class.
+    """
+    Residual Gaussian Process model.
 
-        Args:
-            fidelity_num (int): The number of fidelity levels.
-            kernel: The kernel function for Gaussian Process Regression.
-            if_nonsubset (bool): Flag indicating whether to use non-subset data for training selection.
+    Args:
+        fidelity_num (int): Number of fidelity levels.
+        kernel_list (list): List of kernels for each fidelity level.
+        if_nonsubset (bool, optional): Flag indicating if non-subset data is used. Defaults to False.
+    """
 
-        """
+    def __init__(self, fidelity_num, kernel_list, if_nonsubset=False):
         super().__init__()
         self.fidelity_num = fidelity_num
-        # create the model
-        self.gpr_list=[]
-        for _ in range(self.fidelity_num):
-            self.gpr_list.append(GPR(kernel = kernel, noise_variance = 1.0))
-        
+        self.gpr_list = []
+        for i in range(self.fidelity_num):
+            self.gpr_list.append(GPR(kernel=kernel_list[i], log_beta=1.0))
         self.gpr_list = torch.nn.ModuleList(self.gpr_list)
         self.if_nonsubset = if_nonsubset
 
@@ -36,23 +33,21 @@ class ResGP(nn.Module):
         Forward pass of the ResGP model.
 
         Args:
-            data_manager: The data manager object.
-            x_test: The input test data.
-            to_fidelity: The fidelity level to use for prediction.
-                         The lowest prediction fidelity is 0
+            data_manager (DataManager): Data manager object.
+            x_test (torch.Tensor): Test input data.
+            to_fidelity (int, optional): Fidelity level to predict. Defaults to None.
 
         Returns:
-            y_pred_high: The predicted output at the highest fidelity level.
-            cov_pred_high: The covariance of the predicted output at the highest fidelity level.
+            torch.Tensor: Predicted output.
+            torch.Tensor: Covariance of the predictions.
         """
-        # predict the model
         if to_fidelity is not None:
             fidelity_level = to_fidelity
         else:
             fidelity_level = self.fidelity_num - 1
         for i_fidelity in range(fidelity_level + 1):
             if i_fidelity == 0:
-                x_train, y_train = data_manager.get_data(i_fidelity)
+                x_train, y_train = data_manager.get_data(i_fidelity, normal=True)
                 y_pred_low, cov_pred_low = self.gpr_list[i_fidelity](x_train, y_train, x_test)
                 if fidelity_level == 0:
                     y_pred_high = y_pred_low
@@ -63,33 +58,32 @@ class ResGP(nn.Module):
                 y_pred_high = y_pred_low + y_pred_res
                 cov_pred_high = cov_pred_low + cov_pred_res
 
-                ## for next fidelity
+                # for next fidelity
                 y_pred_low = y_pred_high
                 cov_pred_low = cov_pred_high
 
-        # return the prediction
         return y_pred_high, cov_pred_high
     
-def train_ResGP(ResGPmodel, data_manager, max_iter=1000, lr_init=1e-1):
+def train_ResGP(ResGPmodel, data_manager, max_iter=1000, lr_init=1e-1, debugger=None):
     """
-    Trains the ResGP model using the given data manager.
+    Trains the Residual Gaussian Process (ResGP) model.
 
     Args:
-        ResGPmodel: The ResGP model to train.
-        data_manager: The data manager object that provides the training data.
-        max_iter (optional): The maximum number of iterations for training. Default is 1000.
-        lr_init (optional): The initial learning rate for the optimizer. Default is 0.1.
-
-    Returns:
-        None
+        ResGPmodel (ResGPModel): The ResGP model to train.
+        data_manager (DataManager): The data manager object.
+        max_iter (int, optional): The maximum number of iterations for training. Defaults to 1000.
+        lr_init (float, optional): The initial learning rate for the optimizer. Defaults to 1e-1.
+        debugger (Debugger, optional): The debugger object for monitoring training progress. Defaults to None.
     """
     for i_fidelity in range(ResGPmodel.fidelity_num):
         optimizer = torch.optim.Adam(ResGPmodel.parameters(), lr=lr_init)
         if i_fidelity == 0:
-            x_low, y_low = data_manager.get_data(i_fidelity)
+            x_low, y_low = data_manager.get_data(i_fidelity, normal=True)
             for i in range(max_iter):
                 optimizer.zero_grad()
-                loss = -ResGPmodel.gpr_list[i_fidelity].log_likelihood(x_low, y_low)
+                loss = -ResGPmodel.gpr_list[i_fidelity].negative_log_likelihood(x_low, y_low)
+                if debugger is not None:
+                    debugger.get_status(ResGPmodel, optimizer, i, loss)
                 loss.backward()
                 optimizer.step()
                 print('fidelity:', i_fidelity, 'iter', i, 'nll:{:.5f}'.format(loss.item()))
@@ -98,15 +92,17 @@ def train_ResGP(ResGPmodel, data_manager, max_iter=1000, lr_init=1e-1):
                 with torch.no_grad():
                     subset_x, y_low, y_high = data_manager.get_nonsubset_fill_data(ResGPmodel, i_fidelity - 1, i_fidelity)
                 y_residual_mean = y_high[0] - y_low[0]
-                y_residual_var = y_high[1] - y_low[1]
+                y_residual_var = abs(y_high[1] - y_low[1])
             else:
-                _, y_low, subset_x, y_high = data_manager.get_overlap_input_data(i_fidelity - 1, i_fidelity)
+                _, y_low, subset_x, y_high = data_manager.get_overlap_input_data(i_fidelity - 1, i_fidelity, normal=True)
                 y_residual_mean = y_high - y_low
                 y_residual_var = None
             data_manager.add_data(raw_fidelity_name='res-{}'.format(i_fidelity), fidelity_index=None, x=subset_x, y=[y_residual_mean, y_residual_var])
             for i in range(max_iter):
                 optimizer.zero_grad()
-                loss = -ResGPmodel.gpr_list[i_fidelity].log_likelihood(subset_x, [y_residual_mean, y_residual_var])
+                loss = -ResGPmodel.gpr_list[i_fidelity].negative_log_likelihood(subset_x, [y_residual_mean, y_residual_var])
+                if debugger is not None:
+                    debugger.get_status(ResGPmodel, optimizer, i, loss)
                 loss.backward()
                 optimizer.step()
                 print('fidelity:', i_fidelity, 'iter', i, 'nll:{:.5f}'.format(loss.item()))
@@ -115,6 +111,7 @@ def train_ResGP(ResGPmodel, data_manager, max_iter=1000, lr_init=1e-1):
 if __name__ == "__main__":
 
     torch.manual_seed(1)
+    debugger=log_debugger("ResGP")
 
     # generate the data
     x_all = torch.rand(500, 1) * 20
@@ -134,42 +131,28 @@ if __name__ == "__main__":
     y_high2 = torch.sin(x_high2) + torch.rand(250, 1) * 0.1 - 0.05
     y_test = torch.sin(x_test)
 
-    # dnm_xlow = Normalize0_layer(x_low)
-    # dnm_ylow = Normalize0_layer(y_low)
-    # dnm_xhigh1 = Normalize0_layer(x_high1)
-    # dnm_yhigh1 = Normalize0_layer(y_high1)
-    # dnm_xhigh2 = Normalize0_layer(x_high2)
-    # dnm_yhigh2 = Normalize0_layer(y_high2)
-    # dnm_xtest = Normalize0_layer(x_test)
-    # dnm_ytest = Normalize0_layer(y_test)
-
-    # x_low = dnm_xlow.forward(x_low)
-    # y_low = dnm_ylow.forward(y_low)
-    # x_high1 = dnm_xhigh1.forward(x_high1)
-    # y_high1 = dnm_yhigh1.forward(y_high1)
-    # x_high2 = dnm_xhigh2.forward(x_high2)
-    # y_high2 = dnm_yhigh2.forward(y_high2)
-    # x_test1 = dnm_xtest.forward(x_test)
-    # y_test1 = dnm_ytest.forward(y_test)
-
     initial_data = [
         {'raw_fidelity_name': '0','fidelity_indicator': 0, 'X': x_low, 'Y': y_low},
         {'raw_fidelity_name': '1','fidelity_indicator': 1, 'X': x_high1, 'Y': y_high1},
         {'raw_fidelity_name': '2','fidelity_indicator': 2, 'X': x_high2, 'Y': y_high2},
     ]
+    fidelity_num = len(initial_data)
 
     fidelity_manager = MultiFidelityDataManager(initial_data)
-    kernel1 = kernel.SumKernel(kernel.LinearKernel(1), kernel.MaternKernel(1))
-    myResGP = ResGP(fidelity_num = 3, kernel = kernel1, if_nonsubset = True)
+    
+    kernel_list = [kernel.SquaredExponentialKernel() for _ in range(fidelity_num)]
+    myResGP = ResGP(fidelity_num = 3,kernel_list=kernel_list, if_nonsubset = True)
 
     ## if nonsubset is False, max_iter should be 100 ,lr can be 1e-2
-    train_ResGP(myResGP, fidelity_manager, max_iter=100, lr_init=1e-2)
+    train_ResGP(myResGP, fidelity_manager, max_iter=200, lr_init=1e-2, debugger = debugger)
 
+    debugger.logger.info('training finished,start predicting')
     with torch.no_grad():
+        x_test = fidelity_manager.normalizelayer[myResGP.fidelity_num-1].normalize_x(x_test)
         ypred, ypred_var = myResGP(fidelity_manager, x_test)
-        # ypred = dnm_ytest.inverse(ypred)
-        # ypred_var = ypred_var * dnm_ytest.std**2
-
+        ypred, ypred_var = fidelity_manager.normalizelayer[myResGP.fidelity_num-1].denormalize(ypred, ypred_var)
+        
+    debugger.logger.info('prepare to plot')
     plt.figure()
     plt.errorbar(x_test.flatten(), ypred.reshape(-1).detach(), ypred_var.diag().sqrt().squeeze().detach(), fmt = 'r-.' ,alpha = 0.2)
     plt.fill_between(x_test.flatten(), ypred.reshape(-1).detach() - ypred_var.diag().sqrt().squeeze().detach(), ypred.reshape(-1).detach() + ypred_var.diag().sqrt().squeeze().detach(), alpha = 0.2)

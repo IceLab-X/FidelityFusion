@@ -252,8 +252,8 @@ class SquaredExponentialKernel(nn.Module):
 
     def __init__(self, length_scale=1.0, signal_variance=1.0):
         super().__init__()
-        self.length_scale = nn.Parameter(torch.log(torch.tensor([length_scale])))
-        self.signal_variance = nn.Parameter(torch.log(torch.tensor([signal_variance])))
+        self.length_scale = nn.Parameter(torch.tensor([length_scale])) #log
+        self.signal_variance = nn.Parameter(torch.tensor([signal_variance]))
 
     def forward(self, x1, x2):
         """

@@ -6,7 +6,7 @@ import GaussianProcess.kernel as kernel
 from FidelityFusion_Models import *
 from FidelityFusion_Models.MF_data import MultiFidelityDataManager
 from Experiments.calculate_metrix import calculate_metrix
-from Experiments.Load_Mfdata import get_full_name_list_with_fidelity, load_data_certain_fi
+from Experiments.Load_Mfdata import get_full_name_list_with_fidelity, load_data_certain_fi, generate_nonsubset_data
 
 import torch
 import time
@@ -44,6 +44,7 @@ all_data_name_list = ["colville", "nonlinearsin", "toal", "forrester",
                           "maolin19", "maolin20",
                           "shuo6", "shuo11", "shuo15", "shuo16",
                           "test3", "test4", "test5", "test6", "test7"]
+test_data_list = ["colville"]
 
 interp_data = False
 
@@ -52,9 +53,9 @@ train_dic = {'AR': train_AR,'ResGP': train_ResGP, 'NAR': train_NAR,'CIGAR': trai
 
 if __name__ == '__main__':
         
-    # method_list = ['AR','ResGP','NAR','GAR','CIGAR']
-    method_list = ['GAR','CIGAR']
-    all_data_name_with_fi_list = get_full_name_list_with_fidelity(data_name_list=all_data_name_list)   
+    method_list = ['AR','ResGP','NAR','GAR','CIGAR']
+    # method_list = ['GAR','CIGAR']
+    all_data_name_with_fi_list = get_full_name_list_with_fidelity(data_name_list=test_data_list)   
     for _data_name in all_data_name_with_fi_list:
         print(_data_name)
         for method in method_list:
@@ -65,31 +66,14 @@ if __name__ == '__main__':
                 for _high_fidelity_num in [4, 8, 16, 32]:
                     torch.manual_seed(_seed)
 
-                    xtr, Ytr, xte, Yte = load_data_certain_fi(seed = 0, data_name_with_fi = _data_name, n_train = 100, n_test = 100, x_normal=True, y_normal=True)
-                    
-                    x_low = xtr
+                    # xtr, Ytr, xte, Yte = load_data_certain_fi(seed = 0, data_name_with_fi = _data_name, n_train = 100, n_test = 100, x_normal=True, y_normal=True)
+                    xtr, Ytr, xte, Yte = generate_nonsubset_data(_data_name, x_dim = 4, min_value = 0, max_value = 1, num_points = 250, n_train = 100, n_test = 100,subset = True)
+                    x_low = xtr[0]
                     y_low = Ytr[0]
-                    x_high1 = x_low[:_high_fidelity_num]
+                    x_high1 = xtr[1][:_high_fidelity_num]
                     y_high1 = Ytr[1][:_high_fidelity_num]
                     x_test = xte
-                    y_test = Yte[1]
-                    # generate the sample data
-                    # x_all = torch.rand(500, 1) * 20
-
-                    # xlow_indices = torch.randperm(500)[:300]
-                    # xlow_indices = torch.sort(xlow_indices).values
-                    # x_low = x_all[xlow_indices]
-
-                    # xhigh_indices = torch.randperm(300)[:_high_fidelity_num]
-                    # xhigh_indices = torch.sort(xhigh_indices).values
-                    # x_high1 = x_low[xhigh_indices]
-
-                    # y_low = torch.sin(x_low) - 0.5 * torch.sin(2 * x_low) + torch.rand(300, 1) * 0.1 - 0.05
-                    # y_high1 = torch.sin(x_high1) - torch.rand(_high_fidelity_num, 1) * 0.1 - 0.05
-
-                    # x_test = torch.linspace(0, 20, 100).reshape(-1, 1)
-                    # y_test = torch.sin(x_test)
-
+                    y_test = Yte
 
                     data_shape = [y_low[0].shape, y_high1[0].shape]
                 
@@ -100,20 +84,27 @@ if __name__ == '__main__':
 
                     T1 = time.time()
                     fidelity_manager = MultiFidelityDataManager(initial_data)
-                    kernel1 = kernel.SquaredExponentialKernel(length_scale = 1., signal_variance = 1.)
+                    # kernel1 = kernel.SquaredExponentialKernel(length_scale = 1., signal_variance = 1.)
 
                     if method == 'AR':
-                        model = model_dic[method](fidelity_num=2, kernel=kernel1, rho_init=1.0)
+                        model = model_dic[method](fidelity_num=2, rho_init=1.0)
                     elif method in ['CIGAR', 'GAR']:
-                        model = model_dic[method](fidelity_num=2, kernel=kernel1, data_shape_list=data_shape)
+                        model = model_dic[method](fidelity_num=2, data_shape_list=data_shape)
                     else:
-                        model = model_dic[method](fidelity_num=2, kernel=kernel1)
+                        model = model_dic[method](fidelity_num=2)
 
-                    train_dic[method](model, fidelity_manager, max_iter=100, lr_init=1e-3)
+                    if method in ['GAR','CIGAR']:
+                        max_iter = 100
+                        lr = 1e-3
+                    else:
+                        max_iter = 300
+                        lr = 1e-2
+                    train_dic[method](model, fidelity_manager, max_iter = max_iter, lr_init = lr)
 
                     with torch.no_grad():
+                        x_test = fidelity_manager.normalizelayer[model.fidelity_num-1].normalize_x(x_test)
                         ypred, ypred_var = model(fidelity_manager,x_test)
-    
+                        ypred, ypred_var = fidelity_manager.normalizelayer[model.fidelity_num-1].denormalize(ypred, ypred_var)
                     
                     if method in ['GAR','CIGAR']:
                         ypred_var = torch.diag_embed(torch.flatten(ypred_var))

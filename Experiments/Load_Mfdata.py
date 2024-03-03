@@ -153,12 +153,42 @@ def get_data_mu_std(seed, data_name, n_train):
 
     return xtr_mean, xtr_std, ytr_f_mean, ytr_f_std
 
-def generate_nonsubset_data(data_name_with_fi, x_dim, min_value, max_value, num_points = 250, n_train = 100, n_test = 100):
+def generate_nonsubset_data(data_name_with_fi, x_dim, min_value, max_value, num_points=250, n_train=100, n_test=100, subset=False):
+    """
+    Generate non-subset or subset data for a given data name and feature index.
+
+    Args:
+        data_name_with_fi (str): The name of the data with feature index.
+        x_dim (int): The dimension of the input data.
+        min_value (float): The minimum value for generating random input data.
+        max_value (float): The maximum value for generating random input data.
+        num_points (int, optional): The total number of data points to generate. Defaults to 250.
+        n_train (int, optional): The number of training data points. Defaults to 100.
+        n_test (int, optional): The number of test data points. Defaults to 100.
+        subset (bool, optional): Flag indicating whether to generate subset data. Defaults to False.
+
+    Returns:
+        tuple: A tuple containing the generated data and labels.
+            - If subset is False:
+                - x_low (torch.Tensor): The low input data for training.
+                - x_high (torch.Tensor): The high input data for training.
+                - y_low (torch.Tensor): The low labels for training.
+                - y_high (torch.Tensor): The high labels for training.
+                - x_test (torch.Tensor): The input data for testing.
+                - y_test (torch.Tensor): The labels for testing.
+            - If subset is True:
+                - x_low (torch.Tensor): The low input data for training.
+                - x_high (torch.Tensor): The low input data for training (same as x_low).
+                - y_low (torch.Tensor): The low labels for training.
+                - y_high (torch.Tensor): The high labels for training.
+                - x_test (torch.Tensor): The input data for testing.
+                - y_test (torch.Tensor): The labels for testing.
+    """
     x_all = torch.rand(num_points, x_dim) * (max_value - min_value) + min_value
-    xlow_indices = torch.randperm(n_train+50)[:n_train]
+    xlow_indices = torch.randperm(n_train + 50)[:n_train]
     xlow_indices = torch.sort(xlow_indices).values
     x_low = x_all[xlow_indices]
-    xhigh_indices = torch.randperm(n_test+50)[:n_test]
+    xhigh_indices = torch.randperm(n_test + 50)[:n_test]
     xhigh_indices = torch.sort(xhigh_indices).values
     x_high = x_all[xhigh_indices]
     x_test = x_all[num_points - n_train:]
@@ -170,25 +200,25 @@ def generate_nonsubset_data(data_name_with_fi, x_dim, min_value, max_value, num_
     data_func = data_mapping.get(data_name, None)
 
     if data_func is not None:
-        result_low = data_func(x_low) # Call the function to get data and space
+        result_low = data_func(x_low)  # Call the function to get data and space
         _, y = result_low
         y_low = y[f_low_idx]
-        result_high = data_func(x_high)
-        _, y = result_high
-        y_high = y[f_high_idx]
+        if not subset:
+            result_high = data_func(x_high)
+            _, y = result_high
+            y_high = y[f_high_idx]
+        else:
+            result_high = data_func(x_low)
+            _, y = result_high
+            y_high = y[f_high_idx]
         result_test = data_func(x_test)
         _, y = result_test
         y_test = y[f_high_idx]
 
-    # normalize data
-    # x_low = (x_low - x_low.mean()) / x_low.std()
-    # x_high = (x_high - x_high.mean()) / x_high.std()
-    # x_test = (x_test - x_test.mean()) / x_test.std()
-    # y_low = (y_low - y_low.mean()) / y_low.std()
-    # y_high = (y_high - y_high.mean()) / y_high.std()
-    # y_test = (y_test - y_test.mean()) / y_test.std()
-
-    return [x_low, x_high], [y_low, y_high], x_test, y_test
+    if not subset:
+        return [x_low, x_high], [y_low, y_high], x_test, y_test
+    else:
+        return [x_low, x_low], [y_low, y_high], x_test, y_test
 
 def load_data_certain_fi(seed, data_name_with_fi, n_train, n_test, x_normal=False, y_normal=False):
     """

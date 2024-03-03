@@ -54,6 +54,7 @@ data_name_list_dim30 = ["test9"]
 
 #shuo11的seed1 GAR 矩阵分解nan
 data_name_list_dim3 = ["shuo11"]
+test_data_list = ["colville"]
 
 model_dic = {'AR': AR, 'ResGP': ResGP, 'NAR': NAR, 'CIGAR': CIGAR, 'GAR': GAR}
 train_dic = {'AR': train_AR,'ResGP': train_ResGP, 'NAR': train_NAR,'CIGAR': train_CIGAR, 'GAR': train_GAR}
@@ -62,19 +63,19 @@ train_dic = {'AR': train_AR,'ResGP': train_ResGP, 'NAR': train_NAR,'CIGAR': trai
 if __name__ == '__main__':
         
     # method_list = ['NAR']
-    method_list = ['GAR','AR','ResGP','CIGAR']
-    all_data_name_with_fi_list = get_full_name_list_with_fidelity(data_name_list = data_name_list_dim30)   
+    method_list = ['AR','NAR','ResGP','CIGAR','GAR']
+    all_data_name_with_fi_list = get_full_name_list_with_fidelity(data_name_list = test_data_list)   
     for _data_name in all_data_name_with_fi_list:
         print(_data_name)
         for method in method_list:
             print(method)
-            for _seed in [0,2,3,4,5]:
+            for _seed in [0,1,2,3,4]:
                 print(_seed)
                 recording = {'train_sample_num':[], 'rmse':[], 'nrmse':[], 'r2':[], 'nll':[], 'time':[]}
                 for _high_fidelity_num in [4, 8, 16, 32]:
                     torch.manual_seed(_seed)
                     
-                    xtr, Ytr, xte, Yte = generate_nonsubset_data(_data_name, x_dim = 30, min_value = 0, max_value = 1, num_points = 250, n_train = 100, n_test = 100)
+                    xtr, Ytr, xte, Yte = generate_nonsubset_data(_data_name, x_dim = 4, min_value = 0, max_value = 1, num_points = 250, n_train = 100, n_test = 100)
                     
                     x_low = xtr[0]
                     y_low = Ytr[0]
@@ -92,21 +93,28 @@ if __name__ == '__main__':
 
                     T1 = time.time()
                     fidelity_manager = MultiFidelityDataManager(initial_data)
-                    kernel1 = kernel.SquaredExponentialKernel(length_scale = 1., signal_variance = 1.)
+                    # kernel1 = kernel.SquaredExponentialKernel(length_scale = 1., signal_variance = 1.)
 
                     if method == 'AR':
-                        model = model_dic[method](fidelity_num=2, kernel=kernel1, rho_init=1.0, if_nonsubset = True)
+                        model = model_dic[method](fidelity_num=2, rho_init=1.0, if_nonsubset = True)
                     elif method in ['CIGAR', 'GAR']:
-                        model = model_dic[method](fidelity_num=2, kernel=kernel1, data_shape_list = data_shape, if_nonsubset = True)
+                        model = model_dic[method](fidelity_num=2, data_shape_list = data_shape, if_nonsubset = True)
                     else:
-                        model = model_dic[method](fidelity_num=2, kernel=kernel1, if_nonsubset = True)
-
-                    train_dic[method](model, fidelity_manager, max_iter=300, lr_init=1e-3)
+                        model = model_dic[method](fidelity_num=2, if_nonsubset = True)
+                    
+                    if method in ['GAR','CIGAR']:
+                        max_iter = 100
+                        lr = 1e-3
+                    else:
+                        max_iter = 300
+                        lr = 1e-2
+                    train_dic[method](model, fidelity_manager, max_iter=max_iter, lr_init=lr)
 
                     with torch.no_grad():
+                        x_test = fidelity_manager.normalizelayer[model.fidelity_num-1].normalize_x(x_test)
                         ypred, ypred_var = model(fidelity_manager,x_test)
-    
-                    
+                        ypred, ypred_var = fidelity_manager.normalizelayer[model.fidelity_num-1].denormalize(ypred, ypred_var)
+                        
                     if method in ['GAR','CIGAR']:
                         ypred_var = torch.diag_embed(torch.flatten(ypred_var))
                     metrics = calculate_metrix(y_test = y_test, y_mean_pre = ypred.reshape(-1, 1), y_var_pre = ypred_var)
