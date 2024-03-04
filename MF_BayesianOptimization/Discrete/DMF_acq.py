@@ -6,6 +6,13 @@ from torch.distributions import  Normal
 
 PI = 3.1415926
 
+# containing all discrete acquisition functions for multi-fidelity optimization
+# DMF_UCB, DMF_ES, DMF_EI, DMF_PI, DMF_KG
+# containing the optimization function for the acquisition function
+# DMF_acq_opimal_x, DMF_acq_opimal_fidelity, DMF_acq_opimal
+
+
+
 class DiscreteAcquisitionFunction(nn.Module):
     """
     Discrete Acquisition Base Function for UCB, ES, EI and KG
@@ -17,6 +24,7 @@ class DiscreteAcquisitionFunction(nn.Module):
         f_best (tensor): The best observed objective function value to date. If the acq don't need to use it, can be set as None.
 
     Attributes:
+        # DMF_UCB
         UCB_MF: Compute the score of upper confidence bound for input x and targeted fidelity s.
         # ES_MF: Compute the score of Entropy Search for input x and targeted fidelity s.
         EI_MF: Compute the score of Expectation Improvement for input x and targeted fidelity s.
@@ -158,6 +166,7 @@ class DiscreteAcquisitionFunction(nn.Module):
         return kg
     
     def acq_selection_fidelity(self, gamma, new_x):
+        # DMF_acq_opimal_fidelity()
         '''
         According to MF_GP_UCB to select fidelity.
 
@@ -215,6 +224,7 @@ class DiscreteAcquisitionFunction(nn.Module):
     #     return new_s
     
 def optimize_acq_mf(fidelity_manager, acq_mf, n_iterations = 10, learning_rate = 0.001):
+    # DMF_acq_opimal_x()
     '''
     Optimize the acquisition function to get the next candidate point for acq.
 

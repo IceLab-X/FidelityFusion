@@ -6,8 +6,8 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '.
 import GaussianProcess.kernel as kernel
 from FidelityFusion_Models import *
 from FidelityFusion_Models.MF_data import MultiFidelityDataManager
-from MF_discrete_acq_v2 import DiscreteAcquisitionFunction
-from MF_discrete_acq_v2 import optimize_acq_mf
+from MF_BayesianOptimization.Discrete.DMF_acq import DiscreteAcquisitionFunction
+from MF_BayesianOptimization.Discrete.DMF_acq import optimize_acq_mf
 
 def objective_function(x, s):
     xtr = x
