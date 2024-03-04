@@ -8,7 +8,7 @@ from assets.MF_data.collected_data import *
 
 ## push to experiment
 data_mapping = {
-        "colville": multi_fidelity_Colville,
+        "colville": multi_fidelity_Colville,      
         "nonlinearsin": multi_fidelity_non_linear_sin,
         "toal": multi_fidelity_Toal,
         "forrester": multi_fidelity_forrester_my,
@@ -17,8 +17,8 @@ data_mapping = {
         "p3": multi_fidelity_p3_simp,
         "p4": multi_fidelity_p4_simp,
         "p5": multi_fidelity_p5_simp,
-        "maolin1": multi_fidelity_maolin1,
-        "maolin5": multi_fidelity_maolin5,
+        "maolin1": multi_fidelity_maolin1, 
+        "maolin5": multi_fidelity_maolin5, 
         "maolin6": multi_fidelity_maolin6,
         "maolin7": multi_fidelity_maolin7,
         "maolin8": multi_fidelity_maolin8,

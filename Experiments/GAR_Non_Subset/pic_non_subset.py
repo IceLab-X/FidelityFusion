@@ -27,7 +27,7 @@ data_name_list = ["colville", "nonlinearsin", "toal", "forrester",
 # data_name_list = ["shuo16","test3", "test4", "test5", "test6", "test7"]
 data_name_list = ["shuo11"]
 methods_name_list = ['AR','NAR','ResGP','GAR','CIGAR']
-test_name_list = ["colville"]
+test_name_list = ["shuo6"]
 
 all_data_name_with_fi_list = get_full_name_list_with_fidelity(data_name_list=test_name_list)   
 for data_name in all_data_name_with_fi_list:

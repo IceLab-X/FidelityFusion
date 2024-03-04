@@ -13,7 +13,8 @@ tensorly.set_backend('pytorch')
 
 
 EPS = 1e-9
-
+JITTER = 1e-6
+PI = 3.1415
 # define a normalization module
 
     
@@ -115,6 +116,24 @@ def conditional_Gaussian(y, Sigma, K_s, K_ss, Kinv_method='cholesky3'):
         raise ValueError('Kinv_method should be either direct or cholesky')
     
     return mu, cov
+
+def negative_log_likelihood(kernel, log_beta, x_train, y_train):
+        
+    ## A scheme proposed by WJ to make GP more stable -2024/3/4
+
+    y_num, y_dimension = y_train.shape
+    Sigma = kernel(x_train, x_train) + log_beta.exp().pow(-1) * torch.eye(
+        x_train.size(0)) + JITTER * kernel(x_train, x_train).mean() * torch.eye(x_train.size(0))
+    
+    L = torch.linalg.cholesky(Sigma)
+    #option 1 (use this if torch supports)
+    Gamma,_ = torch.triangular_solve(y_train, L, upper = False)
+    #option 2
+    # gamma = L.inverse() @ Y       # we can use this as an alternative because L is a lower triangular matrix.
+
+    nll =  0.5 * (Gamma ** 2).sum() +  L.diag().log().sum() * y_dimension  \
+        + 0.5 * y_num * torch.log(2 * torch.tensor(PI)) * y_dimension
+    return -nll
 
 class Tensor_linear(torch.nn.Module):
     def __init__(self,l_shape,h_shape):

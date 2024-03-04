@@ -54,7 +54,7 @@ data_name_list_dim30 = ["test9"]
 
 #shuo11的seed1 GAR 矩阵分解nan
 data_name_list_dim3 = ["shuo11"]
-test_data_list = ["colville"]
+test_data_list = ["shuo6"]
 
 model_dic = {'AR': AR, 'ResGP': ResGP, 'NAR': NAR, 'CIGAR': CIGAR, 'GAR': GAR}
 train_dic = {'AR': train_AR,'ResGP': train_ResGP, 'NAR': train_NAR,'CIGAR': train_CIGAR, 'GAR': train_GAR}
@@ -75,7 +75,7 @@ if __name__ == '__main__':
                 for _high_fidelity_num in [4, 8, 16, 32]:
                     torch.manual_seed(_seed)
                     
-                    xtr, Ytr, xte, Yte = generate_nonsubset_data(_data_name, x_dim = 4, min_value = 0, max_value = 1, num_points = 250, n_train = 100, n_test = 100)
+                    xtr, Ytr, xte, Yte = generate_nonsubset_data(_data_name, x_dim = 2, min_value = 0, max_value = 10, num_points = 250, n_train = 100, n_test = 100)
                     
                     x_low = xtr[0]
                     y_low = Ytr[0]
@@ -94,13 +94,13 @@ if __name__ == '__main__':
                     T1 = time.time()
                     fidelity_manager = MultiFidelityDataManager(initial_data)
                     # kernel1 = kernel.SquaredExponentialKernel(length_scale = 1., signal_variance = 1.)
-
+                    kernel_list = [kernel.SquaredExponentialKernel(), kernel.SquaredExponentialKernel()]
                     if method == 'AR':
-                        model = model_dic[method](fidelity_num=2, rho_init=1.0, if_nonsubset = True)
+                        model = model_dic[method](fidelity_num=2, kernel_list=kernel_list, rho_init=1.0, if_nonsubset = True)
                     elif method in ['CIGAR', 'GAR']:
-                        model = model_dic[method](fidelity_num=2, data_shape_list = data_shape, if_nonsubset = True)
+                        model = model_dic[method](fidelity_num=2,kernel_list=kernel_list, data_shape_list = data_shape, if_nonsubset = True)
                     else:
-                        model = model_dic[method](fidelity_num=2, if_nonsubset = True)
+                        model = model_dic[method](fidelity_num=2,kernel_list=kernel_list, if_nonsubset = True)
                     
                     if method in ['GAR','CIGAR']:
                         max_iter = 100

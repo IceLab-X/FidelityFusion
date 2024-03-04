@@ -44,7 +44,7 @@ all_data_name_list = ["colville", "nonlinearsin", "toal", "forrester",
                           "maolin19", "maolin20",
                           "shuo6", "shuo11", "shuo15", "shuo16",
                           "test3", "test4", "test5", "test6", "test7"]
-test_data_list = ["colville"]
+test_data_list = ["shuo6"]
 
 interp_data = False
 
@@ -67,7 +67,7 @@ if __name__ == '__main__':
                     torch.manual_seed(_seed)
 
                     # xtr, Ytr, xte, Yte = load_data_certain_fi(seed = 0, data_name_with_fi = _data_name, n_train = 100, n_test = 100, x_normal=True, y_normal=True)
-                    xtr, Ytr, xte, Yte = generate_nonsubset_data(_data_name, x_dim = 4, min_value = 0, max_value = 1, num_points = 250, n_train = 100, n_test = 100,subset = True)
+                    xtr, Ytr, xte, Yte = generate_nonsubset_data(_data_name, x_dim = 2, min_value = 0, max_value = 10, num_points = 250, n_train = 100, n_test = 100,subset = True)
                     x_low = xtr[0]
                     y_low = Ytr[0]
                     x_high1 = xtr[1][:_high_fidelity_num]
@@ -85,13 +85,13 @@ if __name__ == '__main__':
                     T1 = time.time()
                     fidelity_manager = MultiFidelityDataManager(initial_data)
                     # kernel1 = kernel.SquaredExponentialKernel(length_scale = 1., signal_variance = 1.)
-
+                    kernel_list = [kernel.SquaredExponentialKernel(), kernel.SquaredExponentialKernel()]
                     if method == 'AR':
-                        model = model_dic[method](fidelity_num=2, rho_init=1.0)
+                        model = model_dic[method](fidelity_num=2,kernel_list = kernel_list, rho_init=1.0)
                     elif method in ['CIGAR', 'GAR']:
-                        model = model_dic[method](fidelity_num=2, data_shape_list=data_shape)
+                        model = model_dic[method](fidelity_num=2,kernel_list = kernel_list, data_shape_list=data_shape)
                     else:
-                        model = model_dic[method](fidelity_num=2)
+                        model = model_dic[method](fidelity_num=2,kernel_list = kernel_list)
 
                     if method in ['GAR','CIGAR']:
                         max_iter = 100

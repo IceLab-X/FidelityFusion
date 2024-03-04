@@ -33,7 +33,7 @@ def multi_fidelity_forrester_my(x = None, min_value = 0, max_value = 1, std = 0,
     def forrester_3(x, sd=std):
         '''
         math:
-            f(x) = 0.75 f_{high}(x) + 5 (x - 0.5) - 2
+            f(x) = 0.75 f_{1}(x) + 5 (x - 0.5) - 2
         '''
         high_fidelity = forrester_1(x, 0)
         return 0.75 * high_fidelity + 5 * (x - 0.5) - 2 + torch.randn(x.size(0), 1) * sd
@@ -41,7 +41,7 @@ def multi_fidelity_forrester_my(x = None, min_value = 0, max_value = 1, std = 0,
     def forrester_4(x, sd=std):
         """
         math:
-            f_{low}(x) = 0.5 f_{high}(x) + 10 (x - 0.5) - 5
+            f_{low}(x) = 0.5 f_{1}(x) + 10 (x - 0.5) - 5
         """
         high_fidelity = forrester_1(x, 0)
         noise = torch.randn(x.size(0), 1) * sd
