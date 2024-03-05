@@ -34,11 +34,14 @@ initial_data = [
                 ]
 
 fidelity_manager = MultiFidelityDataManager(initial_data)
-kernel1 = kernel.SquaredExponentialKernel(length_scale = 1., signal_variance = 1.)
-# model = AR(fidelity_num=2, kernel=kernel1, rho_init=1.0, if_nonsubset=True)
-# train_AR(model, fidelity_manager, max_iter=100, lr_init=1e-3)
-model = ResGP(fidelity_num=2, kernel=kernel1, if_nonsubset=True)
-train_ResGP(model, fidelity_manager, max_iter=100, lr_init=1e-3)
+kernel1 = [kernel.SquaredExponentialKernel(length_scale = 1., signal_variance = 1.)for _ in range(2)]
+model = AR(fidelity_num=2, kernel_list=kernel1, rho_init=1.0, if_nonsubset=True)
+train_AR(model, fidelity_manager, max_iter=100, lr_init=1e-3)
+# model = ResGP(fidelity_num=2, kernel_list=kernel1, if_nonsubset=True)
+# train_ResGP(model, fidelity_manager, max_iter=100, lr_init=1e-3)
+
+for param in model.parameters():
+    param.requires_grad = False
 
 def mean_function(x, s):
     mean, _ = model.forward(fidelity_manager, x, s)

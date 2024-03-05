@@ -83,7 +83,9 @@ def train_NAR(NARmodel, data_manager, max_iter=1000, lr_init=1e-1, debugger=None
                     debugger.get_status(NARmodel, optimizer, i, loss)
                 loss.backward()
                 optimizer.step()
-                print('fidelity:', i_fidelity, 'iter', i, 'nll:{:.5f}'.format(loss.item()))
+                # print('fidelity:', i_fidelity, 'iter', i, 'nll:{:.5f}'.format(loss.item()))
+                print('fidelity {}, epoch {}/{}, nll: {}'.format(i_fidelity, i+1, max_iter, loss.item()), end='\r')
+            print('')
         else:
             if NARmodel.if_nonsubset:
                 with torch.no_grad():
@@ -95,7 +97,7 @@ def train_NAR(NARmodel, data_manager, max_iter=1000, lr_init=1e-1, debugger=None
                 _, y_low_mean, subset_x, y_high_mean = data_manager.get_overlap_input_data(i_fidelity - 1, i_fidelity, normal=True)
                 y_high_var = None
             concat_input = torch.cat([subset_x, y_low_mean], dim=-1)
-            data_manager.add_data(raw_fidelity_name='concat-{}'.format(i_fidelity), fidelity_index=None, x=concat_input, y=[y_high_mean, y_high_var])
+            data_manager.add_data(raw_fidelity_name='concat-{}'.format(i_fidelity), fidelity_index=None, x=concat_input.detach(), y=[y_high_mean.detach(), y_high_var.detach()])
             for i in range(max_iter):
                 optimizer.zero_grad()
                 loss = -NARmodel.gpr_list[i_fidelity].negative_log_likelihood(concat_input, [y_high_mean, y_high_var])
@@ -103,7 +105,9 @@ def train_NAR(NARmodel, data_manager, max_iter=1000, lr_init=1e-1, debugger=None
                     debugger.get_status(NARmodel, optimizer, i, loss)
                 loss.backward()
                 optimizer.step()
-                print('fidelity:', i_fidelity, 'iter', i, 'nll:{:.5f}'.format(loss.item()))
+                # print('fidelity:', i_fidelity, 'iter', i, 'nll:{:.5f}'.format(loss.item()))
+                print('fidelity {}, epoch {}/{}, nll: {}'.format(i_fidelity, i+1, max_iter, loss.item()), end='\r')
+            print('')
     
 # demo 
 if __name__ == "__main__":

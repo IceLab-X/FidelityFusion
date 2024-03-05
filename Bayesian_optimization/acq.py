@@ -1,6 +1,5 @@
 import inspect
 import math
-import torch.nn as nn
 from numbers import Real
 import torch.nn as nn
 import numpy as np
@@ -255,7 +254,41 @@ class KG:
         kg = expected_improvement.mean(dim=0)
 
         return kg
-    
+
+
+class PF:
+    def __init__(self, mean_func, variance_func, thresholds):
+        """
+        Initialize the Probability of Feasibility (PF) computation class.
+
+        Args:
+            mean_func: Function to compute the mean of the Gaussian process.
+            variance_func: Function to compute the variance of the Gaussian process.
+            thresholds: List of threshold values for the constraints, corresponding to the target outputs.
+        """
+        self.mean_func = mean_func
+        self.variance_func = variance_func
+        self.thresholds = thresholds
+
+    def forward(self, X):
+        """
+        Compute the probability of satisfying multiple constraint conditions for the given inputs X.
+
+        Args:
+            X: Set of input points (n_samples, n_features).
+
+        Returns:
+            PF: Array of probabilities, indicating the satisfaction of all constraint conditions for each input point.
+        """
+        mu = self.mean_func(X)  # Compute the mean
+        variance = self.variance_func(X)  # Compute the variance
+        sigma = torch.sqrt(variance)  # Compute the standard deviation
+        PF = np.ones(X.shape[0])  # Initialize the probability array
+        for i in range(len(self.thresholds)):
+            # For each constraint condition, compute the probability of satisfaction and multiply it to the PF array
+            PF *= norm.cdf((self.thresholds[i] - mu[:, i]) / sigma[:, i])
+        return PF
+
 
 # Example usage
 if __name__ == "__main__":

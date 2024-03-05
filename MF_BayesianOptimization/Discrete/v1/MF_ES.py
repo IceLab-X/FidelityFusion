@@ -3,7 +3,7 @@ import torch
 import torch.nn as nn
 import math
 
-from Acquisition_Function.Discrete.ES import EntropySearch
+from v1.ES import EntropySearch
 
 class entropy_search():
     def __init__(self, fidelity_num, x_dimension, data_manager, model_objective, model_cost, seed):

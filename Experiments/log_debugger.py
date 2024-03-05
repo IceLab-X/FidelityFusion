@@ -78,7 +78,7 @@ class log_debugger:
                 'epoch': epoch - 1,
                 'model_state_dict': GPmodel.state_dict(),
                 'optimizer_state_dict': optimizer.state_dict(),
-            }, './checkpoint/rollback_checkpoint.pth')
+            }, './rollback_checkpoint.pth')
             
             return -1
         else:

@@ -104,7 +104,9 @@ def train_CIGAR(CIGARmodel, data_manager, max_iter=1000, lr_init=1e-1, debugger=
                     debugger.get_status(CIGARmodel, optimizer, i, loss)
                 loss.backward()
                 optimizer.step()
-                print('fidelity:', i_fidelity, 'iter', i, 'nll:{:.5f}'.format(loss.item()))
+                # print('fidelity:', i_fidelity, 'iter', i, 'nll:{:.5f}'.format(loss.item()))
+                print('fidelity {}, epoch {}/{}, nll: {}'.format(i_fidelity, i+1, max_iter, loss.item()), end='\r')
+            print('')
         else:
             if CIGARmodel.if_nonsubset:
                 with torch.no_grad():
@@ -121,13 +123,15 @@ def train_CIGAR(CIGARmodel, data_manager, max_iter=1000, lr_init=1e-1, debugger=
                     y_residual_var = None
 
                 if i == max_iter - 1:
-                    data_manager.add_data(raw_fidelity_name='res-{}'.format(i_fidelity), fidelity_index=None, x=subset_x, y=[y_residual_mean, y_residual_var])
+                    data_manager.add_data(raw_fidelity_name='res-{}'.format(i_fidelity), fidelity_index=None, x=subset_x.detach(), y=[y_residual_mean.detach(), y_residual_var.detach()])
                 loss = -CIGARmodel.gpr_list[i_fidelity].negative_log_likelihood(subset_x, [y_residual_mean, y_residual_var])
                 if debugger is not None:
                     debugger.get_status(CIGARmodel, optimizer, i, loss)
                 loss.backward()
                 optimizer.step()
-                print('fidelity:', i_fidelity, 'iter', i, 'nll:{:.5f}'.format(loss.item()))
+                # print('fidelity:', i_fidelity, 'iter', i, 'nll:{:.5f}'.format(loss.item()))
+                print('fidelity {}, epoch {}/{}, nll: {}'.format(i_fidelity, i+1, max_iter, loss.item()), end='\r')
+            print('')
 
 if __name__ == "__main__":
     torch.manual_seed(1)

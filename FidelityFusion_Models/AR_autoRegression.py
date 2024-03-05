@@ -111,7 +111,9 @@ def train_AR(ARmodel, data_manager, max_iter=1000, lr_init=1e-1, debugger=None):
                     debugger.get_status(ARmodel, optimizer, i, loss)
                 loss.backward()
                 optimizer.step()
-                print('fidelity:', i_fidelity, 'iter', i, 'nll:{:.5f}'.format(loss.item()))
+                # print('fidelity:', i_fidelity, 'iter', i, 'nll:{:.5f}'.format(loss.item()))
+                print('fidelity {}, epoch {}/{}, nll: {}'.format(i_fidelity, i+1, max_iter, loss.item()), end='\r')
+            print('')
         else:
             if ARmodel.if_nonsubset:
                 with torch.no_grad():
@@ -127,13 +129,15 @@ def train_AR(ARmodel, data_manager, max_iter=1000, lr_init=1e-1, debugger=None):
                     y_residual_mean = y_high - ARmodel.rho_list[i_fidelity - 1] * y_low
                     y_residual_var = None
                 if i == max_iter - 1:
-                    data_manager.add_data(raw_fidelity_name='res-{}'.format(i_fidelity), fidelity_index=None, x=subset_x, y=[y_residual_mean, y_residual_var])
+                    data_manager.add_data(raw_fidelity_name='res-{}'.format(i_fidelity), fidelity_index=None, x=subset_x.detach(), y=[y_residual_mean.detach(), y_residual_var.detach()])
                 loss = -ARmodel.gpr_list[i_fidelity].negative_log_likelihood(subset_x, [y_residual_mean, y_residual_var])
                 if debugger is not None:
                     debugger.get_status(ARmodel, optimizer, i, loss)
                 loss.backward()
                 optimizer.step()
-                print('fidelity:', i_fidelity, 'iter', i, 'rho', ARmodel.rho_list[i_fidelity - 1].item(), 'nll:{:.5f}'.format(loss.item()))
+                # print('fidelity:', i_fidelity, 'iter', i, 'rho', ARmodel.rho_list[i_fidelity - 1].item(), 'nll:{:.5f}'.format(loss.item()))
+                print('fidelity {}, epoch {}/{},rho {}, nll: {}'.format(i_fidelity, i+1, max_iter, ARmodel.rho_list[i_fidelity - 1].item(), loss.item()), end='\r')
+            print('')
             
 # demo 
 if __name__ == "__main__":

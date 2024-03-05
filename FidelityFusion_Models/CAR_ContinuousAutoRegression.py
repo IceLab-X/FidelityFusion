@@ -124,18 +124,22 @@ def train_CAR(CARmodel, data_manager,max_iter=1000,lr_init=1e-1):
                 loss = -CARmodel.cigp_list[i_fidelity].log_likelihood(x_low, y_low)
                 loss.backward()
                 optimizer.step()
-                print('fidelity:', i_fidelity, 'iter', i, 'nll:{:.5f}'.format(loss.item()))
+                # print('fidelity:', i_fidelity, 'iter', i, 'nll:{:.5f}'.format(loss.item()))
+                print('fidelity {}, epoch {}/{}, nll: {}'.format(i_fidelity, i+1, max_iter, loss.item()), end='\r')
+            print('')
         else:
             _, y_low, subset_x,y_high = data_manager.get_overlap_input_data(i_fidelity-1,i_fidelity)
             for i in range(max_iter):
                 optimizer.zero_grad()
                 y_residual = y_high - CARmodel.b.exp() * y_low # 修改
                 if i == max_iter-1:
-                    data_manager.add_data(fidelity_index=-i_fidelity,raw_fidelity_name='res-{}'.format(i_fidelity),x=subset_x,y=y_residual)
+                    data_manager.add_data(fidelity_index=-i_fidelity,raw_fidelity_name='res-{}'.format(i_fidelity),x=subset_x.detach(),y=y_residual.detach())
                 loss = -CARmodel.cigp_list[i_fidelity].log_likelihood(subset_x, y_residual)
                 loss.backward()
                 optimizer.step()
-                print('fidelity:', i_fidelity, 'iter', i,'b:',CARmodel.b.item(), 'nll:{:.5f}'.format(loss.item()))
+                # print('fidelity:', i_fidelity, 'iter', i,'b:',CARmodel.b.item(), 'nll:{:.5f}'.format(loss.item()))
+                print('fidelity {}, epoch {}/{},b {}, nll: {}'.format(i_fidelity, i+1, max_iter,CARmodel.b.item(), loss.item()), end='\r')
+            print('')
             
 # demo 
 if __name__ == "__main__":
@@ -172,7 +176,7 @@ if __name__ == "__main__":
     # kernel_residual = fidelity_kernel_MCMC(x_low.shape[1], kernel.ARDKernel(x_low.shape[1]), 1, 2)
     CAR = ContinuousAutoRegression(fidelity_num=fidelity_num, kernel_list=kernel_list, b_init=1.0)
 
-    train_CAR(CAR,fidelity_manager, max_iter=100, lr_init=1e-2)
+    train_CAR(CAR,fidelity_manager, max_iter=200, lr_init=1e-2)
 
     with torch.no_grad():
         ypred, ypred_var = CAR(fidelity_manager,x_test)
