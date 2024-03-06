@@ -50,30 +50,6 @@ A simplified version of GAR by leveraging the *Autokrigeability*. `Tractable mod
 
 
 
-
-# Packaging and Installing
-Packaging software：
-```
-# create "tar.gz" compressed file
-python setup.py sdist
-The generated compressed file will be saved to：dist/mffusion-0.1.0b1.tar.gz
-
-# create "whl" compressed file
-python setup.py bdist_wheel 
-The generated compressed file will saved in to：dist/mffusion-0.1.0b1-py3-none-any.whl
-```
-
-For user (who do not want to modify the code), install `mffusion`：
-```
-pip install mffusion-0.1.0b1.tar.gz
-```
-
-For developer, install `mffusion`：
-```
-cd mffusion (Navigate to the setup.py)
-pip install -e .
-```
-
 <!-- # Datasets
 Here we put the toydata as a sample to run demos. But you can also use the other dataset we mentioned in the papers. Like Burger’s, Poisson’s, Heat equations, Topology Optimization and Plasmonic nanoparticle arrays.
 ```
@@ -84,15 +60,13 @@ mffusion/
 ``` -->
 
 # Run
-You can fast test on toy data by run `gar_demo.py`. You will be able find all the demo results in `mffusion/demo/`. 
+You can fast test on toy data by run `mfgp_demo.py`.
 ```
-mffusion/
-├── demo/
-│     └── gar_demo.py
-├── visualize_tools/
-│     └── paint_code/
-│              └── subset/
-│                    └── paint_seed.py/
+python mfgp_demo.py <model_name>
+such as: python mfgp_demo.py CIGP
+
+the following model is support now:
+'AR', 'CIGAR', 'GAR', 'FIDES', 'NAR', 'ResGP', 'CIGP', 'HOGP'
 ```
 <!-- For training samples num increased from 4 to 32, the testing errors are ploted in the following graph. The generated graph will be sotred in `mffusion/graph`. -->
 
