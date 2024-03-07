@@ -26,9 +26,9 @@ class HOGP_simple(nn.Module):
         self.K = []
         self.K_eigen = []
         self.kernel_list = nn.ModuleList()
-        for _ in range(len(output_shape) + 1):
-            new_kernel = kernel
-            self.kernel_list.append(new_kernel)
+        for i in range(len(output_shape) + 1):
+            # new_kernel = kernel
+            self.kernel_list.append(kernel[i])
         self.grid = nn.ParameterList()
         for _value in output_shape:
             self.grid.append(nn.Parameter(torch.tensor(range(_value)).reshape(-1, 1).float()))
@@ -163,7 +163,8 @@ if __name__ == '__main__':
 
     output_shape = ytr[0,...].shape
 
-    GPmodel=HOGP_simple(kernel = kernel.ARDKernel(1), noise_variance = 1.0, output_shape = output_shape, learnable_grid = False, learnable_map = False)
+    kernel_list = [kernel.ARDKernel(1) for _ in range(len(output_shape) + 1)]
+    GPmodel=HOGP_simple(kernel = kernel_list, noise_variance = 1.0, output_shape = output_shape, learnable_grid = False, learnable_map = False)
 
     optimizer = torch.optim.Adam(GPmodel.parameters(), lr = 1e-2)
 

@@ -26,8 +26,9 @@ class GAR(torch.nn.Module):
         self.fidelity_num = fidelity_num
         self.hogp_list = []
         for i in range(self.fidelity_num):
-            k = i + 1 if i < len(data_shape_list) - 1 else len(data_shape_list) - 1
-            self.hogp_list.append(HOGP_simple(kernel=kernel_list[i], noise_variance=1.0, output_shape=data_shape_list[k], learnable_grid=False, learnable_map=False))
+            # k = i + 1 if i < len(data_shape_list) - 1 else len(data_shape_list) - 1
+            k = i
+            self.hogp_list.append(HOGP_simple(kernel=[kernel_list[i] for _ in range(len(data_shape_list[k])+1)], noise_variance=1.0, output_shape=data_shape_list[k], learnable_grid=False, learnable_map=False))
         self.hogp_list = torch.nn.ModuleList(self.hogp_list)
 
         self.Tensor_linear_list = []
