@@ -5,6 +5,7 @@ version 1.2 : 2024/1/6 add get_data_by_name and get_nonsubset_data
 version 1.3 : 2024/3/3 add normalize and denormalize
 '''
 import torch
+import warnings
 EPS = 1e-10
 class Normalizer:
     """
@@ -71,6 +72,47 @@ class Normalizer:
         mean = mean * self.y_std.expand_as(mean) + self.y_mean.expand_as(mean)
         var = var * (self.y_std ** 2).expand_as(var)
         return mean, var
+    
+class min_max_normalizer:
+    """
+    A class for performing min-max normalization on a given tensor.
+
+    Args:
+        tensor (Tensor): The input tensor to be normalized.
+        min_value (float, optional): The minimum value of the normalized range. Defaults to 0.
+        max_value (float, optional): The maximum value of the normalized range. Defaults to 1.
+    """
+
+    def __init__(self, tensor, min_value=0, max_value=1) -> None:
+        self.min_value = min_value
+        self.max_value = max_value
+        self.min = tensor.min(tensor)
+        self.max = tensor.max(tensor)
+    
+    def normalize(self, tensor):
+        """
+        Normalize the given tensor.
+
+        Args:
+            tensor (Tensor): The input tensor to be normalized.
+
+        Returns:
+            Tensor: The normalized tensor.
+        """
+        return (tensor - self.min) / (self.max - self.min) * (self.max_value - self.min_value) + self.min_value
+    
+    def denormalize(self, tensor):
+        """
+        Denormalize the given tensor.
+
+        Args:
+            tensor (Tensor): The input tensor to be denormalized.
+
+        Returns:
+            Tensor: The denormalized tensor.
+        """
+        return (tensor - self.min_value) / (self.max_value - self.min_value) * (self.max - self.min) + self.min
+
 
 # TODO: doest data manager assume the low fidelity data always contains more data than the high fidelity data?
 class MultiFidelityDataManager:
@@ -134,7 +176,7 @@ class MultiFidelityDataManager:
         if fidelity_index not in self.normalizelayer and fidelity_index is not None:
             self.normalizelayer[fidelity_index] = Normalizer(x, y)
 
-    def get_data(self, fidelity_index, normal=True):
+    def get_data(self, fidelity_index, normal=False):
         """
         Retrieves data from the data_dict.
 
@@ -152,9 +194,11 @@ class MultiFidelityDataManager:
                     return self.normalizelayer[fidelity_index].normalize(data['X'], data['Y'])
                 else:
                     return data['X'], data['Y']
+        
+        warnings.warn("Can't find the data with the fidelity index: {}".format(fidelity_index))
         return None, None
 
-    def get_data_by_name(self, raw_fidelity_name, normal=True):
+    def get_data_by_name(self, raw_fidelity_name, normal = False):
         """
         Retrieves data by fidelity name from the data_dict.
 
@@ -172,6 +216,7 @@ class MultiFidelityDataManager:
             else:
                 return self.data_dict[raw_fidelity_name]['X'], self.data_dict[raw_fidelity_name]['Y']
         else:
+            warnings.warn("Can't find the data with the fidelity name: {}".format(raw_fidelity_name))
             return None, None
 
     def get_overlap_input_data(self, fidelity_index1, fidelity_index2, normal=False):

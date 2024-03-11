@@ -6,3 +6,4 @@ from FidelityFusion_Models.GAR import GAR, train_GAR
 from FidelityFusion_Models.MF_data import MultiFidelityDataManager
 from FidelityFusion_Models.NAR import NAR, train_NAR
 from FidelityFusion_Models.ResGP import ResGP, train_ResGP
+from FidelityFusion_Models.AR_adaptivealpha import AR_aa, train_ARaa

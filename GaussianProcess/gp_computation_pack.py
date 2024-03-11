@@ -154,5 +154,5 @@ class Tensor_linear(torch.nn.Module):
 
     def forward(self,x):
         for i in range(len(self.l_shape)):
-            y = tensorly.tenalg.mode_dot(x, self.vectors[i], i+1)
-        return y
+            x = tensorly.tenalg.mode_dot(x, self.vectors[i], i+1)
+        return x

@@ -54,7 +54,7 @@ data_name_list_dim30 = ["test9"]
 
 #shuo11的seed1 GAR 矩阵分解nan
 data_name_list_dim3 = ["shuo11"]
-test_data_list = ["shuo6"]
+test_data_list = ["nonlinearsin"]
 
 model_dic = {'AR': AR, 'ResGP': ResGP, 'NAR': NAR, 'CIGAR': CIGAR, 'GAR': GAR}
 train_dic = {'AR': train_AR,'ResGP': train_ResGP, 'NAR': train_NAR,'CIGAR': train_CIGAR, 'GAR': train_GAR}
@@ -75,7 +75,7 @@ if __name__ == '__main__':
                 for _high_fidelity_num in [4, 8, 16, 32]:
                     torch.manual_seed(_seed)
                     
-                    xtr, Ytr, xte, Yte = generate_nonsubset_data(_data_name, x_dim = 2, min_value = 0, max_value = 10, num_points = 250, n_train = 100, n_test = 100)
+                    xtr, Ytr, xte, Yte = generate_nonsubset_data(_data_name, x_dim = 1, min_value = -5, max_value = 10, num_points = 250, n_train = 100, n_test = 100)
                     
                     x_low = xtr[0]
                     y_low = Ytr[0]

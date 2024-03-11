@@ -97,7 +97,9 @@ def train_NAR(NARmodel, data_manager, max_iter=1000, lr_init=1e-1, debugger=None
                 _, y_low_mean, subset_x, y_high_mean = data_manager.get_overlap_input_data(i_fidelity - 1, i_fidelity, normal=True)
                 y_high_var = None
             concat_input = torch.cat([subset_x, y_low_mean], dim=-1)
-            data_manager.add_data(raw_fidelity_name='concat-{}'.format(i_fidelity), fidelity_index=None, x=concat_input.detach(), y=[y_high_mean.detach(), y_high_var.detach()])
+            if y_high_var is not None:
+                y_high_var = y_high_var.detach()
+            data_manager.add_data(raw_fidelity_name='concat-{}'.format(i_fidelity), fidelity_index=None, x=concat_input.detach(), y=[y_high_mean.detach(), y_high_var])
             for i in range(max_iter):
                 optimizer.zero_grad()
                 loss = -NARmodel.gpr_list[i_fidelity].negative_log_likelihood(concat_input, [y_high_mean, y_high_var])
@@ -113,6 +115,7 @@ def train_NAR(NARmodel, data_manager, max_iter=1000, lr_init=1e-1, debugger=None
 if __name__ == "__main__":
 
     torch.manual_seed(1)
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     debugger=log_debugger("NAR")
 
     # generate the data
@@ -134,16 +137,16 @@ if __name__ == "__main__":
     y_test = torch.sin(x_test)
 
     initial_data = [
-        {'fidelity_indicator': 0,'raw_fidelity_name': '0', 'X': x_low, 'Y': y_low},
-        {'fidelity_indicator': 1, 'raw_fidelity_name': '1', 'X': x_high1, 'Y': y_high1},
-        {'fidelity_indicator': 2, 'raw_fidelity_name': '2','X': x_high2, 'Y': y_high2},
+        {'fidelity_indicator': 0,'raw_fidelity_name': '0', 'X': x_low.to(device), 'Y': y_low.to(device)},
+        {'fidelity_indicator': 1, 'raw_fidelity_name': '1', 'X': x_high1.to(device), 'Y': y_high1.to(device)},
+        {'fidelity_indicator': 2, 'raw_fidelity_name': '2','X': x_high2.to(device), 'Y': y_high2.to(device)},
     ]
     fidelity_num = len(initial_data)
 
     fidelity_manager = MultiFidelityDataManager(initial_data)
     kernel_list = [kernel.SquaredExponentialKernel() for _ in range(fidelity_num)]
     
-    myNAR = NAR(fidelity_num = 3,kernel_list= kernel_list, if_nonsubset = False)
+    myNAR = NAR(fidelity_num = 3,kernel_list= kernel_list, if_nonsubset = False).to(device)
 
     ## if nonsubset is False, max_iter should be 200 ,lr can be 1e-2
     train_NAR(myNAR,fidelity_manager, max_iter = 200, lr_init = 1e-2, debugger = debugger)

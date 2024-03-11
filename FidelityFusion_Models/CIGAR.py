@@ -123,7 +123,9 @@ def train_CIGAR(CIGARmodel, data_manager, max_iter=1000, lr_init=1e-1, debugger=
                     y_residual_var = None
 
                 if i == max_iter - 1:
-                    data_manager.add_data(raw_fidelity_name='res-{}'.format(i_fidelity), fidelity_index=None, x=subset_x.detach(), y=[y_residual_mean.detach(), y_residual_var.detach()])
+                    if y_residual_var is not None:
+                        y_residual_var = y_residual_var.detach()
+                    data_manager.add_data(raw_fidelity_name='res-{}'.format(i_fidelity), fidelity_index=None, x=subset_x.detach(), y=[y_residual_mean.detach(), y_residual_var])
                 loss = -CIGARmodel.gpr_list[i_fidelity].negative_log_likelihood(subset_x, [y_residual_mean, y_residual_var])
                 if debugger is not None:
                     debugger.get_status(CIGARmodel, optimizer, i, loss)
@@ -135,6 +137,7 @@ def train_CIGAR(CIGARmodel, data_manager, max_iter=1000, lr_init=1e-1, debugger=
 
 if __name__ == "__main__":
     torch.manual_seed(1)
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     debugger=log_debugger("CIGAR")
 
     x = np.load('assets/MF_data/Poisson_data/input.npy')
@@ -146,14 +149,14 @@ if __name__ == "__main__":
     yh2 = np.load('assets/MF_data/Poisson_data/output_fidelity_2.npy')
     yh2 = torch.tensor(yh2, dtype = torch.float32)
 
-    x_train = x[:128, :]
-    y_l = yl[:128, :]
-    y_h = yh[:128, :]
-    y_h2 = yh2[:128, :]
+    x_train = x[:128, :].to(device)
+    y_l = yl[:128, :].to(device)
+    y_h = yh[:128, :].to(device)
+    y_h2 = yh2[:128, :].to(device)
     src_y_shape = y_h2.shape[1:]
 
-    x_test = x[128:, :]
-    y_test = yh2[128:, :]
+    x_test = x[128:, :].to(device)
+    y_test = yh2[128:, :].to(device)
 
     x_train = x_train.reshape(x_train.shape[0],-1)
     y_l = y_l.reshape(y_l.shape[0],-1)
@@ -173,7 +176,7 @@ if __name__ == "__main__":
     fidelity_manager = MultiFidelityDataManager(initial_data)
 
     kernel_list = [kernel.SquaredExponentialKernel() for _ in range(fidelity_num)]
-    myCIGAR = CIGAR(fidelity_num, kernel_list, data_shape, if_nonsubset = True)
+    myCIGAR = CIGAR(fidelity_num, kernel_list, data_shape, if_nonsubset = True).to(device)
 
     train_CIGAR(myCIGAR, fidelity_manager, max_iter = 100, lr_init = 1e-3, debugger = debugger)
 

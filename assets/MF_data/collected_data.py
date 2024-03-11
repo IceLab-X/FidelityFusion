@@ -89,7 +89,7 @@ def nonlinear_sin_high(x, sd=0):
 
     return (x - torch.sqrt(torch.tensor(2.0))) * nonlinear_sin_low(x, 0) ** 2 + torch.randn(x.size(0), 1) * sd
 
-def multi_fidelity_Colville(x = None, A=0.5, min_value = 0, max_value = 1, num_points = 200):
+def multi_fidelity_Colville(x = None, A=0.5, min_value = -1, max_value = 1, num_points = 200):
     '''
     x_dim = 4
     '''

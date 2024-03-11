@@ -129,7 +129,9 @@ def train_AR(ARmodel, data_manager, max_iter=1000, lr_init=1e-1, debugger=None):
                     y_residual_mean = y_high - ARmodel.rho_list[i_fidelity - 1] * y_low
                     y_residual_var = None
                 if i == max_iter - 1:
-                    data_manager.add_data(raw_fidelity_name='res-{}'.format(i_fidelity), fidelity_index=None, x=subset_x.detach(), y=[y_residual_mean.detach(), y_residual_var.detach()])
+                    if y_residual_var is not None:
+                        y_residual_var = y_residual_var.detach()
+                    data_manager.add_data(raw_fidelity_name='res-{}'.format(i_fidelity), fidelity_index=None, x=subset_x.detach(), y=[y_residual_mean.detach(), y_residual_var])
                 loss = -ARmodel.gpr_list[i_fidelity].negative_log_likelihood(subset_x, [y_residual_mean, y_residual_var])
                 if debugger is not None:
                     debugger.get_status(ARmodel, optimizer, i, loss)
@@ -143,6 +145,7 @@ def train_AR(ARmodel, data_manager, max_iter=1000, lr_init=1e-1, debugger=None):
 if __name__ == "__main__":
 
     torch.manual_seed(1)
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     debugger=log_debugger("AR")
 
     # generate the data
@@ -164,15 +167,15 @@ if __name__ == "__main__":
     y_test = torch.sin(x_test)
 
     initial_data = [
-        {'raw_fidelity_name': '0','fidelity_indicator': 0, 'X': x_low, 'Y': y_low},
-        {'raw_fidelity_name': '1','fidelity_indicator': 1, 'X': x_high1, 'Y': y_high1},
-        {'raw_fidelity_name': '2','fidelity_indicator': 2, 'X': x_high2, 'Y': y_high2},
+        {'raw_fidelity_name': '0','fidelity_indicator': 0, 'X': x_low.to(device), 'Y': y_low.to(device)},
+        {'raw_fidelity_name': '1','fidelity_indicator': 1, 'X': x_high1.to(device), 'Y': y_high1.to(device)},
+        {'raw_fidelity_name': '2','fidelity_indicator': 2, 'X': x_high2.to(device), 'Y': y_high2.to(device)},
     ]
     fidelity_num = len(initial_data)
 
     fidelity_manager = MultiFidelityDataManager(initial_data)
     kernel_list = [kernel.SquaredExponentialKernel() for _ in range(fidelity_num)]
-    myAR = AR(fidelity_num = fidelity_num, kernel_list = kernel_list, rho_init=1.0, if_nonsubset=False)
+    myAR = AR(fidelity_num = fidelity_num, kernel_list = kernel_list, rho_init=1.0, if_nonsubset=False).to(device)
 
     ## if nonsubset is False, max_iter should be 100 ,lr can be 1e-2
     train_AR(myAR, fidelity_manager, max_iter=200, lr_init=1e-2, debugger = debugger)

@@ -99,10 +99,12 @@ def train_ResGP(ResGPmodel, data_manager, max_iter=1000, lr_init=1e-1, debugger=
                 _, y_low, subset_x, y_high = data_manager.get_overlap_input_data(i_fidelity - 1, i_fidelity, normal=True)
                 y_residual_mean = y_high - y_low
                 y_residual_var = None
-            data_manager.add_data(raw_fidelity_name='res-{}'.format(i_fidelity), fidelity_index=None, x=subset_x, y=[y_residual_mean, y_residual_var])
+            if y_residual_var is not None:
+                y_residual_var = y_residual_var.detach()
+            data_manager.add_data(raw_fidelity_name='res-{}'.format(i_fidelity), fidelity_index=None, x=subset_x.detach(), y=[y_residual_mean.detach(), y_residual_var])
             for i in range(max_iter):
                 optimizer.zero_grad()
-                loss = -ResGPmodel.gpr_list[i_fidelity].negative_log_likelihood(subset_x.detach(), [y_residual_mean.detach(), y_residual_var.detach()])
+                loss = -ResGPmodel.gpr_list[i_fidelity].negative_log_likelihood(subset_x, [y_residual_mean, y_residual_var])
                 if debugger is not None:
                     debugger.get_status(ResGPmodel, optimizer, i, loss)
                 loss.backward()
@@ -115,6 +117,7 @@ def train_ResGP(ResGPmodel, data_manager, max_iter=1000, lr_init=1e-1, debugger=
 if __name__ == "__main__":
 
     torch.manual_seed(1)
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     debugger=log_debugger("ResGP")
 
     # generate the data
@@ -136,16 +139,16 @@ if __name__ == "__main__":
     y_test = torch.sin(x_test)
 
     initial_data = [
-        {'raw_fidelity_name': '0','fidelity_indicator': 0, 'X': x_low, 'Y': y_low},
-        {'raw_fidelity_name': '1','fidelity_indicator': 1, 'X': x_high1, 'Y': y_high1},
-        {'raw_fidelity_name': '2','fidelity_indicator': 2, 'X': x_high2, 'Y': y_high2},
+        {'raw_fidelity_name': '0','fidelity_indicator': 0, 'X': x_low.to(device), 'Y': y_low.to(device)},
+        {'raw_fidelity_name': '1','fidelity_indicator': 1, 'X': x_high1.to(device), 'Y': y_high1.to(device)},
+        {'raw_fidelity_name': '2','fidelity_indicator': 2, 'X': x_high2.to(device), 'Y': y_high2.to(device)},
     ]
     fidelity_num = len(initial_data)
 
     fidelity_manager = MultiFidelityDataManager(initial_data)
     
     kernel_list = [kernel.SquaredExponentialKernel() for _ in range(fidelity_num)]
-    myResGP = ResGP(fidelity_num = 3,kernel_list=kernel_list, if_nonsubset = True)
+    myResGP = ResGP(fidelity_num = 3,kernel_list=kernel_list, if_nonsubset = True).to(device)
 
     ## if nonsubset is False, max_iter should be 100 ,lr can be 1e-2
     train_ResGP(myResGP, fidelity_manager, max_iter=200, lr_init=1e-2, debugger = debugger)
