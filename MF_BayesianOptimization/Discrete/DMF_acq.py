@@ -12,7 +12,6 @@ PI = 3.1415926
 # DMF_acq_opimal_x, DMF_acq_opimal_fidelity, DMF_acq_opimal
 
 
-
 class DiscreteAcquisitionFunction(nn.Module):
     """
     Discrete Acquisition Base Function for UCB, ES, EI and KG
