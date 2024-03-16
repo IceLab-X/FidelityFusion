@@ -153,7 +153,7 @@ def get_data_mu_std(seed, data_name, n_train):
 
     return xtr_mean, xtr_std, ytr_f_mean, ytr_f_std
 
-def generate_nonsubset_data(data_name_with_fi, x_dim, min_value, max_value, num_points=250, n_train=100, n_test=100, subset=False):
+def generate_nonsubset_data(data_name_with_fi, x_dim, min_value, max_value, num_points=450, n_train=300, n_test=300, subset=False):
     """
     Generate non-subset or subset data for a given data name and feature index.
 
@@ -185,10 +185,10 @@ def generate_nonsubset_data(data_name_with_fi, x_dim, min_value, max_value, num_
                 - y_test (torch.Tensor): The labels for testing.
     """
     x_all = torch.rand(num_points, x_dim) * (max_value - min_value) + min_value
-    xlow_indices = torch.randperm(n_train + 50)[:n_train]
+    xlow_indices = torch.randperm(n_train + 100)[:n_train]
     xlow_indices = torch.sort(xlow_indices).values
     x_low = x_all[xlow_indices]
-    xhigh_indices = torch.randperm(n_test + 50)[:n_test]
+    xhigh_indices = torch.randperm(n_test + 100)[:n_test]
     xhigh_indices = torch.sort(xhigh_indices).values
     x_high = x_all[xhigh_indices]
     x_test = x_all[num_points - n_train:]

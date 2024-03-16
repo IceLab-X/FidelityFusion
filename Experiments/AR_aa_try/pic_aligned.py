@@ -24,8 +24,9 @@ data_name_list = ["colville", "nonlinearsin", "toal", "forrester",
                           "maolin19", "maolin20",
                           "shuo6", "shuo11", "shuo15", "shuo16",
                           "test3", "test4", "test5", "test6", "test7"]
-test_name_list = ["tl1"]
-methods_name_list = ['NAR', 'AR', 'ResGP', 'GAR', 'CIGAR','AR_aa']
+test_name_list = ["tl5"]
+# methods_name_list = ['NAR', 'AR', 'ResGP', 'GAR', 'CIGAR','AR_aa']
+methods_name_list = ["AR_aa","AR"]
 all_data_name_with_fi_list = get_full_name_list_with_fidelity(data_name_list=test_name_list)   
 for data_name in all_data_name_with_fi_list:
     print(data_name)
@@ -34,7 +35,7 @@ for data_name in all_data_name_with_fi_list:
         print(methods_name)
         ct = []
         tem = []
-        for seed in [2,3,4]:
+        for seed in [0,1,2]:
             print(seed)
             path = os.path.join(sys.path[0], 'exp_results', data_name, methods_name + '_seed_' + str(seed) + '.csv')
             data = pd.DataFrame(pd.read_csv(path))

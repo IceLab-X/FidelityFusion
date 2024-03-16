@@ -355,3 +355,11 @@ class MaternKernel_scalarLengthScale(nn.Module):
         return self.signal_variance.pow(2) * torch.pow(1 + torch.sqrt(3 * sqdist) / self.length_scale.pow(2), -self.nu)
 
         
+if __name__ == '__main__':
+    import matplotlib.pyplot as plt
+    x = torch.linspace(0, 5, 50).view(-1, 1)
+    K = SumKernel(LinearKernel(1),SquaredExponentialKernel())(x, x)
+    plt.imshow(K.detach().numpy(), cmap='viridis', interpolation='nearest')
+    plt.title('Sum Kernel Covariance Matrix')
+    plt.colorbar()
+    plt.show()

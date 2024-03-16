@@ -10,7 +10,7 @@ Dic = {'AR': ['#ff7f0e', "o", "solid", "AR"],
        'NAR': ['#708090', "o", "solid", "NAR"],
        'dc': ['#17becf', "o", "solid", "DC-I"],
        'ResGP': ['#8c564b', "o", "solid", "ResGP"],
-       'dmfal': ['#2ca02c', "o", "solid", "MF-BNN"],
+       'CAR': ['#2ca02c', "o", "solid", "CAR"],
        'GAR': ['#DC143C', "o", "dashed", "GAR"],
        'CIGAR': ['#1f77b4', "o", "dashed", "CIGAR"],
         }
@@ -26,8 +26,8 @@ data_name_list = ["colville", "nonlinearsin", "toal", "forrester",
                           "test3", "test4", "test5", "test6", "test7"]
 # data_name_list = ["shuo16","test3", "test4", "test5", "test6", "test7"]
 data_name_list = ["shuo11"]
-methods_name_list = ['AR','NAR','ResGP','GAR','CIGAR']
-test_name_list = ["shuo6"]
+methods_name_list = ['AR','ResGP','NAR','CIGAR','GAR','CAR']
+test_name_list = ["tl5"]
 
 all_data_name_with_fi_list = get_full_name_list_with_fidelity(data_name_list=test_name_list)   
 for data_name in all_data_name_with_fi_list:
@@ -37,7 +37,7 @@ for data_name in all_data_name_with_fi_list:
         ct = []
         tem = []
         print(methods_name)
-        for seed in [0, 1, 2, 3, 4]:
+        for seed in [0, 1, 2]:
             print(seed)
             path = os.path.join(sys.path[0], 'exp_results', data_name, methods_name + '_seed_' + str(seed) + '.csv')
             data = pd.DataFrame(pd.read_csv(path))
