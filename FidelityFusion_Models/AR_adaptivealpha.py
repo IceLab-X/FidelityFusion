@@ -23,7 +23,7 @@ class ad_alpha(nn.Module):
         return out
 class AR_aa(nn.Module):
 
-    def __init__(self, fidelity_num, kernel_list, input_size, if_nonsubset=False):
+    def __init__(self, fidelity_num, kernel_list, input_size, hidden_size, if_nonsubset=False):
         
         super().__init__()
         self.fidelity_num = fidelity_num
@@ -33,7 +33,7 @@ class AR_aa(nn.Module):
         self.gpr_list = torch.nn.ModuleList(self.gpr_list)
 
         self.rho_networks = torch.nn.ModuleList([
-            ad_alpha(input_size, hidden_size = 4, output_size = 1) for _ in range(self.fidelity_num - 1)
+            ad_alpha(input_size, hidden_size = hidden_size, output_size = 1) for _ in range(self.fidelity_num - 1)
         ])
         self.if_nonsubset = if_nonsubset
 
@@ -87,7 +87,7 @@ def train_ARaa(ARmodel, data_manager, max_iter=1000, lr_init=1e-1, debugger=None
                 optimizer.zero_grad()
                 if ARmodel.if_nonsubset:
                     y_residual_mean = y_high[0] - ARmodel.rho_networks[i_fidelity - 1](subset_x) * y_low[0]
-                    y_residual_var = abs(y_high[1] - ARmodel.rho_networks[i_fidelity - 1](subset_x) * y_low[1])
+                    y_residual_var = abs(y_high[1] - (ARmodel.rho_networks[i_fidelity - 1](subset_x)**2) * y_low[1])
                 else:
                     y_residual_mean = y_high - ARmodel.rho_networks[i_fidelity - 1](subset_x) * y_low
                     y_residual_var = None

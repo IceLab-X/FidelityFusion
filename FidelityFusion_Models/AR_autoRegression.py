@@ -124,7 +124,7 @@ def train_AR(ARmodel, data_manager, max_iter=1000, lr_init=1e-1, debugger=None):
                 optimizer.zero_grad()
                 if ARmodel.if_nonsubset:
                     y_residual_mean = y_high[0] - ARmodel.rho_list[i_fidelity - 1] * y_low[0]
-                    y_residual_var = abs(y_high[1] - ARmodel.rho_list[i_fidelity - 1] * y_low[1])
+                    y_residual_var = abs(y_high[1] - (ARmodel.rho_list[i_fidelity - 1]**2) * y_low[1])
                 else:
                     y_residual_mean = y_high - ARmodel.rho_list[i_fidelity - 1] * y_low
                     y_residual_var = None

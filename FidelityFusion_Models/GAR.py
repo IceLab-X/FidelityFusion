@@ -175,13 +175,13 @@ if __name__ == "__main__":
     ##plot the results
     fig, axs = plt.subplots(1, 3, figsize=(15, 5))
     yte = y_test
-    vmin = torch.min(yte[1])
-    vmax = torch.max(yte[1])
+    vmin = torch.min(yte[4])
+    vmax = torch.max(yte[4])
 
-    im = axs[0].imshow(yte[1].cpu(), cmap='hot', interpolation='nearest', vmin = vmin, vmax = vmax)
+    im = axs[0].imshow(yte[4].cpu(), cmap='hot', interpolation='nearest', vmin = vmin, vmax = vmax)
     axs[0].set_title('Groundtruth')
 
-    axs[1].imshow(ypred[1].cpu(), cmap='hot', interpolation ='nearest', vmin = vmin, vmax = vmax)
+    axs[1].imshow(ypred[4].cpu(), cmap='hot', interpolation ='nearest', vmin = vmin, vmax = vmax)
     axs[1].set_title('Predict')
 
     axs[2].imshow((yte[1].cpu()-ypred[1].cpu()).abs(), cmap = 'hot', interpolation='nearest', vmin = vmin, vmax = vmax)
