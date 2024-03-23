@@ -176,15 +176,15 @@ class DiscreteAcquisitionFunction(nn.Module):
         Returns:
             int: The next candidate fidelity
         '''
-
+        new_s = self.fidelity_num - 1
         for i in range(self.fidelity_num):
             v = self.variance_function(new_x, i)
 
             if self.beta * v > gamma[i]:
-                new_s = i + 1
-            else:
                 new_s = i
-
+                break
+            # else:
+            #     new_s = i
         return new_s
 
     # def acq_selection_fidelity_ei(self, new_x, initial_data, cost):
@@ -222,7 +222,7 @@ class DiscreteAcquisitionFunction(nn.Module):
     #             new_s = i
     #     return new_s
     
-def optimize_acq_mf(fidelity_manager, acq_mf, n_iterations = 10, learning_rate = 0.001):
+def optimize_acq_mf(fidelity_manager, acq_mf, method, n_iterations = 10, learning_rate = 0.001):
     # DMF_acq_opimal_x()
     '''
     Optimize the acquisition function to get the next candidate point for acq.
@@ -247,8 +247,15 @@ def optimize_acq_mf(fidelity_manager, acq_mf, n_iterations = 10, learning_rate =
         optimizer = torch.optim.Adam([X_initial], lr=learning_rate)
         # optimizer.zero_grad()
         for j in range(n_iterations):
-            # optimizer.zero_grad()
-            loss = -1 * acq_mf(X_initial, i)
+            optimizer.zero_grad()
+            if method == 'UCB':
+                loss = -1 * acq_mf.UCB_MF(X_initial, i)
+            elif method == 'EI':
+                loss = -1 * acq_mf.EI_MF(X_initial, i)
+            elif method == 'PI':
+                loss = -1 * acq_mf.PI_MF(X_initial, i)
+            elif method == 'KG':
+                loss = -1 * acq_mf.KG_MF(X_initial, i)
             loss.backward()
             optimizer.step()
             print('iter', j, 'x:', X_initial, 'Negative Acquisition Function:', loss.item(), end='\n')
