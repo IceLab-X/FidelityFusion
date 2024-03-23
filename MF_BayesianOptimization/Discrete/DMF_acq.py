@@ -227,3 +227,99 @@ class DMF_KG:
         kg = expected_improvement.mean(dim=0)
 
         return kg
+    
+    def acq_selection_fidelity(self, gamma, new_x):
+        # DMF_acq_opimal_fidelity()
+        '''
+        According to MF_GP_UCB to select fidelity.
+
+        Args:
+            gamma (list): The threshold for whether choose the higher fidelity
+            x (torch.Tensor): Targeted input.
+
+        Returns:
+            int: The next candidate fidelity
+        '''
+
+        for i in range(self.fidelity_num):
+            v = self.variance_function(new_x, i)
+
+            if self.beta * v > gamma[i]:
+                new_s = i + 1
+            else:
+                new_s = i
+
+        return new_s
+
+    # def acq_selection_fidelity_ei(self, new_x, initial_data, cost):
+    #     '''
+    #     According to MF_EI to select fidelity.
+
+    #     Args:
+    #         xtr (torch.Tensor): Trained data.
+    #         ytr (torch.Tensor): Trained data.
+    #         x (torch.Tensor): Targeted input.
+
+    #     Returns:
+    #         int: The next candidate fidelity
+    #     '''
+    #     var = self.variance_function(new_x, self.fidelity_num-1)
+    #     min_mark = float(sys.maxsize)
+    #     for i in range(self.fidelity_num):
+    #         initial_data_new = copy.deepcopy(initial_data)
+    #         initial_data_new[i]['X'] = np.concatenate((initial_data_new[i]['X'], new_x), axis=0)
+    #         new_y = objective_function(new_x, i)
+    #         if len(new_y.shape) == 1:
+    #             d = new_y.shape[0]
+    #             new_y = new_y.reshape(1, d)
+    #         initial_data_new[i]['Y'] = np.concatenate((initial_data_new[i]['Y'], new_y), axis=0)
+    #         fidelity_manager = MultiFidelityDataManager(initial_data_new)
+    #         kernel1 = kernel.SquaredExponentialKernel(length_scale=1., signal_variance=1.)
+    #         # model = AR(fidelity_num=2, kernel=kernel1, rho_init=1.0, if_nonsubset=True)
+    #         # train_AR(model, fidelity_manager, max_iter=100, lr_init=1e-3)
+    #         model = ResGP(fidelity_num=2, kernel=kernel1, if_nonsubset=True)
+    #         train_ResGP(model, fidelity_manager, max_iter=100, lr_init=1e-3)
+    #         _, var_m = model.forward(fidelity_manager, new_x, i)
+    #         mark = cost(i) / (var.detach().numpy() - var_m.detach().numpy())
+    #         if mark < min_mark:
+    #             min_mark = mark
+    #             new_s = i
+    #     return new_s
+    
+def optimize_acq_mf(fidelity_manager, acq_mf, n_iterations = 10, learning_rate = 0.001):
+    # DMF_acq_opimal_x()
+    '''
+    Optimize the acquisition function to get the next candidate point for acq.
+
+    Args:
+        fidelity_manager (module):The data manager object.
+        acq_mf (AcquisitionFunction): An instance of the AcquisitionFunction class.
+        n_iterations (int): Iteration times for optimize x.
+        learning_rate (float): learning rate for optimize x.
+
+    Returns:
+        torch.Tensor: The next candidate input without fidelity
+    '''
+
+    fidelity_num = int((len(fidelity_manager.data_dict) +1) / 2)
+    x_dimension = fidelity_manager.data_dict['0']['X'].shape[1]
+
+    acquisiton_score_by_fidelity = []
+    acquisiton_x_by_fidelity = []
+    for i in range(fidelity_num):
+        X_initial = nn.Parameter(torch.rand(x_dimension).reshape(-1, 1), requires_grad = True)
+        optimizer = torch.optim.Adam([X_initial], lr=learning_rate)
+        # optimizer.zero_grad()
+        for j in range(n_iterations):
+            # optimizer.zero_grad()
+            loss = -1 * acq_mf(X_initial, i)
+            loss.backward()
+            optimizer.step()
+            print('iter', j, 'x:', X_initial, 'Negative Acquisition Function:', loss.item(), end='\n')
+
+        acquisiton_x_by_fidelity.append(X_initial.detach())
+        acquisiton_score_by_fidelity.append(loss.item())
+
+    new_x = acquisiton_x_by_fidelity[acquisiton_score_by_fidelity.index(min(acquisiton_score_by_fidelity))]
+
+    return new_x
