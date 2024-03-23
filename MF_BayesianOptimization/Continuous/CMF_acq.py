@@ -1,13 +1,12 @@
 import torch
 import torch.nn as nn
 from scipy.stats import norm
-
-from torch.distributions import  Normal
+from GaussianProcess.kernel import ARDKernel
 
 PI = 3.1415926
+EPS = 1e-9
 
 def optimize_acq_mf(fidelity_manager, acq_mf, n_iterations = 10, learning_rate = 0.001):
-    # DMF_acq_opimal_x()
     '''
     Optimize the acquisition function to get the next candidate point for acq.
     Args:
@@ -21,49 +20,23 @@ def optimize_acq_mf(fidelity_manager, acq_mf, n_iterations = 10, learning_rate =
 
     fidelity_num = int((len(fidelity_manager.data_dict) +1) / 2)
     x_dimension = fidelity_manager.data_dict['0']['X'].shape[1]
-
-    acquisiton_score_by_fidelity = []
-    acquisiton_x_by_fidelity = []
-    for i in range(fidelity_num):
-        X_initial = nn.Parameter(torch.rand(x_dimension).reshape(-1, 1), requires_grad = True)
-        optimizer = torch.optim.Adam([X_initial], lr=learning_rate)
+    
+    X_initial = nn.Parameter(torch.rand(x_dimension).reshape(-1, 1), requires_grad = True)
+    optimizer = torch.optim.Adam([X_initial], lr=learning_rate)
+    # optimizer.zero_grad()
+    for j in range(n_iterations):
         # optimizer.zero_grad()
-        for j in range(n_iterations):
-            # optimizer.zero_grad()
-            loss = -1 * acq_mf.forward(X_initial, i)
-            loss.backward()
-            optimizer.step()
-            print('iter', j, 'x:', X_initial, 'Negative Acquisition Function:', loss.item(), end='\n')
+        loss = -1 * acq_mf.forward(X_initial, fidelity_num)
+        loss.backward()
+        optimizer.step()
+        print('iter', j, 'x:', X_initial, 'Negative Acquisition Function:', loss.item(), end='\n')
 
-        acquisiton_x_by_fidelity.append(X_initial.detach())
-        acquisiton_score_by_fidelity.append(loss.item())
-
-    new_x = acquisiton_x_by_fidelity[acquisiton_score_by_fidelity.index(min(acquisiton_score_by_fidelity))]
+    new_x = X_initial.detach()
 
     return new_x
 
-def acq_selection_fidelity(self, gamma, new_x):
-    # DMF_acq_opimal_fidelity()
-    '''
-    According to MF_GP_UCB to select fidelity.
-    Args:
-        gamma (list): The threshold for whether choose the higher fidelity
-        x (torch.Tensor): Targeted input.
-    Returns:
-        int: The next candidate fidelity
-    '''
 
-    for i in range(self.fidelity_num):
-        v = self.variance_function(new_x, i)
-
-        if self.beta * v > gamma[i]:
-            new_s = i + 1
-        else:
-            new_s = i
-
-    return new_s
-
-class DMF_UCB:
+class CMF_UCB:
     def __init__(self, mean_function, variance_function, fidelity_num, x_dimension):
         """
         Initialize the Discrete Multi-Fidelity Upper Confidence Bound (UCB) acquisition function.
@@ -78,6 +51,8 @@ class DMF_UCB:
         self.fidelity_num = fidelity_num
         self.x_dimension = x_dimension
         self.beta = 0.2 * int(self.x_dimension)
+        self.p = 1
+        self.k_0 = 1
 
     # forward
     def forward(self, x, s):
@@ -94,8 +69,83 @@ class DMF_UCB:
         ucb = self.mean_function(x, s) + self.beta * self.variance_function(x, s)
 
         return ucb
+    
+    def information_gap(self, input_fidelity):
+        '''
+        Information gap is a function to measures the gap in information between input fidelity and the highest fidelity.
+        Args:
+            input_fidelity (float): The fidelity input to measure the information gap.
 
-class DMF_EI:
+        Returns:
+            torch.tensor: Gap of two fidelities.
+        '''
+
+        fidelity_kernel = ARDKernel(input_dim = 1, initial_length_scale=1.0, initial_signal_variance=1.0, eps=EPS)
+
+        if input == None:
+            input_fidelity = torch.ones(1, 1) * self.fidelity_num
+        else:
+            input_fidelity = torch.ones(1, 1) * input_fidelity
+
+        phi = fidelity_kernel.forward(input_fidelity, torch.ones(1, 1) * self.fidelity_num)
+        ksin = torch.sqrt(1 - torch.power(phi, 2))
+
+        return ksin
+    
+    def gamma_z(self, ksin_z):
+        '''
+        Use cost and information gap to balance each other, 
+        so that the choice is not completely inclined to low-fidelity or high-fidelity.
+        Args:
+            ksin_z (float): The fidelity input to measure the information gap.
+
+        Returns:
+            torch.tensor: Gap of two fidelities.
+        '''
+        q = 1 / (self.p + self.x_dimension + 2)
+        lambda_balance = torch.pow(self.model_cost.compute_cost(self.fidelity_num)/self.model_cost.compute_cost(1), q)
+        gamma_z = torch.sqrt(self.k_0) * ksin_z * lambda_balance
+
+        return gamma_z
+
+    
+    def acq_selection_fidelity(self, new_x):
+        '''
+        According to MF_GP_UCB to select fidelity.
+        Args:
+            gamma (list): The threshold for whether choose the higher fidelity
+            x (torch.Tensor): Targeted input.
+        Returns:
+            int: The next candidate fidelity
+        '''
+        tau_s_mean = []
+        tau_s_std = []
+        for s in list(range(self.fidelity_num)):
+            m = self.mean_function(new_x, s)
+            v = self.variance_function(new_x, s)
+            tau_s_mean.append(m.detach())
+            tau_s_std.append(torch.sqrt(v.detach()))
+
+        ksin_z = self.information_gap(None)
+        gamma_z = self.gamma_z(ksin_z)
+
+        possible_z = []
+        for i in range(list(range(self.fidelity_num))):
+            condition_1 = tau_s_std[i][0][0] > gamma_z[i]
+            condition_2 = ksin_z[i] > self.information_gap(torch.sqrt(self.p)) / torch.sqrt(self.beta)
+            if condition_1 and condition_2:
+                possible_z.append(list(range(self.fidelity_num)))
+
+        if len(possible_z) == 0:
+            new_s = 0.1
+        else:
+            new_s = min(possible_z)
+
+        return new_s
+
+    
+
+class CMF_EI:
     def __init__(self, mean_function, variance_function, fidelity_num, x_dimension, xi):
         """
         Initialize the Discrete Multi-Fidelity Entropy Information (EI) acquisition function.
@@ -137,7 +187,7 @@ class DMF_EI:
 
         return ei
 
-class DMF_PI:
+class CMF_PI:
     def __init__(self, mean_function, variance_function, fidelity_num, x_dimension, theta = 0.01):
         """
         Initialize the Discrete Multi-Fidelity Probability Improvement (PI) acquisition function.
@@ -177,7 +227,7 @@ class DMF_PI:
 
         return pi
 
-class DMF_KG:
+class CMF_KG:
     def __init__(self, mean_function, variance_function, fidelity_num, x_dimension, theta = 0.01):
         """
         Initialize the Discrete Multi-Fidelity Probability Improvement (PI) acquisition function.
