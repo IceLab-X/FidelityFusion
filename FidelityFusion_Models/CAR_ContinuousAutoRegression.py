@@ -130,7 +130,7 @@ def train_CAR(CARmodel, data_manager, max_iter=1000, lr_init=1e-1, debugger = No
             x_low,y_low = data_manager.get_data(i_fidelity, normal = True)
             for i in range(max_iter):
                 optimizer.zero_grad()
-                loss = -CARmodel.cigp_list[i_fidelity].negative_log_likelihood(x_low, y_low)
+                loss = CARmodel.cigp_list[i_fidelity].negative_log_likelihood(x_low, y_low)
                 if debugger is not None:
                     debugger.get_status(CARmodel, optimizer, i, loss)
                 loss.backward()
@@ -156,7 +156,7 @@ def train_CAR(CARmodel, data_manager, max_iter=1000, lr_init=1e-1, debugger = No
                     if y_residual_var is not None:
                         y_residual_var = y_residual_var.detach()
                     data_manager.add_data(fidelity_index=None,raw_fidelity_name='res-{}'.format(i_fidelity),x=subset_x.detach(),y=[y_residual.detach(),y_residual_var])
-                loss = -CARmodel.cigp_list[i_fidelity].negative_log_likelihood(subset_x, y_residual)
+                loss = CARmodel.cigp_list[i_fidelity].negative_log_likelihood(subset_x, y_residual)
                 if debugger is not None:
                     debugger.get_status(CARmodel, optimizer, i, loss)
                 loss.backward()

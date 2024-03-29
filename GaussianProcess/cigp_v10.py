@@ -66,7 +66,7 @@ class cigp(nn.Module):
 
         nll =  0.5 * (Gamma ** 2).sum() +  L.diag().log().sum() * y_dimension  \
             + 0.5 * y_num * torch.log(2 * torch.tensor(PI)) * y_dimension
-        return -nll
+        return nll
 
 
 if __name__ == "__main__":
@@ -85,7 +85,7 @@ if __name__ == "__main__":
     for i in range(100):
         startTime = time.time()
         optimizer.zero_grad()
-        loss = -model.negative_log_likelihood(xtr, ytr)
+        loss = model.negative_log_likelihood(xtr, ytr)
         loss.backward()
         optimizer.step()
         print('iter', i, 'nll:{:.5f}'.format(loss.item()))

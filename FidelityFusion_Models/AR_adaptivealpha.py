@@ -69,7 +69,7 @@ def train_ARaa(ARmodel, data_manager, max_iter=1000, lr_init=1e-1, debugger=None
             x_low, y_low = data_manager.get_data(i_fidelity, normal=True)
             for i in range(max_iter):
                 optimizer.zero_grad()
-                loss = -ARmodel.gpr_list[i_fidelity].negative_log_likelihood(x_low, y_low)
+                loss = ARmodel.gpr_list[i_fidelity].negative_log_likelihood(x_low, y_low)
                 if debugger is not None:
                     debugger.get_status(ARmodel, optimizer, i, loss)
                 loss.backward()
@@ -95,7 +95,7 @@ def train_ARaa(ARmodel, data_manager, max_iter=1000, lr_init=1e-1, debugger=None
                     if y_residual_var is not None:
                         y_residual_var = y_residual_var.detach()
                     data_manager.add_data(raw_fidelity_name='res-{}'.format(i_fidelity), fidelity_index=None, x=subset_x.detach(), y=[y_residual_mean.detach(), y_residual_var])
-                loss = -ARmodel.gpr_list[i_fidelity].negative_log_likelihood(subset_x, [y_residual_mean, y_residual_var])
+                loss = ARmodel.gpr_list[i_fidelity].negative_log_likelihood(subset_x, [y_residual_mean, y_residual_var])
                 if debugger is not None:
                     debugger.get_status(ARmodel, optimizer, i, loss)
                 loss.backward()
@@ -138,7 +138,7 @@ if __name__ == "__main__":
 
     fidelity_manager = MultiFidelityDataManager(initial_data)
     kernel_list = [kernel.SquaredExponentialKernel() for _ in range(fidelity_num)]
-    myAR = AR_aa(fidelity_num = fidelity_num, kernel_list = kernel_list, input_size = x_low.shape[1], if_nonsubset=False).to(device)
+    myAR = AR_aa(fidelity_num = fidelity_num, kernel_list = kernel_list, hidden_size=2, input_size = x_low.shape[1], if_nonsubset=False).to(device)
 
     ## if nonsubset is False, max_iter should be 100 ,lr can be 1e-2
     train_ARaa(myAR, fidelity_manager, max_iter=200, lr_init=1e-2, debugger = debugger)
