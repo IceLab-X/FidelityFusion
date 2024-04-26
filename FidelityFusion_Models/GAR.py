@@ -182,9 +182,9 @@ if __name__ == "__main__":
     axs[0].set_title('Groundtruth')
 
     axs[1].imshow(ypred[4].cpu(), cmap='hot', interpolation ='nearest', vmin = vmin, vmax = vmax)
-    axs[1].set_title('Predict')
+    axs[1].set_title('GAR Predict')
 
-    axs[2].imshow((yte[1].cpu()-ypred[1].cpu()).abs(), cmap = 'hot', interpolation='nearest', vmin = vmin, vmax = vmax)
+    axs[2].imshow((yte[4].cpu()-ypred[4].cpu()).abs(), cmap = 'hot', interpolation='nearest', vmin = vmin, vmax = vmax)
     axs[2].set_title('Difference')
 
     cbar_ax = fig.add_axes([0.95, 0.2, 0.03, 0.6])

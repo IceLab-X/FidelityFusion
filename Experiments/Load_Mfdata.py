@@ -184,14 +184,18 @@ def generate_nonsubset_data(data_name_with_fi, x_dim, min_value, max_value, num_
                 - x_test (torch.Tensor): The input data for testing.
                 - y_test (torch.Tensor): The labels for testing.
     """
+    # x_all = torch.rand(num_points+300, x_dim) * (max_value - min_value) + min_value
     x_all = torch.rand(num_points, x_dim) * (max_value - min_value) + min_value
     xlow_indices = torch.randperm(n_train + 100)[:n_train]
     xlow_indices = torch.sort(xlow_indices).values
     x_low = x_all[xlow_indices]
+    # x_low = x_all[:300]
     xhigh_indices = torch.randperm(n_test + 100)[:n_test]
     xhigh_indices = torch.sort(xhigh_indices).values
     x_high = x_all[xhigh_indices]
+    # x_high = x_all[300:600]
     x_test = x_all[num_points - n_train:]
+    # x_test = x_all[600:]
 
     data_name = data_name_with_fi[:-2]
     f_high_idx = int(data_name_with_fi[-1]) - 1

@@ -9,7 +9,7 @@ FidelityFusion focus on tractable multi-fidelity fusion methods, which can be ea
 <!-- In many scientific research and engineering applications where repeated simulations of complex systems are conducted, a surrogate is commonly adopted to quickly estimate the whole system. To reduce the expensive cost of generating training examples, it has become a promising approach to combine the results of low-fidelity (fast but inaccurate) and high-fidelity (slow but accurate) simulations. Despite the fast developments of multi-fidelity fusion techniques, most existing methods require particular data structures and do not scale well to high-dimensional output. To resolve these issues, we generalize the classic autoregression (AR), which is wildly used due to its simplicity, robustness, accuracy, and tractability, and propose generalized autoregression (GAR) using tensor formulation and latent features. GAR can deal with arbitrary dimensional outputs and arbitrary multi- fidelity data structure to satisfy the demand of multi-fidelity fusion for complex problems; it admits a fully tractable likelihood and posterior requiring no approxi- mate inference and scales well to high-dimensional problems. Furthermore, we prove the autokrigeability theorem based on GAR in the multi-fidelity case and develop CIGAR, a simplified GAR with the exact predictive mean accuracy with computation reduction by a factor of $ d^3 $ , where $ d $  is the dimensionality of the output. The empirical assessment includes many canonical PDEs and real scientific examples and demonstrates that the proposed method consistently outperforms the SOTA methods with a large margin (up to 6x improvement in RMSE) with only a couple high-fidelity training samples. -->
 
 **FidelityFusion includes the following algorithms:**
-- [AR0](https://www.jstor.org/stable/2673557): the classic autoregression  model by M. C. Kennedy and A. O'Hagan. `Tractable model` applicable to `single-output` and `subset-structured` multi-fidelity data.
+- [AR](https://www.jstor.org/stable/2673557): the classic autoregression  model by M. C. Kennedy and A. O'Hagan. `Tractable model` applicable to `single-output` and `subset-structured` multi-fidelity data.
 
 - [NAR](https://royalsocietypublishing.org/doi/10.1098/rspa.2016.0751): the classic nonstationary autoregression model by G. E. Karniadakis' team. 
 `Nontractable model` applicable to `single/low-dimensional-output` and `subset-structured` multi-fidelity data.
@@ -35,7 +35,7 @@ A simplified version of GAR by leveraging the *Autokrigeability*. `Tractable mod
   <!-- <img width="460" height="300" src="./figures/FF.png"> -->
 <!-- </p> -->
 <p align="center">
-  <img src="./figures/FF.png" width="750">
+  <img src="assets\figures\FF.png" width="750">
 </p>
 
  <!-- less high-fidelity data, which is expensive to generate. The surrogate model can be used to predict the output of the high-fidelity simulation. -->
@@ -62,8 +62,6 @@ mffusion/
 # Run
 You can fast test on toy data by run `mfgp_demo.py`.
 ```
-python mfgp_demo.py <model_name>
-such as: python mfgp_demo.py CIGP
 
 the following model is support now:
 'AR', 'CIGAR', 'GAR', 'FIDES', 'NAR', 'ResGP', 'CIGP', 'HOGP'
@@ -95,6 +93,10 @@ A non-exhaustive but growing list needs to mention: [Yuxing Wang]() and [Guanjie
 <!-- DeepXDE was developed by [Lu Lu](https://lu.seas.upenn.edu) under the supervision of Prof. [George Karniadakis](https://www.brown.edu/research/projects/crunch/george-karniadakis) at [Brown University](https://www.brown.edu) from the summer of 2018 to 2020, supported by [PhILMs](https://www.pnnl.gov/computing/philms). DeepXDE was originally self-hosted in Subversion at Brown University, under the name SciCoNet (Scientific Computing Neural Networks). On Feb 7, 2019, SciCoNet was moved from Subversion to GitHub, renamed to DeepXDE.
 
 DeepXDE is currently maintained by [Lu Lu](https://lu.seas.upenn.edu) at [University of Pennsylvania](https://www.upenn.edu) with major contributions coming from several talented individuals in various forms and means. A non-exhaustive but growing list needs to mention: [Zongren Zou](https://github.com/ZongrenZou), [Zhongyi Jiang](https://github.com/Jerry-Jzy), [Shunyuan Mao](https://github.com/smao-astro), [Paul Escapil-Inchauspé](https://github.com/pescap). -->
+
+## TODO
+- [ ] Contribution rules need to be improved (4.26)
+- [ ] The usage document needs to be updated (4.26)
 
 ## License
 [LGPL-2.1 License](https://github.com/lululxvi/deepxde/blob/master/LICENSE)

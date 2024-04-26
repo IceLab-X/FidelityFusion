@@ -54,7 +54,7 @@ data_name_list_dim30 = ["test9"]
 
 #shuo11的seed1 GAR 矩阵分解nan
 data_name_list_dim3 = ["shuo11"]
-test_data_list = ["tl5"]
+test_data_list = ["colville"]
 
 model_dic = {'AR': AR, 'ResGP': ResGP, 'NAR': NAR, 'CIGAR': CIGAR, 'GAR': GAR ,'CAR': ContinuousAutoRegression}
 train_dic = {'AR': train_AR,'ResGP': train_ResGP, 'NAR': train_NAR,'CIGAR': train_CIGAR, 'GAR': train_GAR,'CAR': train_CAR}
@@ -63,7 +63,7 @@ train_dic = {'AR': train_AR,'ResGP': train_ResGP, 'NAR': train_NAR,'CIGAR': trai
 if __name__ == '__main__':
         
     # method_list = ['NAR']
-    method_list = ['CAR','AR','NAR','ResGP','CIGAR','GAR']
+    method_list = ['AR','NAR','ResGP','GAR']
     all_data_name_with_fi_list = get_full_name_list_with_fidelity(data_name_list = test_data_list)   
     for _data_name in all_data_name_with_fi_list:
         print(_data_name)
@@ -71,11 +71,11 @@ if __name__ == '__main__':
             print(method)
             for _seed in [0,1,2]:
                 print(_seed)
-                recording = {'train_sample_num':[], 'rmse':[], 'nrmse':[], 'r2':[], 'nll':[], 'time':[]}
-                for _high_fidelity_num in [8, 16, 32, 64]:
+                recording = {'train_sample_num':[], 'rmse':[], 'nrmse':[], 'r2':[], 'time':[]}
+                for _high_fidelity_num in [16, 32, 64, 128]:
                     torch.manual_seed(_seed)
                     
-                    xtr, Ytr, xte, Yte = generate_nonsubset_data(_data_name, x_dim = 2, min_value = -2, max_value = 2, num_points = 450, n_train = 300, n_test = 300)
+                    xtr, Ytr, xte, Yte = generate_nonsubset_data(_data_name, x_dim = 4, min_value = -1, max_value = 1, num_points = 450, n_train = 300, n_test = 300)
                     
                     x_low = xtr[0]
                     y_low = Ytr[0]
@@ -106,8 +106,8 @@ if __name__ == '__main__':
                         max_iter = 100
                         lr = 1e-3
                     else:
-                        max_iter = 300
-                        lr = 1e-2
+                        max_iter = 100
+                        lr = 1e-3
                     train_dic[method](model, fidelity_manager, max_iter=max_iter, lr_init=lr)
 
                     with torch.no_grad():
@@ -124,7 +124,7 @@ if __name__ == '__main__':
                     recording['rmse'].append(metrics['rmse'])
                     recording['nrmse'].append(metrics['nrmse'])
                     recording['r2'].append(metrics['r2'])
-                    recording['nll'].append(metrics['nll'])
+                    # recording['nll'].append(metrics['nll'])
                     recording['time'].append(T2 - T1)
 
                 path_csv = os.path.join('Experiments', 'GAR_Non_Subset', 'exp_results', str(_data_name))

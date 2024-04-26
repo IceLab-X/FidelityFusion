@@ -24,10 +24,11 @@ data_name_list = ["colville", "nonlinearsin", "toal", "forrester",
                           "maolin19", "maolin20",
                           "shuo6", "shuo11", "shuo15", "shuo16",
                           "test3", "test4", "test5", "test6", "test7"]
-test_name_list = ["tl5"]
-methods_name_list = ['AR', 'ResGP','NAR','CIGAR','GAR','CAR']
+test_name_list = ["test7"]
+methods_name_list = ['AR', 'ResGP','NAR','GAR']
 all_data_name_with_fi_list = get_full_name_list_with_fidelity(data_name_list=test_name_list)   
 for data_name in all_data_name_with_fi_list:
+    # data_name ='posion'
     print(data_name)
     plt.figure()
     for methods_name in methods_name_list:

@@ -40,8 +40,10 @@ def calculate_metrix(**kwargs):
     # RMSE
     rmse = np.sqrt(mean_squared_error(kwargs['y_test'], kwargs['y_mean_pre']))
     # nll
-    nll = _gaussian_loss(torch.from_numpy(kwargs['y_test']), torch.from_numpy(kwargs['y_mean_pre']), torch.from_numpy(kwargs['y_var_pre']).diag().reshape(-1, 1))
+    # The calculation of variance is not very feasible for GAR on large-scale data
+    # nll = _gaussian_loss(torch.from_numpy(kwargs['y_test']), torch.from_numpy(kwargs['y_mean_pre']), torch.from_numpy(kwargs['y_var_pre']).diag().reshape(-1, 1))
     # NRMSE
     NRMSE = nrmse(kwargs['y_test'], kwargs['y_mean_pre'])[0]
 
-    return {'r2': r2, 'rmse': rmse, 'nll': nll, 'nrmse': NRMSE}
+    # return {'r2': r2, 'rmse': rmse, 'nll': nll, 'nrmse': NRMSE}
+    return {'r2': r2, 'rmse': rmse, 'nrmse': NRMSE}

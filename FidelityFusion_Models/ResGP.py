@@ -148,10 +148,10 @@ if __name__ == "__main__":
     fidelity_manager = MultiFidelityDataManager(initial_data)
     
     kernel_list = [kernel.SquaredExponentialKernel() for _ in range(fidelity_num)]
-    myResGP = ResGP(fidelity_num = 3,kernel_list=kernel_list, if_nonsubset = True).to(device)
+    myResGP = ResGP(fidelity_num = fidelity_num,kernel_list=kernel_list, if_nonsubset = True).to(device)
 
     ## if nonsubset is False, max_iter should be 100 ,lr can be 1e-2
-    train_ResGP(myResGP, fidelity_manager, max_iter=200, lr_init=1e-2, debugger = debugger)
+    train_ResGP(myResGP, fidelity_manager, max_iter=100, lr_init=1e-3, debugger = debugger)
 
     debugger.logger.info('training finished,start predicting')
     with torch.no_grad():
@@ -164,4 +164,4 @@ if __name__ == "__main__":
     plt.errorbar(x_test.flatten(), ypred.reshape(-1).detach(), ypred_var.diag().sqrt().squeeze().detach(), fmt = 'r-.' ,alpha = 0.2)
     plt.fill_between(x_test.flatten(), ypred.reshape(-1).detach() - ypred_var.diag().sqrt().squeeze().detach(), ypred.reshape(-1).detach() + ypred_var.diag().sqrt().squeeze().detach(), alpha = 0.2)
     plt.plot(x_test.flatten(), y_test, 'k+')
-    plt.show() 
+    plt.show()   
