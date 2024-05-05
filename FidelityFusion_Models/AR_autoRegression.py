@@ -175,7 +175,7 @@ if __name__ == "__main__":
 
     fidelity_manager = MultiFidelityDataManager(initial_data)
     kernel_list = [kernel.SquaredExponentialKernel() for _ in range(fidelity_num)]
-    myAR = AR(fidelity_num = fidelity_num, kernel_list = kernel_list, rho_init=1.0, if_nonsubset=False).to(device)
+    myAR = AR(fidelity_num = fidelity_num, kernel_list = kernel_list, rho_init=1.0, if_nonsubset=True).to(device)
 
     ## if nonsubset is False, max_iter should be 100 ,lr can be 1e-2
     train_AR(myAR, fidelity_manager, max_iter=200, lr_init=1e-2, debugger = debugger)

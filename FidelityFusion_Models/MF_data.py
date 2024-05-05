@@ -175,6 +175,22 @@ class MultiFidelityDataManager:
         
         if fidelity_index not in self.normalizelayer and fidelity_index is not None:
             self.normalizelayer[fidelity_index] = Normalizer(x, y)
+            
+    def refresh_filling_data(self, raw_fidelity_name, fidelity_index, x, y):
+        """
+        Refreshes the filling data for a given raw fidelity name.
+
+        Args:
+            raw_fidelity_name (str): The name of the raw fidelity.
+            fidelity_index (int): The fidelity index.
+            x (list): The X data.
+            y (list): The Y data.
+        """
+        if raw_fidelity_name not in self.data_dict:
+            self.data_dict[raw_fidelity_name] = {'fidelity_index': fidelity_index, 'X': x, 'Y': y}
+        else:
+            self.data_dict[raw_fidelity_name]['X'] = x
+            self.data_dict[raw_fidelity_name]['Y'] = y
 
     def get_data(self, fidelity_index, normal=False):
         """

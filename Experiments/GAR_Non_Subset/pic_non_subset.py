@@ -13,6 +13,7 @@ Dic = {'AR': ['#ff7f0e', "o", "solid", "AR"],
        'CAR': ['#2ca02c', "o", "solid", "CAR"],
        'GAR': ['#DC143C', "o", "dashed", "GAR"],
        'CIGAR': ['#1f77b4', "o", "dashed", "CIGAR"],
+        'DMF_CAR': ['#9467bd', "o", "dashed", "DMF_CAR"]
         }
 
 data_name = 'sample_data'
@@ -26,8 +27,9 @@ data_name_list = ["colville", "nonlinearsin", "toal", "forrester",
                           "test3", "test4", "test5", "test6", "test7"]
 # data_name_list = ["shuo16","test3", "test4", "test5", "test6", "test7"]
 data_name_list = ["shuo11"]
-methods_name_list = ['AR','ResGP','NAR','GAR']
-test_name_list = ["colville"]
+methods_name_list = ['AR','ResGP','NAR','CIGAR','GAR','CAR','DMF_CAR']
+test_name_list = ["tl2", "tl3", "tl4", "tl5", "tl6", "tl7", "tl8", "tl9", "tl10",
+                          "p1", "p2", "p3", "p4", "p5"]
 
 all_data_name_with_fi_list = get_full_name_list_with_fidelity(data_name_list=test_name_list)   
 for data_name in all_data_name_with_fi_list:
@@ -57,7 +59,7 @@ for data_name in all_data_name_with_fi_list:
         
 
 
-    plt.legend(loc="upper right", fontsize=20)
+    plt.legend(loc="upper right", fontsize=12)
     plt.grid()
 
     plt.tight_layout()

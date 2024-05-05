@@ -54,7 +54,7 @@ class fidelity_kernel_MC(nn.Module):
         fidelity_indicator_1 = x1[:, 1].reshape(-1, 1)
         fidelity_indicator_2 = x2[:, 1].reshape(-1, 1)
 
-        N = 100
+        N = 1000
         torch.manual_seed(self.seed)
         # t1 ????
         t1 = torch.rand(N).float().reshape(N, 1) # 这块需要用来调整z选点的范围
@@ -104,7 +104,7 @@ class ContinuousAutoRegression_large(nn.Module):
             x, y = data_manager.get_data(i_fidelity)
             x_train.append(x)
             y_train.append(y)
-            fidelity_indicator.append(torch.ones(x.shape[0]) * (i_fidelity+1))
+            fidelity_indicator.append(torch.ones(x.shape[0]) * (i_fidelity))
         
         x_train = torch.cat(x_train, 0)
         y_train = torch.cat(y_train, 0)
@@ -126,7 +126,7 @@ def train_CAR(CARmodel, data_manager,max_iter=1000,lr_init=1e-1):
         x, y = data_manager.get_data(i_fidelity)
         x_train.append(x)
         y_train.append(y)
-        fidelity_indicator.append(torch.ones(x.shape[0]) * (i_fidelity+1))
+        fidelity_indicator.append(torch.ones(x.shape[0]) * (i_fidelity))
     
     x_train = torch.cat(x_train, 0)
     y_train = torch.cat(y_train, 0)
