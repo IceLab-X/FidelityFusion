@@ -65,7 +65,7 @@ train_dic = {'AR': train_AR,'ResGP': train_ResGP, 'NAR': train_NAR,'CIGAR': trai
 if __name__ == '__main__':
         
     # method_list = ['DMF_CAR']
-    method_list = ['DMF_CAR']
+    method_list = ['AR','ResGP','NAR','CIGAR','GAR','DMF_CAR']
     all_data_name_with_fi_list = get_full_name_list_with_fidelity(data_name_list = test_data_list)   
     for _data_name in all_data_name_with_fi_list:
         print(_data_name)
@@ -104,12 +104,12 @@ if __name__ == '__main__':
                     else:
                         model = model_dic[method](fidelity_num=2,kernel_list=kernel_list, if_nonsubset = True)
                     
-                    if method in ['GAR','CIGAR','DMF_CAR']:
+                    if method in ['GAR','CIGAR']:
                         max_iter = 100
                         lr = 1e-3
                     else:
-                        max_iter = 100
-                        lr = 1e-3
+                        max_iter = 200
+                        lr = 1e-2
                     train_dic[method](model, fidelity_manager, max_iter=max_iter, lr_init=lr)
 
                     with torch.no_grad():

@@ -55,14 +55,36 @@ class fidelity_kernel_MCMC(nn.Module):
 
         """
         length_scales = torch.abs(self.length_scales) + self.eps
-        
-        exp_part = torch.exp(-self.b * self.hf) * torch.exp(-((self.hf)**2)/(length_scales**2)) * (1 - torch.exp(-self.b*self.hf)*torch.exp(self.b * self.lf))
-        erf_part = (torch.erf(-self.b * length_scales) - torch.erf((self.lf - self.hf * self.b * length_scales**2)/length_scales)).abs()
-        final_part = exp_part * erf_part * (length_scales * torch.sqrt(torch.tensor(torch.pi)))/2
-        
-        ##
+        # N = 100
+        # torch.manual_seed(self.seed)
+        # # print(torch.rand(1))
+        # z1 = torch.rand(N) * (self.hf - self.lf) + self.lf # 这块需要用来调整z选点的范围
+        # z2 = torch.rand(N) * (self.hf - self.lf) + self.lf
 
-        return self.signal_variance.abs() * final_part * self.kernel1(x1, x2)
+        # dist_z = (z1 / length_scales - z2 / length_scales) ** 2
+
+       
+        # z_part1 = -self.b * (self.hf - z1)
+        # z_part2 = -self.b * (self.hf - z2)
+
+        # ##z_part 计算被积函数在采样点上的取值
+        # z_part  = (z_part1 + z_part2 - 0.5 * dist_z).exp()
+        # ## z_part_mc 计算MC积分的估计值
+        # z_part_mc = z_part.mean() * (self.hf - self.lf) * (self.hf - self.lf)
+
+        '''
+        exp_part = torch.exp(-self.b * self.hf) * torch.exp(-((self.hf)**2)/(length_scales**2)) * (1 - torch.exp(-self.b*self.lf))
+        erf_part = (torch.erf(-self.b * length_scales) - torch.erf(-self.hf*self.b*length_scales)).abs()
+        final_part = exp_part * erf_part * (length_scales * torch.sqrt(torch.tensor(torch.pi)))/2
+        '''
+        scaled_lf = self.lf/(length_scales**2)
+        scaled_hf = self.hf/(length_scales**2)
+
+        # final_part = abs(scaled_lf- scaled_hf)
+        final_part = abs(scaled_lf- scaled_hf)**2
+ 
+        # return self.signal_variance.abs() * self.b * torch.exp(-0.5 * final_part) * self.kernel1(x1, x2)
+        return self.signal_variance.abs() * torch.exp(-0.5 * final_part) * self.kernel1(x1, x2)
 
 class DMF_CAR(nn.Module):
     # initialize the model
@@ -195,7 +217,7 @@ if __name__ == "__main__":
     train_DMFCAR(CAR,fidelity_manager, max_iter=200, lr_init=1e-2, debugger = None)
 
     with torch.no_grad():
-        x_test = fidelity_manager.normalizelayer[CAR.fidelity_num-1].normalize_x(x_test)
+        x_test = fidelity_manager.normalizelayer[CAR.fidelity_num-1].normalize_x(x_test.to(device))
         ypred, ypred_var = CAR(fidelity_manager,x_test)
         ypred, ypred_var = fidelity_manager.normalizelayer[CAR.fidelity_num-1].denormalize(ypred, ypred_var)
     

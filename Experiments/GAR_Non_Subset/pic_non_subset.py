@@ -27,9 +27,10 @@ data_name_list = ["colville", "nonlinearsin", "toal", "forrester",
                           "test3", "test4", "test5", "test6", "test7"]
 # data_name_list = ["shuo16","test3", "test4", "test5", "test6", "test7"]
 data_name_list = ["shuo11"]
-methods_name_list = ['AR','ResGP','NAR','CIGAR','GAR','CAR','DMF_CAR']
-test_name_list = ["tl2", "tl3", "tl4", "tl5", "tl6", "tl7", "tl8", "tl9", "tl10",
-                          "p1", "p2", "p3", "p4", "p5"]
+methods_name_list = ['AR','ResGP','NAR','CIGAR','GAR','DMF_CAR']
+# test_name_list = ["tl2", "tl3", "tl4", "tl5", "tl6", "tl7", "tl8", "tl9", "tl10",
+#                           "p1", "p2", "p3", "p4", "p5","maolin5","nonlinearsin","colville"]
+test_name_list = ["p3", "p4", "p5","maolin5","nonlinearsin","colville"]
 
 all_data_name_with_fi_list = get_full_name_list_with_fidelity(data_name_list=test_name_list)   
 for data_name in all_data_name_with_fi_list:
