@@ -58,7 +58,7 @@ dataset_info = {
     "forrester": {"x_dim": 1, "min_value": 0, "max_value": 1},
     "p1": {"x_dim": 1, "min_value": -3, "max_value": 2},
     "p2": {"x_dim": 1, "min_value": 0, "max_value": 1},
-    "p3": {"x_dim": 2, "min_value": -2, "max_value": 3},
+    "p3": {"x_dim": 2, "min_value": -2, "max_value": 2},
     "p4": {"x_dim": 2, "min_value": -6, "max_value": 5},
     "p5": {"x_dim": 2, "min_value": -0.2, "max_value": -0.1},
     "maolin1": {"x_dim": 1, "min_value": 0, "max_value": 1},

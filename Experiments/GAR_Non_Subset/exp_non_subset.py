@@ -5,6 +5,8 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '.
 import GaussianProcess.kernel as kernel
 from FidelityFusion_Models import *
 from FidelityFusion_Models.DMF_CAR import DMF_CAR, train_DMFCAR
+from FidelityFusion_Models.DMF_CAR_gamma import DMF_CAR_gamma, train_DMFCAR_gamma
+from FidelityFusion_Models.DMF_CAR_deepkdl import DMF_CAR_dkl, train_DMFCAR_dkl
 from FidelityFusion_Models.MF_data import MultiFidelityDataManager
 from Experiments.calculate_metrix import calculate_metrix
 from Experiments.Load_Mfdata import get_full_name_list_with_fidelity, generate_nonsubset_data
@@ -55,17 +57,16 @@ data_name_list_dim30 = ["test9"]
 
 #shuo11的seed1 GAR 矩阵分解nan
 # data_name_list_dim3 = ["shuo11"]
-test_data_list = ["tl2", "tl3", "tl4", "tl5", "tl6", "tl7", "tl8", "tl9", "tl10",
-                          "p1", "p2", "p3", "p4", "p5","maolin5","nonlinearsin","colville"]
+test_data_list = ["colville"]
 
-model_dic = {'AR': AR, 'ResGP': ResGP, 'NAR': NAR, 'CIGAR': CIGAR, 'GAR': GAR ,'CAR': ContinuousAutoRegression,'DMF_CAR': DMF_CAR}
-train_dic = {'AR': train_AR,'ResGP': train_ResGP, 'NAR': train_NAR,'CIGAR': train_CIGAR, 'GAR': train_GAR,'CAR': train_CAR,'DMF_CAR': train_DMFCAR}
+model_dic = {'AR': AR, 'ResGP': ResGP, 'NAR': NAR, 'CIGAR': CIGAR, 'GAR': GAR ,'CAR': ContinuousAutoRegression,'DMF_CAR': DMF_CAR,'CAR_gamma':DMF_CAR_gamma, 'CAR_dkl': DMF_CAR_dkl}
+train_dic = {'AR': train_AR,'ResGP': train_ResGP, 'NAR': train_NAR,'CIGAR': train_CIGAR, 'GAR': train_GAR,'CAR': train_CAR,'DMF_CAR': train_DMFCAR,'CAR_gamma':train_DMFCAR_gamma, 'CAR_dkl': train_DMFCAR_dkl}
 
 
 if __name__ == '__main__':
         
     # method_list = ['DMF_CAR']
-    method_list = ['AR','ResGP','NAR','CIGAR','GAR','DMF_CAR']
+    method_list = ['CAR_dkl']
     all_data_name_with_fi_list = get_full_name_list_with_fidelity(data_name_list = test_data_list)   
     for _data_name in all_data_name_with_fi_list:
         print(_data_name)
@@ -101,6 +102,8 @@ if __name__ == '__main__':
                         model = model_dic[method](fidelity_num=2, kernel_list=kernel_list, rho_init=1.0, if_nonsubset = True)
                     elif method in ['CIGAR', 'GAR']:
                         model = model_dic[method](fidelity_num=2,kernel_list=kernel_list, data_shape_list = data_shape, if_nonsubset = True)
+                    elif method == 'CAR_dkl':
+                        model = model_dic[method](fidelity_num=2,kernel_list=kernel_list,input_dim = x_low.shape[1], if_nonsubset = True)
                     else:
                         model = model_dic[method](fidelity_num=2,kernel_list=kernel_list, if_nonsubset = True)
                     
