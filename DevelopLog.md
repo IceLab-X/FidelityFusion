@@ -1,5 +1,6 @@
 # DevelopLog
 Create_time: 2024-3-11
+modify_v1.1_time: 2024-6-12
 
 ## Development cycle(From 2023.12.21 to 2024.3.11)
 ## Library framework
@@ -7,7 +8,7 @@ Create_time: 2024-3-11
 vscode编辑器调试文档
 ### assert/
 - figures/
-存放GAR的宣传图片
+存放FF库的宣传图片
 - MF_data/
 收集的41个MF数据集合以及部分泊松方程的输入输出
   - MF_data_readme.md
@@ -23,24 +24,26 @@ vscode编辑器调试文档
 带约束的贝叶斯优化
 ### Data_simulation/
 - Cost_function/
+数据精度的探索代价
 - Real_Application/
+真实仿真数据
 - Synthetic_MF_function/
+仿真数据
 
 ### Experiment/
 实验模块(支持指标计算以及实验结果的可视化)
 - Readme.md
 实验模块的说明文档
-- CAR_Cost/
-- CAR_Non_Subset/
-CAR的非子集实验
-- CAR_Subset/
-CAR的子集实验
-- GAR_Aligned/
-GAR的对齐实验
-- GAR_Non_Aligned/
-GAR的非对齐实验
-- GAR_Non_Subset/
-GAR的非子集实验
+- CAR_exp
+ - CAR_Cost/
+ - CAR_Non_Subset/
+ - CAR_Subset/
+- FF_Aligned/
+对齐实验
+- FF_Non_Aligned/
+非对齐实验
+- FF_Non_Subset/
+非子集实验
 - MFBO_continuous/
 MFBO的连续实验
 - MFBO_discrete/
@@ -53,6 +56,10 @@ MF数据加载模块（支持生成子集非子集数据）
 实验日志调试模块(支持实验日志的读取以及分析)
 
 ### FidelityFusion_Models/
+- CAR/
+存放CAR的开发模型
+- GAR_res_rho/
+Tensor_linear_layer的消融实验
 - log/
 存放模型训练的日志
 - two_fidelity_models/
@@ -87,13 +94,19 @@ GP的核函数
 
 ### MF_Bayesian_Optimization/
 多精度贝叶斯优化模块
+- acq
+采集函数
 - Continous
-连续贝叶斯优化模块
+连续贝叶斯优化模块(旧版)
 - Discrete
-离散贝叶斯优化模块
+离散贝叶斯优化模块(旧版)
+- Exp_old
+旧版的实验
+- Experiment
+多精度贝叶斯优化的实验
 
 ### MFGP_ver2023May
-2023.5月的库重构版本
+2023.5月zen师兄的库重构版本
 
 ### nan_error_example
 提供错误解决方法的示例
