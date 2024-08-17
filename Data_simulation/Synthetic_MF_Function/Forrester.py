@@ -1,28 +1,26 @@
-import torch
-import math
-import numpy as np
 import sys
 import os
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..','..')))
+import torch
 
-realpath = os.path.abspath(__file__)
-_sep = os.path.sep
-realpath = realpath.split(_sep)
-realpath = _sep.join(realpath[:realpath.index('FidelityFusion') + 1])
-sys.path.append(realpath)
-os.chdir(sys.path[-1])
-
-from Data_simulation.Cost_Function.cost_pow_10 import cost_discrete as cost
+from Data_simulation.Cost_Function.cost_pow_10 import cost_discrete as cost_pow_10
+from Data_simulation.Cost_Function.cost_linear import cost_discrete as cost_linear
+from Data_simulation.Cost_Function.cost_log import cost_discrete as cost_log
+cost_list = {'pow_10': cost_pow_10,'linear': cost_linear, 'log': cost_log}
 
 
 class forrester():
-    def __init__(self, total_fidelity_num):
+    def __init__(self, cost_type, total_fidelity_num):
         self.total_fidelity_num = total_fidelity_num
         self.x_dim = 1
-        self.search_range = [[0, 1], [0, 1]]
-        self.cost = cost(self.search_range[-1])
+        self.search_range = [[0, 1.5], [0, 1.5],[0,1]]
+        self.cost = cost_list[cost_type](self.search_range[-1])
 
     def w_h(self, t):
-        w = t ** 2 + 0.1 * torch.sin(10 * torch.pi * t)
+        # w = t ** 2 + 0.1 * torch.sin(10 * torch.pi * t)
+        if not isinstance(t, torch.Tensor):
+            t = torch.tensor(t, dtype=torch.float64)
+        w = torch.log10(9 * t + 1)
         return w
 
     def w_l(self, t):
@@ -32,8 +30,6 @@ class forrester():
     def get_data(self, input_x, input_s):
 
         xtr = input_x
-        # Ytr_h = np.power(6 * xtr - 2, 2) * np.sin(12 * xtr - 4)
-        # Ytr_l = 0.5 * Ytr_h + 10 * (xtr - 0.5) + 5
         Ytr_h = torch.pow(6 * xtr - 2, 2) * torch.sin(12 * xtr - 4)
         Ytr_l = 0.5 * Ytr_h + 10 * (xtr - 0.5) + 5
 
@@ -48,32 +44,68 @@ class forrester():
         else:
             Ytr.append(Ytr_h)
 
-        new_y = Ytr[input_s - 1]
+        new_y = Ytr[input_s]
 
         if len(new_y.shape) == 1:
             d = new_y.shape[0]
             new_y = new_y.reshape(1, d)
 
         return new_y
-
-    def Initiate_data(self, index, seed):
-        # np.random.seed(seed)
+    
+    def get_cmf_data(self, input_x, input_s):
+            
+        xtr = input_x
+        Ytr_h = torch.pow(6 * xtr - 2, 2) * torch.sin(12 * xtr - 4)
+        Ytr_l = 0.5 * Ytr_h + 10 * (xtr - 0.5) + 5
+        ytr_fid = self.w_l(input_s) * Ytr_l + self.w_h(input_s) * Ytr_h
+        
+        return ytr_fid
+    
+    def get_discrete_data(self, index, seed):
+        
         torch.manual_seed(seed)
-        # xtr_low = np.random.rand(index[1])[:, None]
-        xtr_low = torch.rand(index[1], 1).double()
-        # xtr_high = np.concatenate((xtr_low[:(index[2] - 2), :], np.random.rand(2)[:, None]), axis=0)
-        xtr_high = torch.cat((xtr_low[:(index[2] - 2), :], torch.rand(2, 1)), 0).double()
-        xtr = [xtr_low, xtr_high]
+        xtr = []
+        ytr = []
 
-        ytr_low = self.get_data(xtr_low, 1)
-        ytr_high = self.get_data(xtr_high, 2)
-        ytr = [ytr_low, ytr_high]
+        for i in range(self.total_fidelity_num):
+            xtr_fi = torch.rand(index[i], 1).double() * (self.search_range[0][1] - self.search_range[0][0]) + self.search_range[0][0]
+            fidelity_indicator = torch.ones(index[i], 1) * i /self.total_fidelity_num
+            ytr_fi = self.get_cmf_data(xtr_fi, fidelity_indicator).reshape(index[i], 1)
+            xtr.append(xtr_fi)
+            ytr.append(ytr_fi)
 
         return xtr, ytr
 
+    def Initiate_data(self, index, seed):
+        torch.manual_seed(seed)
+        xtr_low = self.search_range[0][1] * torch.rand(index[0], 1).double()
+        xtr_high = torch.cat((xtr_low[:int(index[1] - index[1]/2),:], self.search_range[0][1]*torch.rand(int(index[1]/2), 1)), 0).double()
+        xtr = [xtr_low, xtr_high]
+
+        ytr_low = self.get_data(xtr_low, 0)
+        ytr_high = self.get_data(xtr_high, 1)
+        ytr = [ytr_low, ytr_high]
+
+        return xtr, ytr
+    
+    def find_max_value_in_range(self):
+        
+        # Generate random points within the search range
+        torch.manual_seed(1)
+        num_points = 1000
+        
+        x_samples = torch.rand(num_points, 1) * (self.search_range[0][1] - self.search_range[0][0]) + self.search_range[0][0]
+        
+        y_samples = self.get_data(x_samples, self.total_fidelity_num - 1)
+        
+        # Find the maximum value and its index
+        max_value, max_index = torch.max(y_samples[:, 0], dim=0)
+
+        return max_value.item(),x_samples.reshape(-1,1)
+
 
 if __name__ == "__main__":
-    data = forrester(2)
-    xtr, ytr = data.Initiate_data({1: 10, 2: 4}, 1)
-    data.cost.compute_model_cost(ytr)
-    print(ytr)
+    data = forrester('pow_10', 2)
+    max,_ = data.find_max_value_in_range()
+    pass
+    

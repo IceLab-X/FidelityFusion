@@ -86,8 +86,8 @@ class min_max_normalizer:
     def __init__(self, tensor, min_value=0, max_value=1) -> None:
         self.min_value = min_value
         self.max_value = max_value
-        self.min = tensor.min(tensor)
-        self.max = tensor.max(tensor)
+        self.min = tensor.min(dim=0, keepdim=True).values
+        self.max = tensor.max(dim=0, keepdim=True).values
     
     def normalize(self, tensor):
         """
@@ -113,6 +113,51 @@ class min_max_normalizer:
         """
         return (tensor - self.min_value) / (self.max_value - self.min_value) * (self.max - self.min) + self.min
 
+class min_max_normalizer_2:
+    """
+    A class for performing min-max normalization on selected columns of a given tensor.
+
+    Args:
+        tensor (Tensor): The input tensor to be normalized.
+        columns (list of int, optional): The columns to be normalized. Defaults to [0, 1, 2].
+        min_value (float, optional): The minimum value of the normalized range. Defaults to 0.
+        max_value (float, optional): The maximum value of the normalized range. Defaults to 1.
+    """
+
+    def __init__(self, tensor, columns=[0, 1, 2], min_value=0, max_value=1) -> None:
+        self.columns = columns
+        self.min_value = min_value
+        self.max_value = max_value
+        self.min = tensor[:, columns].min(dim=0, keepdim=True).values  # 获取选定列的最小值
+        self.max = tensor[:, columns].max(dim=0, keepdim=True).values  # 获取选定列的最大值
+    
+    def normalize(self, tensor):
+        """
+        Normalize the specified columns of the given tensor.
+
+        Args:
+            tensor (Tensor): The input tensor to be normalized.
+
+        Returns:
+            Tensor: The normalized tensor.
+        """
+        tensor_copy = tensor.clone()  # 创建 tensor 的副本
+        tensor_copy[:, self.columns] = (tensor[:, self.columns] - self.min) / (self.max - self.min) * (self.max_value - self.min_value) + self.min_value
+        return tensor_copy
+    
+    def denormalize(self, tensor):
+        """
+        Denormalize the specified columns of the given tensor.
+
+        Args:
+            tensor (Tensor): The input tensor to be denormalized.
+
+        Returns:
+            Tensor: The denormalized tensor.
+        """
+        tensor_copy = tensor.clone()  # 创建 tensor 的副本
+        tensor_copy[:, self.columns] = (tensor[:, self.columns] - self.min_value) / (self.max_value - self.min_value) * (self.max - self.min) + self.min
+        return tensor_copy
 
 # TODO: doest data manager assume the low fidelity data always contains more data than the high fidelity data?
 class MultiFidelityDataManager:
@@ -175,7 +220,7 @@ class MultiFidelityDataManager:
         
         if fidelity_index not in self.normalizelayer and fidelity_index is not None:
             self.normalizelayer[fidelity_index] = Normalizer(x, y)
-            
+
     def refresh_filling_data(self, raw_fidelity_name, fidelity_index, x, y):
         """
         Refreshes the filling data for a given raw fidelity name.
@@ -191,7 +236,8 @@ class MultiFidelityDataManager:
         else:
             self.data_dict[raw_fidelity_name]['X'] = x
             self.data_dict[raw_fidelity_name]['Y'] = y
-
+    
+    
     def get_data(self, fidelity_index, normal=False):
         """
         Retrieves data from the data_dict.
@@ -311,7 +357,7 @@ class MultiFidelityDataManager:
             print("No unique data found")
             return None, None, None, None
 
-    def get_nonsubset_fill_data(self, model, fidelity_index1, fidelity_index2):
+    def get_nonsubset_fill_data(self, model, fidelity_index1, fidelity_index2, normal = True):
         """
         Generates filling data for non-subset data.
 
@@ -332,9 +378,10 @@ class MultiFidelityDataManager:
         subset_x1, subset_y1, subset_x2, subset_y2 = self.get_overlap_input_data(fidelity_index1, fidelity_index2)
         unique_x1, unique_y1, unique_x2, unique_y2 = self.get_unique_input_data(fidelity_index1, fidelity_index2)
 
-        _, subset_y1 = self.normalizelayer[fidelity_index1].normalize(subset_x1, subset_y1)
-        subset_x2, subset_y2 = self.normalizelayer[fidelity_index2].normalize(subset_x2, subset_y2)
-        unique_x2, unique_y2 = self.normalizelayer[fidelity_index2].normalize(unique_x2, unique_y2)
+        if normal == True:
+            _, subset_y1 = self.normalizelayer[fidelity_index1].normalize(subset_x1, subset_y1)
+            subset_x2, subset_y2 = self.normalizelayer[fidelity_index2].normalize(subset_x2, subset_y2)
+            unique_x2, unique_y2 = self.normalizelayer[fidelity_index2].normalize(unique_x2, unique_y2)
 
         ## full nonsubset: 
         if len(subset_x2) == 0:

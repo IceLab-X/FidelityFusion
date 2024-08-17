@@ -8,12 +8,8 @@ from GaussianProcess.cigp_v10 import cigp as GPR
 from FidelityFusion_Models.MF_data import MultiFidelityDataManager
 import matplotlib.pyplot as plt
 
-# Reserve part for future development
-# def warp_function(lf, hf, fid_num):
-#     l = (1.0 / fid_num) * (lf + 1)
-#     h = (1.0 / fid_num) * (hf + 1)
-#     return l, h
 
+# Reserve part for future development
 def warp_function(lf, hf, fid_num):
     l = lf + 1
     h = hf + 1
@@ -86,10 +82,9 @@ class fidelity_kernel_MCMC(nn.Module):
 
         return self.signal_variance.abs() * final_part * self.kernel1(x1, x2)
 
-
-class DMF_CAR(nn.Module):
+class DMF_CAR_dkl(nn.Module):
     # initialize the model
-    def __init__(self, fidelity_num, kernel_list, b_init=1.0, if_nonsubset=False):
+    def __init__(self, fidelity_num, input_dim, kernel_list, b_init=1.0, if_nonsubset=False):
         super().__init__()
         self.fidelity_num = fidelity_num
         self.b = torch.nn.Parameter(torch.tensor(b_init))
@@ -105,6 +100,15 @@ class DMF_CAR(nn.Module):
                                                    low_fidelity_indicator, high_fidelity_indicator, self.b)
             self.cigp_list.append(GPR(kernel=kernel_residual, log_beta=1.0))
         
+        self.FeatureExtractor = torch.nn.Sequential(nn.Linear(input_dim, input_dim*4),
+            nn.LeakyReLU(),
+            nn.Linear(input_dim *4, input_dim * 4),
+            nn.LeakyReLU(),
+            nn.Linear(input_dim * 4, input_dim * 4),
+            nn.LeakyReLU(),
+            nn.Linear(input_dim * 4, input_dim))
+        self.FeatureExtractor = self.FeatureExtractor.double()
+
         self.cigp_list = torch.nn.ModuleList(self.cigp_list)
         self.if_nonsubset = if_nonsubset
 
@@ -115,16 +119,19 @@ class DMF_CAR(nn.Module):
             fidelity_level = to_fidelity
         else:
             fidelity_level = self.fidelity_num - 1
+        x_test = self.FeatureExtractor(x_test)
         # predict the model
         for i_fidelity in range(fidelity_level + 1):
             if i_fidelity == 0:
                 x_train,y_train = data_manager.get_data(i_fidelity, normal = normal)
+                x_train = self.FeatureExtractor(x_train)
                 y_pred_low, cov_pred_low = self.cigp_list[i_fidelity](x_train,y_train,x_test)
                 if fidelity_level == 0:
                     y_pred_high = y_pred_low
                     cov_pred_high = cov_pred_low
             else:
                 x_train, y_train = data_manager.get_data_by_name('res-{}'.format(i_fidelity),normal = normal)
+                x_train = self.FeatureExtractor(x_train)
                 y_pred_res, cov_pred_res= self.cigp_list[i_fidelity](x_train,y_train,x_test)
                 y_pred_high = y_pred_low + self.b * y_pred_res ## ?
                 cov_pred_high = cov_pred_low + (self.b **2) * cov_pred_res 
@@ -136,15 +143,17 @@ class DMF_CAR(nn.Module):
         # return the prediction
         return y_pred_high, cov_pred_high
     
-def train_DMFCAR(CARmodel, data_manager, max_iter=1000, lr_init=1e-1, normal =True, debugger = None):
+def train_DMFCAR_dkl(CARmodel, data_manager, max_iter=1000, lr_init=1e-1, normal =True, debugger = None):
     
+    CARmodel = CARmodel.double()
     for i_fidelity in range(CARmodel.fidelity_num):
         optimizer = torch.optim.Adam(CARmodel.parameters(), lr=lr_init)
         if i_fidelity == 0:
             x_low,y_low = data_manager.get_data(i_fidelity, normal = normal)
             for i in range(max_iter):
                 optimizer.zero_grad()
-                loss = CARmodel.cigp_list[i_fidelity].negative_log_likelihood(x_low, y_low)
+                x_low1 = CARmodel.FeatureExtractor(x_low)
+                loss = CARmodel.cigp_list[i_fidelity].negative_log_likelihood(x_low1, y_low)
                 if debugger is not None:
                     debugger.get_status(CARmodel, optimizer, i, loss)
                 loss.backward()
@@ -170,7 +179,8 @@ def train_DMFCAR(CARmodel, data_manager, max_iter=1000, lr_init=1e-1, normal =Tr
                     if y_residual_var is not None:
                         y_residual_var = y_residual_var.detach()
                     data_manager.refresh_filling_data(fidelity_index=None,raw_fidelity_name='res-{}'.format(i_fidelity),x=subset_x.detach(),y=[y_residual.detach(),y_residual_var])
-                loss = CARmodel.cigp_list[i_fidelity].negative_log_likelihood(subset_x, y_residual)
+                subset_x1 = CARmodel.FeatureExtractor(subset_x)
+                loss = CARmodel.cigp_list[i_fidelity].negative_log_likelihood(subset_x1, y_residual)
                 if debugger is not None:
                     debugger.get_status(CARmodel, optimizer, i, loss)
                 loss.backward()
@@ -205,21 +215,21 @@ if __name__ == "__main__":
     y_test = torch.sin(x_test)
 
     initial_data = [
-        {'raw_fidelity_name': '0','fidelity_indicator': 0, 'X': x_low.to(device), 'Y': y_low.to(device)},
-        {'raw_fidelity_name': '1','fidelity_indicator': 1, 'X': x_high1.to(device), 'Y': y_high1.to(device)},
-        {'raw_fidelity_name': '2','fidelity_indicator': 2, 'X': x_high2.to(device), 'Y': y_high2.to(device)},
+        {'raw_fidelity_name': '0','fidelity_indicator': 0, 'X': x_low.double().to(device), 'Y': y_low.double().to(device)},
+        {'raw_fidelity_name': '1','fidelity_indicator': 1, 'X': x_high1.double().to(device), 'Y': y_high1.double().to(device)},
+        {'raw_fidelity_name': '2','fidelity_indicator': 2, 'X': x_high2.double().to(device), 'Y': y_high2.double().to(device)},
     ]
 
     fidelity_manager = MultiFidelityDataManager(initial_data)
     fidelity_num = 3
     kernel_list = [kernel.SquaredExponentialKernel() for _ in range(fidelity_num)]
     # kernel_residual = fidelity_kernel_MCMC(x_low.shape[1], kernel.ARDKernel(x_low.shape[1]), 1, 2)
-    CAR = DMF_CAR(fidelity_num=fidelity_num, kernel_list=kernel_list, b_init=1.0).to(device)
+    CAR = DMF_CAR_dkl(fidelity_num=fidelity_num,input_dim=x_low.shape[1], kernel_list=kernel_list, b_init=1.0).to(device)
 
-    train_DMFCAR(CAR,fidelity_manager, max_iter=200, lr_init=1e-2, debugger = None)
+    train_DMFCAR_dkl(CAR,fidelity_manager, max_iter=200, lr_init=1e-2, debugger = None)
 
     with torch.no_grad():
-        x_test = fidelity_manager.normalizelayer[CAR.fidelity_num-1].normalize_x(x_test.to(device))
+        x_test = fidelity_manager.normalizelayer[CAR.fidelity_num-1].normalize_x(x_test)
         ypred, ypred_var = CAR(fidelity_manager,x_test)
         ypred, ypred_var = fidelity_manager.normalizelayer[CAR.fidelity_num-1].denormalize(ypred, ypred_var)
     
@@ -228,5 +238,4 @@ if __name__ == "__main__":
     plt.fill_between(x_test.flatten(), ypred.reshape(-1).detach() - ypred_var.diag().sqrt().squeeze().detach(), ypred.reshape(-1).detach() + ypred_var.diag().sqrt().squeeze().detach(), alpha=0.2)
     plt.plot(x_test.flatten(), y_test, 'k+')
     # plt.plot(x_high1.flatten(), y_high1.flatten(), 'b+')
-    plt.show()
-    # plt.savefig('DMF_CAR.png') 
+    plt.show() 

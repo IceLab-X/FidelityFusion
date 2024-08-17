@@ -17,9 +17,19 @@ The method can be found in the following paper
 
 ### 5. CAR (Continue Autoregression)
 [ContinuAR: Continuous Autoregression For Infinite-Fidelity Fusion](https://openreview.net/pdf?id=wpfsnu5syT)
+
 ## two_fidelity_models
 This module contains the code for the two fidelity models used in our library.
 The models provided above (except for GAR) are all based on Gaussian processes, while GAR is based on HOGP implementation. Here is also an introduction to HOGP methods
 ### 1. HOGP (High Order Gaussian Process)
 The method can be found in the following paper
 [Scalable High-Order Gaussian Process Regression](https://proceedings.mlr.press/v89/zhe19a.html)
+
+## CAR_paper-version
+There are two forms of CAR paper proposed methods, please note that this version has updates on the main proxy models
+
+## GAR_res_rho
+Below this folder are ablation experiments on the connection structure of precision in GAR, replacing it with a single learning factor or a fixed constant
+
+## Log
+This folder mainly stores the running logs of the multi fidelity proxy model (if using log debugger to run the program, it will generate logs)

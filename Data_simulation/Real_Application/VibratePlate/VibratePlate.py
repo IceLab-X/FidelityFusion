@@ -22,7 +22,7 @@ class VibPlate:
         self.search_range = [[100e9, 500e9], [0.2, 0.6], [6000, 10000],[0, 1]]
         self.cost = cost_list[cost_type](self.search_range[-1])
         self.eng = matlab.engine.start_matlab()
-        self.eng.addpath(r'H:\eda\nips2024\mfbo_v2\Data_simulation\Real_Application', nargout=0) # Add the path of the matlab code
+        self.eng.addpath(r'D:\Icelab\FidelityFusion\Data_simulation\Real_Application\VibratePlate', nargout=0)
     
     def get_data(self, input_x, input_s):
         if isinstance(input_x, torch.Tensor):

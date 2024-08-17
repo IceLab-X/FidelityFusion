@@ -7,30 +7,28 @@ import math
 from Data_simulation.Cost_Function.cost_pow_10 import cost_discrete as cost_pow_10
 from Data_simulation.Cost_Function.cost_linear import cost_discrete as cost_linear
 from Data_simulation.Cost_Function.cost_log import cost_discrete as cost_log
-cost_list = {'pow_10': cost_pow_10,'linear': cost_linear, 'log': cost_log}
+from Data_simulation.Cost_Function.cost_park import cost_discrete as cost_park
+cost_list = {'pow_10': cost_pow_10,'linear': cost_linear, 'log': cost_log,'park': cost_park}
 
-class Branin():
-    def __init__(self,cost_type, total_fidelity_num = None):
+class Park():
+    def __init__(self, cost_type, total_fidelity_num = None):
         self.x_dim = 2
-        self.search_range = [[0, 1.5], [0, 1.5], [0, 1]]
+        self.search_range = [[-1, 1], [-1, 1], [0, 1]]
         self.cost = cost_list[cost_type](self.search_range[-1])
-        self.b = 5.1 / (4 * math.pow(math.pi, 2))
-        self.c = 5 / math.pi
-        self.r = 6
-        self.t = 1 / (8 * math.pi)
+        self.noise = 0.001
         self.fi_num = total_fidelity_num
-
+    
     def get_data(self, input_x, input_s):
         if input_x.shape[0] == 1:
             # 单独生成new_x, new_s
             x = torch.cat((input_x.reshape(1, 2), input_s * torch.ones(1)[:, None]), dim=1)
-            Y = (torch.pow(x[:, 1] - (self.b - 0.1 * (1 - x[:, 2])) * torch.pow(x[:, 0], 2) + self.c * x[:, 0] - self.r, 2)
-                  + 10 * (1 - self.t) * torch.cos(x[:, 0]) + 10)
+            # Y = ((x[:,0] + 0.5*x[:,2])**2 + (x[:,1] + 0.5*x[:,2])**2)/2 + self.noise*torch.randn(1)*x[:,2]
+            Y = ((x[:,0] + 0.5*x[:,2])**2 + (x[:,1] + 0.5*x[:,2])**2)/2 + self.noise*x[:,2]
 
         else:
             x = torch.cat((input_x, input_s.reshape(input_x.shape[0], 1)), dim=1)
-            Y = (torch.pow(x[:, 1] - (self.b - 0.1 * (1 - x[:, 2])) * torch.pow(x[:, 0], 2) + self.c * x[:, 0] - self.r, 2)
-                  + 10 * (1 - self.t) * torch.cos(x[:, 0]) + 10)
+            # Y = ((x[:,0] + 0.5*x[:,2])**2 + (x[:,1] + 0.5*x[:,2])**2)/2 + self.noise*torch.randn(1)*x[:,2]
+            Y = ((x[:,0] + 0.5*x[:,2])**2 + (x[:,1] + 0.5*x[:,2])**2)/2 + self.noise*x[:,2]
 
         return Y.reshape(-1, 1)
     
@@ -38,13 +36,14 @@ class Branin():
         if input_x.shape[0] == 1:
             # 单独生成new_x, new_s
             x = torch.cat((input_x.reshape(1, 2), input_s * torch.ones(1)[:, None]), dim=1)
-            Y = (torch.pow(x[:, 1] - (self.b - 0.1 * (1 - x[:, 2])) * torch.pow(x[:, 0], 2) + self.c * x[:, 0] - self.r, 2)
-                  + 10 * (1 - self.t) * torch.cos(x[:, 0]) + 10)
+            # Y = ((x[:,0] + 0.5*x[:,2])**2 + (x[:,1] + 0.5*x[:,2])**2)/2 + self.noise*torch.randn(1)
+            Y = ((x[:,0] + 0.5*x[:,2])**2 + (x[:,1] + 0.5*x[:,2])**2)/2 + self.noise*x[:,2]
 
         else:
-            x = torch.cat((input_x, input_s.reshape(input_x.shape[0], 1)), dim=1)
-            Y = (torch.pow(x[:, 1] - (self.b - 0.1 * (1 - x[:, 2])) * torch.pow(x[:, 0], 2) + self.c * x[:, 0] - self.r, 2)
-                  + 10 * (1 - self.t) * torch.cos(x[:, 0]) + 10)
+            # x = torch.cat((input_x, input_s.reshape(input_x.shape[0], 1)), dim=1)
+            x = torch.cat((input_x, input_s.reshape(-1, 1)), dim=1)
+            # Y = ((x[:,0] + 0.5*x[:,2])**2 + (x[:,1] + 0.5*x[:,2])**2)/2 + self.noise*torch.randn(1)
+            Y = ((x[:,0] + 0.5*x[:,2])**2 + (x[:,1] + 0.5*x[:,2])**2)/2 + self.noise*x[:,2]
 
         return Y.reshape(-1, 1)
     
@@ -75,7 +74,7 @@ class Branin():
         return xtr, ytr
     
     def get_discrete_data(self, index, seed):
-            
+        
         torch.manual_seed(seed)
         xtr = []
         ytr = []
@@ -91,9 +90,8 @@ class Branin():
     
     def find_max_value_in_range(self):
         
-        torch.manual_seed(1)
-        
         # Generate random points within the search range
+        torch.manual_seed(1)
         num_points = 1000
         
         tem = []
@@ -112,11 +110,8 @@ class Branin():
         max_value, max_index = torch.max(y, dim=0)
 
         return max_value.item(), x.reshape(-1, self.x_dim)
-
-
-if __name__ == "__main__":
-    data = Branin('pow_10')
-    max_value, _ = data.find_max_value_in_range()
-    xtr, ytr, fidelity_indicator = data.Initiate_data(8, 1)
-    #cost is a tensor
-    Cost = data.cost.compute_model_cost(dataset = ytr, s_index = fidelity_indicator)
+    
+if __name__ == '__main__':
+    park = Park('pow_10')
+    max_value, _ = park.find_max_value_in_range()
+    pass

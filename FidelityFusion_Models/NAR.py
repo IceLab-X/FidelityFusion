@@ -6,7 +6,7 @@ import torch.nn as nn
 import GaussianProcess.kernel as kernel
 from GaussianProcess.cigp_v10 import cigp as GPR
 from FidelityFusion_Models.MF_data import MultiFidelityDataManager
-from Experiments.log_debugger import log_debugger
+# from Experiments.log_debugger import log_debugger
 import matplotlib.pyplot as plt
 
 class NAR(nn.Module):
@@ -27,7 +27,7 @@ class NAR(nn.Module):
         self.gpr_list = torch.nn.ModuleList(self.gpr_list)
         self.if_nonsubset = if_nonsubset
 
-    def forward(self, data_manager, x_test, to_fidelity=None):
+    def forward(self, data_manager, x_test, to_fidelity=None, normal = True):
         """
         Forward pass of the NAR model.
         
@@ -46,7 +46,7 @@ class NAR(nn.Module):
             fidelity_level = self.fidelity_num - 1
         for i_fidelity in range(fidelity_level + 1):
             if i_fidelity == 0:
-                x_train, y_train = data_manager.get_data(i_fidelity, normal=True)
+                x_train, y_train = data_manager.get_data(i_fidelity, normal=normal)
                 y_pred_low, cov_pred_low = self.gpr_list[i_fidelity](x_train, y_train, x_test)
                 if fidelity_level == 0:
                     y_pred_high = y_pred_low
@@ -60,7 +60,7 @@ class NAR(nn.Module):
 
         return y_pred_high, cov_pred_high
     
-def train_NAR(NARmodel, data_manager, max_iter=1000, lr_init=1e-1, debugger=None):
+def train_NAR(NARmodel, data_manager, max_iter=1000, lr_init=1e-1, normal = True, debugger=None):
     """
     Trains the NAR model using the specified data manager.
 
@@ -75,7 +75,7 @@ def train_NAR(NARmodel, data_manager, max_iter=1000, lr_init=1e-1, debugger=None
     for i_fidelity in range(NARmodel.fidelity_num):
         optimizer = torch.optim.Adam(NARmodel.parameters(), lr=lr_init)
         if i_fidelity == 0:
-            x_low, y_low = data_manager.get_data(i_fidelity, normal=True)
+            x_low, y_low = data_manager.get_data(i_fidelity, normal=normal)
             for i in range(max_iter):
                 optimizer.zero_grad()
                 loss = NARmodel.gpr_list[i_fidelity].negative_log_likelihood(x_low, y_low)
@@ -89,17 +89,17 @@ def train_NAR(NARmodel, data_manager, max_iter=1000, lr_init=1e-1, debugger=None
         else:
             if NARmodel.if_nonsubset:
                 with torch.no_grad():
-                    subset_x, y_low, y_high = data_manager.get_nonsubset_fill_data(NARmodel, i_fidelity - 1, i_fidelity)
+                    subset_x, y_low, y_high = data_manager.get_nonsubset_fill_data(NARmodel, i_fidelity - 1, i_fidelity, normal=normal)
                 y_low_mean = y_low[0]
                 y_high_mean = y_high[0]
                 y_high_var = y_high[1]
             else:
-                _, y_low_mean, subset_x, y_high_mean = data_manager.get_overlap_input_data(i_fidelity - 1, i_fidelity, normal=True)
+                _, y_low_mean, subset_x, y_high_mean = data_manager.get_overlap_input_data(i_fidelity - 1, i_fidelity, normal=normal)
                 y_high_var = None
             concat_input = torch.cat([subset_x, y_low_mean], dim=-1)
             if y_high_var is not None:
                 y_high_var = y_high_var.detach()
-            data_manager.add_data(raw_fidelity_name='concat-{}'.format(i_fidelity), fidelity_index=None, x=concat_input.detach(), y=[y_high_mean.detach(), y_high_var])
+            data_manager.refresh_filling_data(raw_fidelity_name='concat-{}'.format(i_fidelity), fidelity_index=None, x=concat_input.detach(), y=[y_high_mean.detach(), y_high_var])
             for i in range(max_iter):
                 optimizer.zero_grad()
                 loss = NARmodel.gpr_list[i_fidelity].negative_log_likelihood(concat_input, [y_high_mean, y_high_var])
@@ -115,8 +115,9 @@ def train_NAR(NARmodel, data_manager, max_iter=1000, lr_init=1e-1, debugger=None
 if __name__ == "__main__":
 
     torch.manual_seed(1)
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    debugger=log_debugger("NAR")
+    # device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    device = torch.device("cpu")
+    # debugger=log_debugger("NAR")
 
     # generate the data
     x_all = torch.rand(500, 1) * 20
@@ -149,15 +150,15 @@ if __name__ == "__main__":
     myNAR = NAR(fidelity_num = 3,kernel_list= kernel_list, if_nonsubset = False).to(device)
 
     ## if nonsubset is False, max_iter should be 200 ,lr can be 1e-2
-    train_NAR(myNAR,fidelity_manager, max_iter = 200, lr_init = 1e-2, debugger = debugger)
+    train_NAR(myNAR,fidelity_manager, max_iter = 200, lr_init = 1e-2, debugger = None)
 
-    debugger.logger.info('training finished,start predicting')
+    # debugger.logger.info('training finished,start predicting')
     with torch.no_grad():
         x_test = fidelity_manager.normalizelayer[myNAR.fidelity_num-1].normalize_x(x_test)
         ypred, ypred_var = myNAR(fidelity_manager, x_test)
         ypred, ypred_var = fidelity_manager.normalizelayer[myNAR.fidelity_num-1].denormalize(ypred, ypred_var)
 
-    debugger.logger.info('prepare to plot')
+    # debugger.logger.info('prepare to plot')
     plt.figure()
     plt.errorbar(x_test.flatten(), ypred.reshape(-1).detach(), ypred_var.diag().sqrt().squeeze().detach(), fmt = 'r-.' ,alpha = 0.2)
     plt.fill_between(x_test.flatten(), ypred.reshape(-1).detach() - ypred_var.diag().sqrt().squeeze().detach(), ypred.reshape(-1).detach() + ypred_var.diag().sqrt().squeeze().detach(), alpha = 0.2)

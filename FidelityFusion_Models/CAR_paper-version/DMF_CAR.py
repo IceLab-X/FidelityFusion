@@ -9,14 +9,9 @@ from FidelityFusion_Models.MF_data import MultiFidelityDataManager
 import matplotlib.pyplot as plt
 
 # Reserve part for future development
-# def warp_function(lf, hf, fid_num):
-#     l = (1.0 / fid_num) * (lf + 1)
-#     h = (1.0 / fid_num) * (hf + 1)
-#     return l, h
-
 def warp_function(lf, hf, fid_num):
-    l = lf + 1
-    h = hf + 1
+    l = (1.0 / fid_num) * (lf + 1)
+    h = (1.0 / fid_num) * (hf + 1)
     return l, h
 
 class fidelity_kernel_MCMC(nn.Module):
@@ -42,29 +37,10 @@ class fidelity_kernel_MCMC(nn.Module):
         self.b = b
         self.lf = lf
         self.hf = hf
-        self.log_length_scales = nn.Parameter(torch.tensor([initial_length_scale]))
+        self.length_scales = nn.Parameter(torch.tensor([initial_length_scale]))
         self.signal_variance = nn.Parameter(torch.tensor([initial_signal_variance]))
         self.eps = eps
         self.seed = 105
-
-        self.k = nn.Parameter(torch.tensor([1.0]))
-        self.c = nn.Parameter(torch.tensor([0.0]))
-
-    def warpping_function(self, f_1, f_2):
-        wf_1 = f_1 * self.k + self.c
-        wf_2 = f_2 * self.k + self.c
-        # wf_1 = f_1
-        # wf_2 = f_2
-        return wf_1, wf_2
-    
-    def h(self, t, t_1):
-        self.v = self.log_length_scales.exp() * self.b * 0.5
-        tem_1 = (self.v**2).exp() / (2*self.b)
-        tem_2 = (-self.b * t).exp() 
-        tem_3 = (self.b * t_1).exp() * (torch.erf((t-t_1)/self.log_length_scales.exp() - self.v) + torch.erf((t_1)/self.log_length_scales.exp() + self.v))
-        tem_4 = (-self.b * t_1).exp() * (torch.erf((t/self.log_length_scales.exp()) - self.v) + torch.erf(self.v))
-
-        return tem_1 * tem_2 * (tem_3 - tem_4)
 
     def forward(self, x1, x2):
         """
@@ -78,14 +54,37 @@ class fidelity_kernel_MCMC(nn.Module):
             torch.Tensor: The covariance matrix.
 
         """
-        w_lf, w_hf = self.warpping_function(self.lf, self.hf)
-        h_part_1 = self.h(w_lf, w_hf)
-        h_part_2 = self.h(w_hf, w_lf)
+        length_scales = torch.abs(self.length_scales) + self.eps
+        # N = 100
+        # torch.manual_seed(self.seed)
+        # # print(torch.rand(1))
+        # z1 = torch.rand(N) * (self.hf - self.lf) + self.lf # 这块需要用来调整z选点的范围
+        # z2 = torch.rand(N) * (self.hf - self.lf) + self.lf
 
-        final_part = 0.5 * torch.sqrt(torch.tensor(torch.pi)) * self.log_length_scales.exp() * (h_part_1 + h_part_2) + (-self.b * (w_lf+w_hf)).exp()
+        # dist_z = (z1 / length_scales - z2 / length_scales) ** 2
 
-        return self.signal_variance.abs() * final_part * self.kernel1(x1, x2)
+       
+        # z_part1 = -self.b * (self.hf - z1)
+        # z_part2 = -self.b * (self.hf - z2)
 
+        # ##z_part 计算被积函数在采样点上的取值
+        # z_part  = (z_part1 + z_part2 - 0.5 * dist_z).exp()
+        # ## z_part_mc 计算MC积分的估计值
+        # z_part_mc = z_part.mean() * (self.hf - self.lf) * (self.hf - self.lf)
+
+        '''
+        exp_part = torch.exp(-self.b * self.hf) * torch.exp(-((self.hf)**2)/(length_scales**2)) * (1 - torch.exp(-self.b*self.lf))
+        erf_part = (torch.erf(-self.b * length_scales) - torch.erf(-self.hf*self.b*length_scales)).abs()
+        final_part = exp_part * erf_part * (length_scales * torch.sqrt(torch.tensor(torch.pi)))/2
+        '''
+        scaled_lf = self.lf/(length_scales**2)
+        scaled_hf = self.hf/(length_scales**2)
+
+        # final_part = abs(scaled_lf- scaled_hf)
+        final_part = abs(scaled_lf- scaled_hf)**2
+ 
+        # return self.signal_variance.abs() * self.b * torch.exp(-0.5 * final_part) * self.kernel1(x1, x2)
+        return self.signal_variance.abs() * torch.exp(-0.5 * final_part) * self.kernel1(x1, x2)
 
 class DMF_CAR(nn.Module):
     # initialize the model
@@ -183,8 +182,7 @@ def train_DMFCAR(CARmodel, data_manager, max_iter=1000, lr_init=1e-1, normal =Tr
 if __name__ == "__main__":
 
     torch.manual_seed(1)
-    # device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    device = torch.device("cpu")
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
     # generate the data
     x_all = torch.rand(500, 1) * 20
@@ -228,5 +226,4 @@ if __name__ == "__main__":
     plt.fill_between(x_test.flatten(), ypred.reshape(-1).detach() - ypred_var.diag().sqrt().squeeze().detach(), ypred.reshape(-1).detach() + ypred_var.diag().sqrt().squeeze().detach(), alpha=0.2)
     plt.plot(x_test.flatten(), y_test, 'k+')
     # plt.plot(x_high1.flatten(), y_high1.flatten(), 'b+')
-    plt.show()
-    # plt.savefig('DMF_CAR.png') 
+    plt.show() 

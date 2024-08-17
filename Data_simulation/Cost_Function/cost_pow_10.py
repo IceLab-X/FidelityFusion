@@ -64,6 +64,18 @@ class cost_discrete():
         for i in range(len(dataset)):
             C += self.compute_cost(i) * dataset[i].shape[0]
         return C
+    
+    def compute_model_ConDis_cost(self, dataset, fi):
+        C = 0
+        for i in range(len(dataset)):
+            C += self.compute_cost(i/fi) * dataset[i].shape[0]
+        return C
+    
+    def compute_model_ConDisGP_cost(self, dataset, fi):
+        C = 0
+        for i in range(len(dataset[0])):
+            C += self.compute_cost((dataset[0][i][-1]-1)/fi)
+        return C
 
     def compute_index(self, index):
         C = 0

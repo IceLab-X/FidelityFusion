@@ -7,7 +7,7 @@ from GaussianProcess.cigp_v10 import cigp as GPR
 import GaussianProcess.kernel as kernel
 from GaussianProcess.gp_computation_pack import Tensor_linear
 from FidelityFusion_Models.MF_data import MultiFidelityDataManager
-from Experiments.log_debugger import log_debugger
+# from Experiments.log_debugger import log_debugger
 import matplotlib.pyplot as plt
         
         
@@ -37,7 +37,7 @@ class CIGAR(torch.nn.Module):
 
         self.if_nonsubset = if_nonsubset
 
-    def forward(self, data_manager, x_test, to_fidelity=None):
+    def forward(self, data_manager, x_test, to_fidelity=None, normal=True):
         """
         Forward pass of the CIGAR module.
 
@@ -56,7 +56,7 @@ class CIGAR(torch.nn.Module):
 
         for i_fidelity in range(fidelity_level + 1):
             if i_fidelity == 0:
-                x_train, y_train = data_manager.get_data(i_fidelity, normal=True)
+                x_train, y_train = data_manager.get_data(i_fidelity, normal=normal)
                 mean_low, var_low = self.gpr_list[i_fidelity].forward(x_train, y_train, x_test)
                 if len(mean_low.shape) == 0:
                     mean_low = mean_low.reshape(1).unsqueeze(dim=0)
@@ -81,7 +81,7 @@ class CIGAR(torch.nn.Module):
 
         return mean_high, var_high
         
-def train_CIGAR(CIGARmodel, data_manager, max_iter=1000, lr_init=1e-1, debugger=None):
+def train_CIGAR(CIGARmodel, data_manager, max_iter=1000, lr_init=1e-1, normal = True, debugger=None):
     """
     Trains the CIGAR model using the specified data manager.
 
@@ -96,7 +96,7 @@ def train_CIGAR(CIGARmodel, data_manager, max_iter=1000, lr_init=1e-1, debugger=
     for i_fidelity in range(CIGARmodel.fidelity_num):
         optimizer = torch.optim.Adam(CIGARmodel.parameters(), lr=lr_init)
         if i_fidelity == 0:
-            x_low, y_low = data_manager.get_data(i_fidelity, normal=True)
+            x_low, y_low = data_manager.get_data(i_fidelity, normal=normal)
             for i in range(max_iter):
                 optimizer.zero_grad()
                 loss = CIGARmodel.gpr_list[i_fidelity].negative_log_likelihood(x_low, y_low)
@@ -110,9 +110,9 @@ def train_CIGAR(CIGARmodel, data_manager, max_iter=1000, lr_init=1e-1, debugger=
         else:
             if CIGARmodel.if_nonsubset:
                 with torch.no_grad():
-                    subset_x, y_low, y_high = data_manager.get_nonsubset_fill_data(CIGARmodel, i_fidelity - 1, i_fidelity)
+                    subset_x, y_low, y_high = data_manager.get_nonsubset_fill_data(CIGARmodel, i_fidelity - 1, i_fidelity, normal=normal)
             else:
-                _, y_low, subset_x, y_high = data_manager.get_overlap_input_data(i_fidelity - 1, i_fidelity, normal=True)
+                _, y_low, subset_x, y_high = data_manager.get_overlap_input_data(i_fidelity - 1, i_fidelity, normal=normal)
             for i in range(max_iter):
                 optimizer.zero_grad()
                 if CIGARmodel.if_nonsubset:
@@ -125,7 +125,7 @@ def train_CIGAR(CIGARmodel, data_manager, max_iter=1000, lr_init=1e-1, debugger=
                 if i == max_iter - 1:
                     if y_residual_var is not None:
                         y_residual_var = y_residual_var.detach()
-                    data_manager.add_data(raw_fidelity_name='res-{}'.format(i_fidelity), fidelity_index=None, x=subset_x.detach(), y=[y_residual_mean.detach(), y_residual_var])
+                    data_manager.refresh_filling_data(raw_fidelity_name='res-{}'.format(i_fidelity), fidelity_index=None, x=subset_x.detach(), y=[y_residual_mean.detach(), y_residual_var])
                 loss = CIGARmodel.gpr_list[i_fidelity].negative_log_likelihood(subset_x, [y_residual_mean, y_residual_var])
                 if debugger is not None:
                     debugger.get_status(CIGARmodel, optimizer, i, loss)
@@ -137,8 +137,9 @@ def train_CIGAR(CIGARmodel, data_manager, max_iter=1000, lr_init=1e-1, debugger=
 
 if __name__ == "__main__":
     torch.manual_seed(1)
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    debugger=log_debugger("CIGAR")
+    # device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    device = torch.device("cpu")
+    # debugger=log_debugger("CIGAR")
 
     x = np.load('assets/MF_data/Poisson_data/input.npy')
     x = torch.tensor(x, dtype=torch.float32)
@@ -178,9 +179,9 @@ if __name__ == "__main__":
     kernel_list = [kernel.SquaredExponentialKernel() for _ in range(fidelity_num)]
     myCIGAR = CIGAR(fidelity_num, kernel_list, data_shape, if_nonsubset = True).to(device)
 
-    train_CIGAR(myCIGAR, fidelity_manager, max_iter = 100, lr_init = 1e-3, debugger = debugger)
+    train_CIGAR(myCIGAR, fidelity_manager, max_iter = 100, lr_init = 1e-3, debugger = None)
 
-    debugger.logger.info('training finished,start predicting')
+    # debugger.logger.info('training finished,start predicting')
     with torch.no_grad():
         x_test = fidelity_manager.normalizelayer[myCIGAR.fidelity_num-1].normalize_x(x_test)
         ypred, ypred_var = myCIGAR(fidelity_manager, x_test)
@@ -188,21 +189,21 @@ if __name__ == "__main__":
     
     ypred = ypred.reshape(-1, * src_y_shape)
 
-    debugger.logger.info('prepare to plot')
+    # debugger.logger.info('prepare to plot')
     ##plot the results
     fig, axs = plt.subplots(1, 3, figsize=(15, 5))
     # yte = dnm_yh.inverse(y_test)
     yte = y_test
-    vmin = torch.min(yte[4])
-    vmax = torch.max(yte[4])
+    vmin = torch.min(yte[1])
+    vmax = torch.max(yte[1])
 
-    im = axs[0].imshow(yte[4].cpu(), cmap='hot', interpolation='nearest', vmin = vmin, vmax = vmax)
+    im = axs[0].imshow(yte[1].cpu(), cmap='hot', interpolation='nearest', vmin = vmin, vmax = vmax)
     axs[0].set_title('Groundtruth')
 
-    axs[1].imshow(ypred[4].cpu(), cmap='hot', interpolation ='nearest', vmin = vmin, vmax = vmax)
-    axs[1].set_title('CIGAR Predict')
+    axs[1].imshow(ypred[1].cpu(), cmap='hot', interpolation ='nearest', vmin = vmin, vmax = vmax)
+    axs[1].set_title('Predict')
 
-    axs[2].imshow((yte[4].cpu()-ypred[4].cpu()).abs(), cmap = 'hot', interpolation='nearest', vmin = vmin, vmax = vmax)
+    axs[2].imshow((yte[1].cpu()-ypred[1].cpu()).abs(), cmap = 'hot', interpolation='nearest', vmin = vmin, vmax = vmax)
     axs[2].set_title('Difference')
 
     cbar_ax = fig.add_axes([0.95, 0.2, 0.03, 0.6])

@@ -7,7 +7,7 @@ from GaussianProcess.hogp_simple import HOGP_simple
 import GaussianProcess.kernel as kernel
 from GaussianProcess.gp_computation_pack import Tensor_linear
 from FidelityFusion_Models.MF_data import MultiFidelityDataManager
-from Experiments.log_debugger import log_debugger
+# from Experiments.log_debugger import log_debugger
 import matplotlib.pyplot as plt
         
 class GAR(torch.nn.Module):
@@ -36,7 +36,7 @@ class GAR(torch.nn.Module):
 
         self.if_nonsubset = if_nonsubset
 
-    def forward(self, data_manager, x_test, to_fidelity=None):
+    def forward(self, data_manager, x_test, to_fidelity=None, normal=True):
         """
         Forward pass of the GAR model.
 
@@ -55,7 +55,7 @@ class GAR(torch.nn.Module):
 
         for i_fidelity in range(fidelity_level + 1):
             if i_fidelity == 0:
-                x_train, _ = data_manager.get_data(i_fidelity, normal=True)
+                x_train, _ = data_manager.get_data(i_fidelity, normal=normal)
                 mean_low, var_low = self.hogp_list[i_fidelity].forward(x_train, x_test)
                 if fidelity_level == 0:
                     mean_high = mean_low
@@ -72,7 +72,7 @@ class GAR(torch.nn.Module):
 
         return mean_high, var_high
         
-def train_GAR(GARmodel, data_manager, max_iter=1000, lr_init=1e-1, debugger=None):
+def train_GAR(GARmodel, data_manager, max_iter=1000, lr_init=1e-1, normal = True, debugger=None):
     """
     Trains the GARmodel using the specified data_manager.
 
@@ -87,7 +87,7 @@ def train_GAR(GARmodel, data_manager, max_iter=1000, lr_init=1e-1, debugger=None
     for i_fidelity in range(GARmodel.fidelity_num):
         optimizer = torch.optim.Adam(GARmodel.parameters(), lr=lr_init)
         if i_fidelity == 0:
-            x_low, y_low = data_manager.get_data(i_fidelity, normal=True)
+            x_low, y_low = data_manager.get_data(i_fidelity, normal=normal)
             for i in range(max_iter):
                 optimizer.zero_grad()
                 loss = GARmodel.hogp_list[i_fidelity].log_likelihood(x_low, y_low)
@@ -101,9 +101,9 @@ def train_GAR(GARmodel, data_manager, max_iter=1000, lr_init=1e-1, debugger=None
         else:
             if GARmodel.if_nonsubset:
                 with torch.no_grad():
-                    subset_x, y_low, y_high = data_manager.get_nonsubset_fill_data(GARmodel, i_fidelity - 1, i_fidelity)
+                    subset_x, y_low, y_high = data_manager.get_nonsubset_fill_data(GARmodel, i_fidelity - 1, i_fidelity, normal=normal)
             else:
-                _, y_low, subset_x, y_high = data_manager.get_overlap_input_data(i_fidelity - 1, i_fidelity, normal=True)
+                _, y_low, subset_x, y_high = data_manager.get_overlap_input_data(i_fidelity - 1, i_fidelity, normal=normal)
             for i in range(max_iter):
                 optimizer.zero_grad()
                 if GARmodel.if_nonsubset:
@@ -129,8 +129,9 @@ def train_GAR(GARmodel, data_manager, max_iter=1000, lr_init=1e-1, debugger=None
 
 if __name__ == "__main__":
     torch.manual_seed(1)
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    debugger=log_debugger("GAR")
+    # device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    device = torch.device("cpu")
+    # debugger=log_debugger("GAR")
 
     x = np.load('assets/MF_data/Poisson_data/input.npy')
     x = torch.tensor(x, dtype=torch.float32)
@@ -163,15 +164,15 @@ if __name__ == "__main__":
     kernel_list = [kernel.SquaredExponentialKernel() for _ in range(fidelity_num)]
     myGAR = GAR(fidelity_num, kernel_list, data_shape, if_nonsubset = True).to(device)
 
-    train_GAR(myGAR, fidelity_manager, max_iter = 100, lr_init = 1e-3, debugger = debugger)
+    train_GAR(myGAR, fidelity_manager, max_iter = 100, lr_init = 1e-3, debugger = None)
 
-    debugger.logger.info('training finished,start predicting')
+    # debugger.logger.info('training finished,start predicting')
     with torch.no_grad():
         x_test = fidelity_manager.normalizelayer[myGAR.fidelity_num-1].normalize_x(x_test)
         ypred, ypred_var = myGAR(fidelity_manager, x_test)
         ypred, ypred_var = fidelity_manager.normalizelayer[myGAR.fidelity_num-1].denormalize(ypred, ypred_var)
 
-    debugger.logger.info('prepare to plot')
+    # debugger.logger.info('prepare to plot')
     ##plot the results
     fig, axs = plt.subplots(1, 3, figsize=(15, 5))
     yte = y_test
@@ -182,9 +183,9 @@ if __name__ == "__main__":
     axs[0].set_title('Groundtruth')
 
     axs[1].imshow(ypred[4].cpu(), cmap='hot', interpolation ='nearest', vmin = vmin, vmax = vmax)
-    axs[1].set_title('GAR Predict')
+    axs[1].set_title('Predict')
 
-    axs[2].imshow((yte[4].cpu()-ypred[4].cpu()).abs(), cmap = 'hot', interpolation='nearest', vmin = vmin, vmax = vmax)
+    axs[2].imshow((yte[1].cpu()-ypred[1].cpu()).abs(), cmap = 'hot', interpolation='nearest', vmin = vmin, vmax = vmax)
     axs[2].set_title('Difference')
 
     cbar_ax = fig.add_axes([0.95, 0.2, 0.03, 0.6])
