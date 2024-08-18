@@ -1,0 +1,3 @@
+[submodule "Mini-GP"]
+	path = Mini-GP
+	url = https://github.com/IceLab-X/Mini-GP.git
