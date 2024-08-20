@@ -5,6 +5,11 @@ In this section, we provide the code for the models used in our library.
 ### 1. AR (AutoRegression)
 The method can be found in the following paper
 [Predicting the Output from a Complex Computer Code When Fast Approximations Are Available](https://www.jstor.org/stable/2673557)
+There are two types of implementation variations:
+AR-Concat: The main proxy model is a concatenation of the low-fidelity model and the residual model
+AR-OneKernel: only one large kernel matrix across different fidelity levels is created and inversed.
+
+
 ### 2. NAR (Nonlinear AutoRegression)
 The method can be found in the following paper
 [Nonlinear information fusion algorithms for data-efficient multi-fidelity modelling](https://royalsocietypublishing.org/doi/10.1098/rspa.2016.0751)
@@ -17,6 +22,10 @@ The method can be found in the following paper
 
 ### 5. CAR (Continue Autoregression)
 [ContinuAR: Continuous Autoregression For Infinite-Fidelity Fusion](https://openreview.net/pdf?id=wpfsnu5syT)
+There are two types of implementation variations:
+CAR-Concat: The main proxy model is a concatenation of the low-fidelity model and the residual model
+CAR-OneKernel: only one large kernel matrix across different fidelity levels is created and inversed.
+
 
 ## two_fidelity_models
 This module contains the code for the two fidelity models used in our library.
