@@ -9,22 +9,7 @@ from FidelityFusion_Models.MF_data import MultiFidelityDataManager
 import matplotlib.pyplot as plt
 
 
-class fidelity_kernel_MC(nn.Module):
-    """
-    fidelity kernel module base ARD and use monte carlo to calculate the integral.
-
-    Args:
-        input_dim (int): The input dimension.
-        initial_length_scale (float): The initial length scale value. Default is 1.0.
-        initial_signal_variance (float): The initial signal variance value. Default is 1.0.
-        eps (float): A small constant to prevent division by zero. Default is 1e-9.
-
-    Attributes:
-        length_scales (nn.Parameter): The length scales for each dimension.
-        signal_variance (nn.Parameter): The signal variance.
-        eps (float): A small constant to prevent division by zero.
-
-    """
+class fidelity_kernel(nn.Module):
 
     def __init__(self, kernel1, b, initial_length_scale=0.0, initial_signal_variance=1.0, eps=1e-3):
         super().__init__()
@@ -55,23 +40,9 @@ class fidelity_kernel_MC(nn.Module):
         return tem_1 * tem_2 * (tem_3 - tem_4)
 
     def forward_interagl(self, x1, x2):
-        """
-        Compute the covariance matrix using the ARD kernel.
-
-        Args:
-            x1 (torch.Tensor): The first input tensor.
-            x2 (torch.Tensor): The second input tensor.
-
-        Returns:
-            torch.Tensor: The covariance matrix.
-
-        """
+        
         X1 = x1[:, :-1].reshape(-1, x1.shape[1]-1)
         X2 = x2[:, :-1].reshape(-1, x2.shape[1]-1)
-        # raw_fidelity_indicator_1 = x1[:, 1].reshape(-1, 1) # t'
-        # raw_fidelity_indicator_2 = x2[:, 1].reshape(-1, 1) # t
-
-        # fidelity_indicator_1, fidelity_indicator_2 = self.warp_function(raw_fidelity_indicator_1, raw_fidelity_indicator_2)
 
         fidelity_indicator_1 = x1[:, -1].reshape(-1, 1) # t'
         fidelity_indicator_2 = x2[:, -1].reshape(-1, 1) # t
@@ -93,23 +64,9 @@ class fidelity_kernel_MC(nn.Module):
         return self.signal_variance.abs() * final_part * self.kernel1(X1, X2)
 
     def forward(self, x1, x2):
-        """
-        Compute the covariance matrix using the ARD kernel.
-
-        Args:
-            x1 (torch.Tensor): The first input tensor.
-            x2 (torch.Tensor): The second input tensor.
-
-        Returns:
-            torch.Tensor: The covariance matrix.
-
-        """
+        
         X1 = x1[:, :-1].reshape(-1, x1.shape[1]-1)
         X2 = x2[:, :-1].reshape(-1, x2.shape[1]-1)
-        # raw_fidelity_indicator_1 = x1[:, 1].reshape(-1, 1) # t'
-        # raw_fidelity_indicator_2 = x2[:, 1].reshape(-1, 1) # t
-
-        
 
         fidelity_indicator_1 = x1[:, -1].reshape(-1, 1) # t'
         fidelity_indicator_2 = x2[:, -1].reshape(-1, 1) # t
@@ -137,27 +94,10 @@ class CMF_CAR_dkl(nn.Module):
                                                     nn.LeakyReLU(),
                                                     nn.Linear(input_dim * 4, input_dim))
 
-        kernel_full = fidelity_kernel_MC(kernel_x, self.b)
+        kernel_full = fidelity_kernel(kernel_x, self.b)
         self.cigp = GPR(kernel=kernel_full, log_beta=1.0)
 
     def forward(self, data_manager, x_test,fidelity_indicator = None, normal = False):
-        '''
-        # x_train = []
-        # y_train = []
-        # fidelity_indicator = []
-        # for i_fidelity in range(self.fidelity_num):
-        #     x, y = data_manager.get_data(i_fidelity)
-        #     x_train.append(x)
-        #     y_train.append(y)
-        #     fidelity_indicator.append(torch.ones(x.shape[0]) * (i_fidelity+1))
-        
-        # x_train = torch.cat(x_train, 0)
-        # y_train = torch.cat(y_train, 0)
-        # fidelity_indicator = torch.cat(fidelity_indicator, 0)
-        # x_train = torch.cat((x_train, fidelity_indicator.reshape(-1,1)), 1)
-        
-        # x_test =  torch.cat((x_test, (torch.ones(x_test.shape[0]) * self.fidelity_num).reshape(-1,1)), 1)
-        '''
         
         if fidelity_indicator is not None:
             x_test = torch.cat([x_test.reshape(-1,x_test.shape[1]),(torch.tensor(fidelity_indicator)+1).reshape(-1,1)], dim = 1)
@@ -170,21 +110,7 @@ class CMF_CAR_dkl(nn.Module):
         return y_pred, cov_pred
     
 def train_CMFCAR_dkl(CARmodel, data_manager,max_iter=1000,lr_init=1e-1, normal = False):
-    '''
-    # x_train = []
-    # y_train = []
-    # fidelity_indicator = []
-    # for i_fidelity in range(CARmodel.fidelity_num):
-    #     x, y = data_manager.get_data(i_fidelity)
-    #     x_train.append(x)
-    #     y_train.append(y)
-    #     fidelity_indicator.append(torch.ones(x.shape[0]) * (i_fidelity+1))
     
-    # x_train = torch.cat(x_train, 0)
-    # y_train = torch.cat(y_train, 0)
-    # fidelity_indicator = torch.cat(fidelity_indicator, 0)
-    # x_train = torch.cat((x_train, fidelity_indicator.reshape(-1,1)), 1)
-    '''
     CARmodel = CARmodel.double()
     x_train, y_train = data_manager.get_data(0, normal = normal)
 
@@ -237,11 +163,6 @@ if __name__ == "__main__":
     x = torch.cat((x_low, x_high1, x_high2), 0)
     y = torch.cat((y_low, y_high1, y_high2), 0)
 
-    # initial_data = [
-    #     {'raw_fidelity_name': '0','fidelity_indicator': 0, 'X': x_low, 'Y': y_low},
-    #     {'raw_fidelity_name': '1','fidelity_indicator': 1, 'X': x_high1, 'Y': y_high1},
-    #     {'raw_fidelity_name': '2','fidelity_indicator': 2, 'X': x_high2, 'Y': y_high2},
-    # ]
     initial_data = [
         {'raw_fidelity_name': '0','fidelity_indicator': 0, 'X': x.double(), 'Y': y.double()},
     ]
@@ -261,9 +182,3 @@ if __name__ == "__main__":
     plt.plot(x_test[:,0].flatten(), y_test[:,0], 'k+')
     plt.show()
     # plt.savefig('CMF_CAR_dkl.png') 
-
-    # plt.figure()
-    # plt.errorbar(x_test.flatten(), ypred.reshape(-1).detach(), ypred_var.diag().sqrt().squeeze().detach(), fmt='r-.' ,alpha = 0.2)
-    # plt.fill_between(x_test.flatten(), ypred.reshape(-1).detach() - ypred_var.diag().sqrt().squeeze().detach(), ypred.reshape(-1).detach() + ypred_var.diag().sqrt().squeeze().detach(), alpha=0.2)
-    # plt.plot(x_test.flatten(), y_test, 'k+')
-    # plt.show() 

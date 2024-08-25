@@ -4,7 +4,7 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..','..
 import torch.nn as nn
 import torch
 from FidelityFusion_Models.GP_DMF import *
-from FidelityFusion_Models.CMF_CAR import *
+from FidelityFusion_Models.CAR_OneKernel import *
 from FidelityFusion_Models.CMF_CAR_deepkernel import *
 
 class continuous_fidelity_knowledgement_gradient(nn.Module):

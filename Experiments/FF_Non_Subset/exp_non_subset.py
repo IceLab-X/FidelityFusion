@@ -4,7 +4,7 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '.
 
 import GaussianProcess.kernel as kernel
 from FidelityFusion_Models import *
-from FidelityFusion_Models.DMF_CAR import DMF_CAR, train_DMFCAR
+from FidelityFusion_Models.CAR_concat import DMF_CAR, train_DMFCAR
 from FidelityFusion_Models.DMF_CAR_gamma import DMF_CAR_gamma, train_DMFCAR_gamma
 from FidelityFusion_Models.DMF_CAR_deepkdl import DMF_CAR_dkl, train_DMFCAR_dkl
 from FidelityFusion_Models.MF_data import MultiFidelityDataManager

@@ -8,7 +8,6 @@ from GaussianProcess.cigp_v10 import cigp as GPR
 from FidelityFusion_Models.MF_data import MultiFidelityDataManager
 from Experiments.log_debugger import log_debugger
 import matplotlib.pyplot as plt
-
 class AR(nn.Module):
     """
     AutoRegression model for fidelity fusion.
