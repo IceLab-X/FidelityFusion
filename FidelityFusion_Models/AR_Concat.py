@@ -4,7 +4,8 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 import torch
 import torch.nn as nn
 import GaussianProcess.kernel as kernel
-from GaussianProcess.cigp_v10 import cigp as GPR
+# from GaussianProcess.cigp_v10 import cigp as GPR
+from MiniGP.core.cigp_baseline import cigp as GPR
 from FidelityFusion_Models.MF_data import MultiFidelityDataManager
 from Experiments.log_debugger import log_debugger
 import matplotlib.pyplot as plt
