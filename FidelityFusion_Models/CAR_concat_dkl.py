@@ -3,8 +3,10 @@ import os
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 import torch
 import torch.nn as nn
-import GaussianProcess.kernel as kernel
-from GaussianProcess.cigp_v10 import cigp as GPR
+# import GaussianProcess.kernel as kernel
+# from GaussianProcess.cigp_v10 import cigp as GPR
+from MiniGP.core.cigp_baseline import cigp as GPR
+import MiniGP.core.kernel as kernel
 from FidelityFusion_Models.MF_data import MultiFidelityDataManager
 import matplotlib.pyplot as plt
 
@@ -168,8 +170,7 @@ def train_DMFCAR_dkl(CARmodel, data_manager, max_iter=1000, lr_init=1e-1, normal
 if __name__ == "__main__":
 
     torch.manual_seed(1)
-    # device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    device = torch.device("cpu")
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
     # generate the data
     x_all = torch.rand(500, 1) * 20
@@ -182,7 +183,7 @@ if __name__ == "__main__":
     xhigh2_indices = torch.randperm(500)[:250]
     xhigh2_indices = torch.sort(xhigh2_indices).values
     x_high2 = x_all[xhigh2_indices]
-    x_test = torch.linspace(0, 20, 100).reshape(-1, 1)
+    x_test = torch.linspace(0, 20, 100).reshape(-1, 1).to(device)
 
     y_low = torch.sin(x_low) - 0.5 * torch.sin(2 * x_low) + torch.rand(300, 1) * 0.1 - 0.05
     y_high1 = torch.sin(x_high1) - 0.3 * torch.sin(2 * x_high1) + torch.rand(300, 1) * 0.1 - 0.05
@@ -198,7 +199,6 @@ if __name__ == "__main__":
     fidelity_manager = MultiFidelityDataManager(initial_data)
     fidelity_num = 3
     kernel_list = [kernel.SquaredExponentialKernel() for _ in range(fidelity_num)]
-    # kernel_residual = fidelity_kernel_MCMC(x_low.shape[1], kernel.ARDKernel(x_low.shape[1]), 1, 2)
     CAR = DMF_CAR_dkl(fidelity_num=fidelity_num,input_dim=x_low.shape[1], kernel_list=kernel_list, b_init=1.0).to(device)
 
     train_DMFCAR_dkl(CAR,fidelity_manager, max_iter=100, lr_init=1e-2, debugger = None)
@@ -209,8 +209,7 @@ if __name__ == "__main__":
         ypred, ypred_var = fidelity_manager.normalizelayer[CAR.fidelity_num-1].denormalize(ypred, ypred_var)
     
     plt.figure()
-    plt.errorbar(x_test.flatten(), ypred.reshape(-1).detach(), ypred_var.diag().sqrt().squeeze().detach(), fmt='r-.' ,alpha = 0.2)
-    plt.fill_between(x_test.flatten(), ypred.reshape(-1).detach() - ypred_var.diag().sqrt().squeeze().detach(), ypred.reshape(-1).detach() + ypred_var.diag().sqrt().squeeze().detach(), alpha=0.2)
-    plt.plot(x_test.flatten(), y_test, 'k+')
-    # plt.plot(x_high1.flatten(), y_high1.flatten(), 'b+')
+    plt.errorbar(x_test.cpu().flatten(), ypred.cpu().reshape(-1).detach(), ypred_var.cpu().diag().sqrt().squeeze().detach(), fmt='r-.' ,alpha = 0.2)
+    plt.fill_between(x_test.cpu().flatten(), ypred.cpu().reshape(-1).detach() - ypred_var.cpu().diag().sqrt().squeeze().detach(), ypred.cpu().reshape(-1).detach() + ypred_var.cpu().diag().sqrt().squeeze().detach(), alpha = 0.2)
+    plt.plot(x_test.cpu().flatten(), y_test.cpu(), 'k+')
     plt.show() 

@@ -35,7 +35,15 @@ A simplified version of GAR by leveraging the *Autokrigeability*. `Tractable mod
 <!-- by [Zen Xing](https://imshibo.com), [W. W. Xing](http://wxing.me),  -->
 <!-- [Mike Kirby](https://www.cs.utah.edu/~kirby/) and [Shandian Zhe](https://www.cs.utah.edu/~zhe/) -->
 
+Transient thermal prediction of four chips using GAR
+<p align="center">
+  <img src="assets\figures\four_chip_predit.png" width="750">
+</p>
 
+Multi precision models predict the RMSE and R2 results of the Colville dataset under the structures of subsets, partially non subsets, and fully non subsets
+<p align="center">
+  <img src="assets\figures\Colville_three_type.png" width="750">
+</p>
 
 # Run
 

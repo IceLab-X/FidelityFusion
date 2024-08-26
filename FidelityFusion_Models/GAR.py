@@ -4,6 +4,8 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 import torch
 import numpy as np
 from GaussianProcess.hogp_simple import HOGP_simple
+# from MiniGP.core.hogp import hogp as HOGP_simple
+# import MiniGP.core.kernel as kernel
 import GaussianProcess.kernel as kernel
 from GaussianProcess.gp_computation_pack import Tensor_linear
 from FidelityFusion_Models.MF_data import MultiFidelityDataManager
@@ -129,8 +131,7 @@ def train_GAR(GARmodel, data_manager, max_iter=1000, lr_init=1e-1, normal = True
 
 if __name__ == "__main__":
     torch.manual_seed(1)
-    # device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    device = torch.device("cpu")
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     # debugger=log_debugger("GAR")
 
     x = np.load('assets/MF_data/Poisson_data/input.npy')
@@ -148,7 +149,7 @@ if __name__ == "__main__":
     y_h = yh[:128, :]
     y_h2 = yh2[:128, :]
 
-    x_test = x[128:, :]
+    x_test = x[128:, :].to(device)
     y_test = yh2[128:, :]
 
     data_shape = [y_l[0].shape, y_h[0].shape, y_h2[0].shape]

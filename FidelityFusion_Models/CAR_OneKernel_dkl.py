@@ -5,6 +5,8 @@ import torch
 import torch.nn as nn
 import GaussianProcess.kernel as kernel
 from GaussianProcess.cigp_v10 import cigp as GPR
+# from MiniGP.core.cigp_baseline import cigp as GPR
+# import MiniGP.core.kernel as kernel
 from FidelityFusion_Models.MF_data import MultiFidelityDataManager
 import matplotlib.pyplot as plt
 
@@ -130,6 +132,7 @@ def train_CMFCAR_dkl(CARmodel, data_manager,max_iter=1000,lr_init=1e-1, normal =
 if __name__ == "__main__":
 
     torch.manual_seed(1)
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
     # generate the data
     x_all = torch.rand(500, 1) * 20
@@ -158,18 +161,18 @@ if __name__ == "__main__":
     x_low = torch.cat((x_low, torch.ones(x_low.shape[0]).reshape(-1,1)), 1)
     x_high1 = torch.cat((x_high1, 2*torch.ones(x_high1.shape[0]).reshape(-1,1)), 1)
     x_high2 = torch.cat((x_high2, 3*torch.ones(x_high2.shape[0]).reshape(-1,1)), 1)
-    x_test = torch.cat((x_test, 3*torch.ones(x_test.shape[0]).reshape(-1,1)), 1)
+    x_test = torch.cat((x_test, 3*torch.ones(x_test.shape[0]).reshape(-1,1)), 1).to(device)
 
     x = torch.cat((x_low, x_high1, x_high2), 0)
     y = torch.cat((y_low, y_high1, y_high2), 0)
 
     initial_data = [
-        {'raw_fidelity_name': '0','fidelity_indicator': 0, 'X': x.double(), 'Y': y.double()},
+        {'raw_fidelity_name': '0','fidelity_indicator': 0, 'X': x.double().to(device), 'Y': y.double().to(device)},
     ]
 
     fidelity_manager = MultiFidelityDataManager(initial_data)
     kernel_x = kernel.ARDKernel(x_low.shape[1])
-    CAR = CMF_CAR_dkl(input_dim=x.shape[1]-1, kernel_x=kernel_x, b_init=1.0)
+    CAR = CMF_CAR_dkl(input_dim=x.shape[1]-1, kernel_x=kernel_x, b_init=1.0).to(device)
 
     train_CMFCAR_dkl(CAR, fidelity_manager, max_iter=200, lr_init=1e-2)
 
@@ -177,8 +180,8 @@ if __name__ == "__main__":
         ypred, ypred_var = CAR(fidelity_manager,x_test.double())
  
     plt.figure()
-    plt.errorbar(x_test[:,0].flatten(), ypred[:,0].reshape(-1).detach(), ypred_var.diag().sqrt().squeeze().detach(), fmt='r-.' ,alpha = 0.2)
-    plt.fill_between(x_test[:,0].flatten(), ypred[:,0].detach() - ypred_var.diag().sqrt().squeeze().detach(), ypred[:,0].detach() + ypred_var.diag().sqrt().squeeze().detach(), alpha=0.2)
-    plt.plot(x_test[:,0].flatten(), y_test[:,0], 'k+')
+    plt.errorbar(x_test[:,0].cpu().flatten(), ypred[:,0].cpu().reshape(-1).detach(), ypred_var.cpu().diag().sqrt().squeeze().detach(), fmt='r-.' ,alpha = 0.2)
+    plt.fill_between(x_test[:,0].cpu().flatten(), ypred[:,0].cpu().detach() - ypred_var.cpu().diag().sqrt().squeeze().detach(), ypred[:,0].cpu().detach() + ypred_var.cpu().diag().sqrt().squeeze().detach(), alpha=0.2)
+    plt.plot(x_test[:,0].cpu().flatten(), y_test[:,0].cpu(), 'k+')
     plt.show()
     # plt.savefig('CMF_CAR_dkl.png') 

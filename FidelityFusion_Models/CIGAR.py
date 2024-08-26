@@ -5,6 +5,8 @@ import torch
 import numpy as np
 from GaussianProcess.cigp_v10 import cigp as GPR
 import GaussianProcess.kernel as kernel
+# from MiniGP.core.cigp_baseline import cigp as GPR
+# import MiniGP.core.kernel as kernel
 from GaussianProcess.gp_computation_pack import Tensor_linear
 from FidelityFusion_Models.MF_data import MultiFidelityDataManager
 # from Experiments.log_debugger import log_debugger
@@ -137,8 +139,7 @@ def train_CIGAR(CIGARmodel, data_manager, max_iter=1000, lr_init=1e-1, normal = 
 
 if __name__ == "__main__":
     torch.manual_seed(1)
-    # device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    device = torch.device("cpu")
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     # debugger=log_debugger("CIGAR")
 
     x = np.load('assets/MF_data/Poisson_data/input.npy')

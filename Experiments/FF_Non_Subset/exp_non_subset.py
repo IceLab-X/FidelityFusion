@@ -5,8 +5,6 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '.
 import GaussianProcess.kernel as kernel
 from FidelityFusion_Models import *
 from FidelityFusion_Models.CAR_concat import DMF_CAR, train_DMFCAR
-from FidelityFusion_Models.DMF_CAR_gamma import DMF_CAR_gamma, train_DMFCAR_gamma
-from FidelityFusion_Models.DMF_CAR_deepkdl import DMF_CAR_dkl, train_DMFCAR_dkl
 from FidelityFusion_Models.MF_data import MultiFidelityDataManager
 from Experiments.calculate_metrix import calculate_metrix
 from Experiments.Load_Mfdata import get_full_name_list_with_fidelity, generate_nonsubset_data
@@ -45,14 +43,14 @@ all_data_name_list = ["colville", "nonlinearsin", "toal", "forrester",
 #shuo11的seed1 GAR 矩阵分解nan
 test_data_list = ["colville"]
 
-model_dic = {'AR': AR, 'ResGP': ResGP, 'NAR': NAR, 'CIGAR': CIGAR, 'GAR': GAR ,'CAR': ContinuousAutoRegression,'DMF_CAR': DMF_CAR,'CAR_gamma':DMF_CAR_gamma, 'CAR_dkl': DMF_CAR_dkl}
-train_dic = {'AR': train_AR,'ResGP': train_ResGP, 'NAR': train_NAR,'CIGAR': train_CIGAR, 'GAR': train_GAR,'CAR': train_CAR,'DMF_CAR': train_DMFCAR,'CAR_gamma':train_DMFCAR_gamma, 'CAR_dkl': train_DMFCAR_dkl}
+model_dic = {'AR': AR, 'ResGP': ResGP, 'NAR': NAR, 'CIGAR': CIGAR, 'GAR': GAR }
+train_dic = {'AR': train_AR,'ResGP': train_ResGP, 'NAR': train_NAR,'CIGAR': train_CIGAR, 'GAR': train_GAR}
 
 
 if __name__ == '__main__':
         
     # method_list = ['DMF_CAR']
-    method_list = ['CAR_dkl']
+    method_list = ['AR','ResGP','NAR','GAR']
     all_data_name_with_fi_list = get_full_name_list_with_fidelity(data_name_list = test_data_list)   
     for _data_name in all_data_name_with_fi_list:
         print(_data_name)

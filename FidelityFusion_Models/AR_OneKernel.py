@@ -4,6 +4,7 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 import torch
 import torch.nn as nn
 import GaussianProcess.kernel as kernel
+# import MiniGP.core.kernel as kernel
 from FidelityFusion_Models.MF_data import MultiFidelityDataManager
 import matplotlib.pyplot as plt
 
@@ -224,7 +225,7 @@ if __name__ == "__main__":
     xhigh2_indices = torch.randperm(500)[:250]
     xhigh2_indices = torch.sort(xhigh2_indices).values
     x_high2 = x_all[xhigh2_indices]
-    x_test = torch.linspace(0, 20, 100).reshape(-1, 1)
+    x_test = torch.linspace(0, 20, 100).reshape(-1, 1).to(device)
 
     y_low = torch.sin(x_low) - 0.5 * torch.sin(2 * x_low) + torch.rand(300, 1) * 0.1 - 0.05
     y_high1 = torch.sin(x_high1) - 0.3 * torch.sin(2 * x_high1) + torch.rand(300, 1) * 0.1 - 0.05
@@ -256,9 +257,9 @@ if __name__ == "__main__":
         # ypred, ypred_var = fidelity_manager.normalizelayer[myAR.fidelity_num-1].denormalize(ypred, ypred_var)
 
     plt.figure()
-    plt.errorbar(x_test[:,0].flatten(), ypred.reshape(-1).detach(), ypred_var.diag().sqrt().squeeze().detach(), fmt='r-.' ,alpha = 0.2)
-    plt.fill_between(x_test[:,0].flatten(), ypred.reshape(-1).detach() - ypred_var.diag().sqrt().squeeze().detach(), ypred.reshape(-1).detach() + ypred_var.diag().sqrt().squeeze().detach(), alpha = 0.2)
-    plt.plot(x_test[:,0].flatten(), y_test, 'k+')
+    plt.errorbar(x_test[:,0].cpu().flatten(), ypred.cpu().reshape(-1).detach(), ypred_var.cpu().diag().sqrt().squeeze().detach(), fmt='r-.' ,alpha = 0.2)
+    plt.fill_between(x_test[:,0].cpu().flatten(), ypred.cpu().reshape(-1).detach() - ypred_var.cpu().diag().sqrt().squeeze().detach(), ypred.cpu().reshape(-1).detach() + ypred_var.cpu().diag().sqrt().squeeze().detach(), alpha = 0.2)
+    plt.plot(x_test[:,0].cpu().flatten(), y_test.cpu(), 'k+')
     # plt.savefig('AR_union.png')
     plt.show()
     

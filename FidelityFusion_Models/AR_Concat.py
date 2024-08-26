@@ -4,8 +4,9 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 import torch
 import torch.nn as nn
 import GaussianProcess.kernel as kernel
-# from GaussianProcess.cigp_v10 import cigp as GPR
-from MiniGP.core.cigp_baseline import cigp as GPR
+from GaussianProcess.cigp_v10 import cigp as GPR
+# from MiniGP.core.cigp_baseline import cigp as GPR
+# import MiniGP.core.kernel as kernel
 from FidelityFusion_Models.MF_data import MultiFidelityDataManager
 from Experiments.log_debugger import log_debugger
 import matplotlib.pyplot as plt
@@ -117,7 +118,7 @@ def train_AR(ARmodel, data_manager, max_iter=1000, lr_init=1e-1, normal = True, 
         else:
             if ARmodel.if_nonsubset:
                 with torch.no_grad():
-                    subset_x, y_low, y_high = data_manager.get_nonsubset_fill_data(ARmodel, i_fidelity - 1, i_fidelity)
+                    subset_x, y_low, y_high = data_manager.get_nonsubset_fill_data(ARmodel, i_fidelity - 1, i_fidelity,normal = normal)
             else:
                 _, y_low, subset_x, y_high = data_manager.get_overlap_input_data(i_fidelity - 1, i_fidelity, normal=normal)
             for i in range(max_iter):
@@ -145,8 +146,7 @@ def train_AR(ARmodel, data_manager, max_iter=1000, lr_init=1e-1, normal = True, 
 if __name__ == "__main__":
 
     torch.manual_seed(1)
-    # device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    device = torch.device("cpu")
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     # debugger=log_debugger("AR")
 
     # generate the data
@@ -160,7 +160,7 @@ if __name__ == "__main__":
     xhigh2_indices = torch.randperm(500)[:250]
     xhigh2_indices = torch.sort(xhigh2_indices).values
     x_high2 = x_all[xhigh2_indices]
-    x_test = torch.linspace(0, 20, 100).reshape(-1, 1)
+    x_test = torch.linspace(0, 20, 100).reshape(-1, 1).to(device)
 
     y_low = torch.sin(x_low) - 0.5 * torch.sin(2 * x_low) + torch.rand(300, 1) * 0.1 - 0.05
     y_high1 = torch.sin(x_high1) - 0.3 * torch.sin(2 * x_high1) + torch.rand(300, 1) * 0.1 - 0.05
@@ -189,7 +189,7 @@ if __name__ == "__main__":
 
     # debugger.logger.info('prepare to plot')
     plt.figure()
-    plt.errorbar(x_test.flatten(), ypred.reshape(-1).detach(), ypred_var.diag().sqrt().squeeze().detach(), fmt='r-.' ,alpha = 0.2)
-    plt.fill_between(x_test.flatten(), ypred.reshape(-1).detach() - ypred_var.diag().sqrt().squeeze().detach(), ypred.reshape(-1).detach() + ypred_var.diag().sqrt().squeeze().detach(), alpha = 0.2)
-    plt.plot(x_test.flatten(), y_test, 'k+')
+    plt.errorbar(x_test.cpu().flatten(), ypred.cpu().reshape(-1).detach(), ypred_var.cpu().diag().sqrt().squeeze().detach(), fmt='r-.' ,alpha = 0.2)
+    plt.fill_between(x_test.cpu().flatten(), ypred.cpu().reshape(-1).detach() - ypred_var.cpu().diag().sqrt().squeeze().detach(), ypred.cpu().reshape(-1).detach() + ypred_var.cpu().diag().sqrt().squeeze().detach(), alpha = 0.2)
+    plt.plot(x_test.cpu().flatten(), y_test.cpu(), 'k+')
     plt.show() 

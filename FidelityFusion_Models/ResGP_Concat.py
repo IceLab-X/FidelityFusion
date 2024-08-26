@@ -5,6 +5,8 @@ import torch
 import torch.nn as nn
 import GaussianProcess.kernel as kernel
 from GaussianProcess.cigp_v10 import cigp as GPR
+# from MiniGP.core.cigp_baseline import cigp as GPR
+# import MiniGP.core.kernel as kernel
 from FidelityFusion_Models.MF_data import MultiFidelityDataManager
 # from Experiments.log_debugger import log_debugger
 import matplotlib.pyplot as plt
