@@ -14,6 +14,15 @@ import matplotlib.pyplot as plt
 class fidelity_kernel(nn.Module):
 
     def __init__(self, kernel1, b, initial_length_scale=0.0, initial_signal_variance=1.0, eps=1e-3):
+        """
+        Initializes the fidelity_kernel.
+        Args:
+            kernel1: The kernel.
+            b: The b parameter.
+            initial_length_scale: The initial length scale value (default is 1.0).
+            initial_signal_variance: The initial signal variance value (default is 1.0).
+            eps: The epsilon value (default is 1e-3).
+        """
         super().__init__()
         self.kernel1 = kernel1
         self.b = b
@@ -68,6 +77,12 @@ class fidelity_kernel(nn.Module):
 class ContinuousAutoRegression_large(nn.Module):
     # initialize the model
     def __init__(self, kernel_x, b_init=1.0):
+        """
+        Initializes the CAR_OneKernel object.
+        Args:
+            kernel_x (torch.Tensor): The kernel input.
+            b_init (float, optional): The initial value for parameter b. Defaults to 1.0.
+        """
         super().__init__()
         # self.fidelity_num = fidelity_num
         self.b = torch.nn.Parameter(torch.tensor(b_init))
@@ -86,6 +101,15 @@ class ContinuousAutoRegression_large(nn.Module):
         return y_pred, cov_pred
     
 def train_CAR_large(CARmodel, data_manager,max_iter=1000,lr_init=1e-1, normal = False):
+    """
+    Trains the CARmodel.
+    Parameters:
+    - CARmodel: The CARmodel to be trained.
+    - data_manager: The data manager object.
+    - max_iter: The maximum number of iterations for training. Default is 1000.
+    - lr_init: The initial learning rate. Default is 0.1.
+    - normal: A boolean indicating whether to use normalized data. Default is False.
+    """
 
     x_train, y_train = data_manager.get_data(0, normal = normal)
 

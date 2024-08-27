@@ -24,6 +24,17 @@ def warp_function(lf, hf):
 class fidelity_kernel(nn.Module):
 
     def __init__(self, kernel1, lf, hf, b, initial_length_scale=1.0, initial_signal_variance=1.0, eps=1e-3):
+        """
+        Initializes the fidelity_kernel.
+        Args:
+            kernel1: The kernel.
+            lf: low fidelity.
+            hf: high fidelity.
+            b: The b parameter.
+            initial_length_scale: The initial length scale value (default is 1.0).
+            initial_signal_variance: The initial signal variance value (default is 1.0).
+            eps: The epsilon value (default is 1e-3).
+        """
         super().__init__()
         self.kernel1 = kernel1
         self.b = b
@@ -67,6 +78,14 @@ class fidelity_kernel(nn.Module):
 class DMF_CAR(nn.Module):
     # initialize the model
     def __init__(self, fidelity_num, kernel_list, b_init=1.0, if_nonsubset=False):
+        """
+        Initializes an instance of the CAR_concat class.
+        Args:
+            fidelity_num (int): The number of fidelity levels.
+            kernel_list (list): A list of kernel objects for each fidelity level.
+            b_init (float, optional): The initial value for the parameter b. Defaults to 1.0.
+            if_nonsubset (bool, optional): A flag indicating whether the model is non-subset. Defaults to False.
+        """
         super().__init__()
         self.fidelity_num = fidelity_num
         self.b = torch.nn.Parameter(torch.tensor(b_init))
@@ -114,6 +133,18 @@ class DMF_CAR(nn.Module):
         return y_pred_high, cov_pred_high
     
 def train_DMFCAR(CARmodel, data_manager, max_iter=1000, lr_init=1e-1, normal =True, debugger = None):
+    """
+    Trains the DMFCAR model.
+    Args:
+        CARmodel: The DMFCAR model.
+        data_manager: The data manager object.
+        max_iter (int): The maximum number of iterations.
+        lr_init (float): The initial learning rate.
+        normal (bool): Indicates whether to normalize the data.
+        debugger: The debugger object for debugging purposes.
+    Returns:
+        None
+    """
     
     for i_fidelity in range(CARmodel.fidelity_num):
         optimizer = torch.optim.Adam(CARmodel.parameters(), lr=lr_init)

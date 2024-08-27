@@ -14,6 +14,15 @@ import matplotlib.pyplot as plt
 class fidelity_kernel(nn.Module):
 
     def __init__(self, kernel1, b, initial_length_scale=0.0, initial_signal_variance=1.0, eps=1e-3):
+        """
+        Initializes the fidelity_kernel.
+        Args:
+            kernel1: The kernel.
+            b: The b parameter.
+            initial_length_scale: The initial length scale value (default is 1.0).
+            initial_signal_variance: The initial signal variance value (default is 1.0).
+            eps: The epsilon value (default is 1e-3).
+        """
         super().__init__()
         self.kernel1 = kernel1
         self.b = b
@@ -84,6 +93,13 @@ class fidelity_kernel(nn.Module):
 class CMF_CAR_dkl(nn.Module):
     # initialize the model
     def __init__(self, input_dim, kernel_x, b_init=1.0):
+        """
+        Initializes the CAR_OneKernel_dkl class.
+        Args:
+            input_dim (int): The input dimension.
+            kernel_x: The kernel_x parameter.
+            b_init (float, optional): The initial value for the b parameter. Defaults to 1.0.
+        """
         super().__init__()
         # self.fidelity_num = fidelity_num
         self.b = torch.nn.Parameter(torch.tensor(b_init))
@@ -112,6 +128,17 @@ class CMF_CAR_dkl(nn.Module):
         return y_pred, cov_pred
     
 def train_CMFCAR_dkl(CARmodel, data_manager,max_iter=1000,lr_init=1e-1, normal = False):
+    """
+    Trains the CMFCAR model using the DKL (Deep Kernel Learning) approach.
+    Args:
+        CARmodel: The CMFCAR model to be trained.
+        data_manager: The data manager object that provides the training data.
+        max_iter (int): The maximum number of iterations for training. Default is 1000.
+        lr_init (float): The initial learning rate for the optimizer. Default is 0.1.
+        normal (bool): Flag indicating whether to normalize the training data. Default is False.
+    Returns:
+        None
+    """
     
     CARmodel = CARmodel.double()
     x_train, y_train = data_manager.get_data(0, normal = normal)

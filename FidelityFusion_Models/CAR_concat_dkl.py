@@ -20,6 +20,17 @@ def warp_function(lf, hf):
 class fidelity_kernel(nn.Module):
 
     def __init__(self, kernel1, lf, hf, b, initial_length_scale=1.0, initial_signal_variance=1.0, eps=1e-3):
+        """
+        Initializes the fidelity_kernel.
+        Args:
+            kernel1: The kernel.
+            lf: low fidelity.
+            hf: high fidelity.
+            b: The b parameter.
+            initial_length_scale: The initial length scale value (default is 1.0).
+            initial_signal_variance: The initial signal variance value (default is 1.0).
+            eps: The epsilon value (default is 1e-3).
+        """
         super().__init__()
         self.kernel1 = kernel1
         self.b = b
@@ -62,6 +73,15 @@ class fidelity_kernel(nn.Module):
 class DMF_CAR_dkl(nn.Module):
     # initialize the model
     def __init__(self, fidelity_num, input_dim, kernel_list, b_init=1.0, if_nonsubset=False):
+        """
+        Initializes an instance of the CAR_concat_dkl class.
+        Args:
+            fidelity_num (int): The number of fidelity levels.
+            input_dim (int): The dimensionality of the input.
+            kernel_list (list): A list of kernels for each fidelity level.
+            b_init (float, optional): The initial value for the parameter b. Defaults to 1.0.
+            if_nonsubset (bool, optional): Specifies whether the model is non-subset. Defaults to False.
+        """
         super().__init__()
         self.fidelity_num = fidelity_num
         self.b = torch.nn.Parameter(torch.tensor(b_init))
@@ -121,6 +141,16 @@ class DMF_CAR_dkl(nn.Module):
         return y_pred_high, cov_pred_high
     
 def train_DMFCAR_dkl(CARmodel, data_manager, max_iter=1000, lr_init=1e-1, normal =True, debugger = None):
+    """
+    Trains the DMFCAR model using the Deep Kernel Learning (DKL) approach.
+    Args:
+        CARmodel (torch.nn.Module): The DMFCAR model.
+        data_manager (DataManager): The data manager object.
+        max_iter (int, optional): The maximum number of iterations for training. Defaults to 1000.
+        lr_init (float, optional): The initial learning rate for the optimizer. Defaults to 0.1.
+        normal (bool, optional): Flag indicating whether to normalize the data. Defaults to True.
+        debugger (object, optional): The debugger object for monitoring the training process. Defaults to None.
+    """
     
     CARmodel = CARmodel.double()
     for i_fidelity in range(CARmodel.fidelity_num):
