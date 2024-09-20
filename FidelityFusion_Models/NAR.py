@@ -148,10 +148,10 @@ if __name__ == "__main__":
     fidelity_manager = MultiFidelityDataManager(initial_data)
     kernel_list = [kernel.SquaredExponentialKernel() for _ in range(fidelity_num)]
     
-    myNAR = NAR(fidelity_num = 3,kernel_list= kernel_list, if_nonsubset = False).to(device)
+    myNAR = NAR(fidelity_num = 3,kernel_list= kernel_list, if_nonsubset = True).to(device)
 
     ## if nonsubset is False, max_iter should be 200 ,lr can be 1e-2
-    train_NAR(myNAR,fidelity_manager, max_iter = 200, lr_init = 1e-2, debugger = None)
+    train_NAR(myNAR,fidelity_manager, max_iter = 200, lr_init = 1e-1, debugger = None)
 
     # debugger.logger.info('training finished,start predicting')
     with torch.no_grad():

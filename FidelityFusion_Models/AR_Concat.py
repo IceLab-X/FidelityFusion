@@ -10,6 +10,13 @@ from GaussianProcess.cigp_v10 import cigp as GPR
 from FidelityFusion_Models.MF_data import MultiFidelityDataManager
 from Experiments.log_debugger import log_debugger
 import matplotlib.pyplot as plt
+
+# def gp_model
+
+# def wraper
+
+# maybe a new form of gp will be better ytr->ytr \ ytr_var 
+
 class AR(nn.Module):
     """
     AutoRegression model for fidelity fusion.
@@ -179,7 +186,7 @@ if __name__ == "__main__":
     myAR = AR(fidelity_num = fidelity_num, kernel_list = kernel_list, rho_init=1.0, if_nonsubset=True).to(device)
 
     ## if nonsubset is False, max_iter should be 100 ,lr can be 1e-2
-    train_AR(myAR, fidelity_manager, max_iter=200, lr_init=1e-2)
+    train_AR(myAR, fidelity_manager, max_iter=200, lr_init=1e-1)
 
     # debugger.logger.info('training finished,start predicting')
     with torch.no_grad():
