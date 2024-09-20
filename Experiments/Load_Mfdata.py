@@ -51,6 +51,50 @@ data_mapping = {
         "test9": multi_fidelity_test9_function,
     }
 
+dataset_info = {
+    "colville": {"x_dim": 4, "min_value": -1, "max_value": 1},
+    "nonlinearsin": {"x_dim": 1, "min_value": -5, "max_value": 10},
+    "toal": {"x_dim": 10, "min_value": -100, "max_value": 100},
+    "forrester": {"x_dim": 1, "min_value": 0, "max_value": 1},
+    "p1": {"x_dim": 1, "min_value": -3, "max_value": 2},
+    "p2": {"x_dim": 1, "min_value": 0, "max_value": 1},
+    "p3": {"x_dim": 2, "min_value": -2, "max_value": 2},
+    "p4": {"x_dim": 2, "min_value": -6, "max_value": 5},
+    "p5": {"x_dim": 2, "min_value": -0.2, "max_value": -0.1},
+    "maolin1": {"x_dim": 1, "min_value": 0, "max_value": 1},
+    "maolin5": {"x_dim": 2, "min_value": 0, "max_value": 5},
+    "maolin6": {"x_dim": 2, "min_value": 0, "max_value": 5},
+    "maolin7": {"x_dim": 2, "min_value": -5, "max_value": 10},
+    "maolin8": {"x_dim": 2, "min_value": 0, "max_value": 1},
+    "maolin10": {"x_dim": 2, "min_value": 0, "max_value": 0.5},
+    "maolin12": {"x_dim": 2, "min_value": -2, "max_value": 2},
+    "maolin13": {"x_dim": 2, "min_value": -1, "max_value": 1},
+    "maolin15": {"x_dim": 3, "min_value": 0, "max_value": 1},
+    "maolin19": {"x_dim": 6, "min_value": -5, "max_value": 10},
+    "maolin20": {"x_dim": 8, "min_value": 0, "max_value": 1},
+    "tl1": {"x_dim": 1, "min_value": 0, "max_value": 1},
+    "tl2": {"x_dim": 1, "min_value": 0, "max_value": 1},
+    "tl3": {"x_dim": 1, "min_value": 0, "max_value": 10},
+    "tl4": {"x_dim": 1, "min_value": 0, "max_value": 1},
+    "tl5": {"x_dim": 2, "min_value": -2, "max_value": 2},
+    "tl6": {"x_dim": 2, "min_value": 0, "max_value": 1},
+    "tl7": {"x_dim": 2, "min_value": -3, "max_value": 4},
+    "tl8": {"x_dim": 2, "min_value": 0, "max_value": 1},
+    "tl9": {"x_dim": 3, "min_value": 0, "max_value": 1},
+    "tl10": {"x_dim": 8, "min_value": -3, "max_value": 3},
+    "shuo6": {"x_dim": 2, "min_value": 0, "max_value": 10},
+    "shuo11": {"x_dim": 3, "min_value": -1, "max_value": 1},
+    "shuo15": {"x_dim": 8, "min_value": 0, "max_value": 1},
+    "shuo16": {"x_dim": 10, "min_value": -3, "max_value": 2},
+    "test3": {"x_dim": 3, "min_value": 0, "max_value": 1},
+    "test4": {"x_dim": 1, "min_value": 0, "max_value": 10},
+    "test5": {"x_dim": 2, "min_value": -2, "max_value": 2},
+    "test6": {"x_dim": 6, "min_value": 0, "max_value": 1},
+    "test7": {"x_dim": 8, "min_value": 0, "max_value": 1},
+    "test8": {"x_dim": 20, "min_value": -3, "max_value": 3},
+    "test9": {"x_dim": 30, "min_value": -3, "max_value": 2},
+}
+
 def load_data(seed, data_name, n_train, n_test, x_normal=False, y_normal=False):
     """
     Load data for training and testing.
@@ -153,7 +197,8 @@ def get_data_mu_std(seed, data_name, n_train):
 
     return xtr_mean, xtr_std, ytr_f_mean, ytr_f_std
 
-def generate_nonsubset_data(data_name_with_fi, x_dim, min_value, max_value, num_points=250, n_train=100, n_test=100, subset=False):
+
+def generate_nonsubset_data(data_name_with_fi, x_dim = None, min_value = None, max_value = None, num_points=450, n_train=300, n_test=300, subset=False):
     """
     Generate non-subset or subset data for a given data name and feature index.
 
@@ -184,14 +229,24 @@ def generate_nonsubset_data(data_name_with_fi, x_dim, min_value, max_value, num_
                 - x_test (torch.Tensor): The input data for testing.
                 - y_test (torch.Tensor): The labels for testing.
     """
+    if x_dim is None and min_value is None and max_value is None:
+        info = dataset_info.get(data_name_with_fi[:-2], None)
+        x_dim = info["x_dim"]
+        min_value = info["min_value"]
+        max_value = info["max_value"]
+
+    # x_all = torch.rand(num_points+300, x_dim) * (max_value - min_value) + min_value
     x_all = torch.rand(num_points, x_dim) * (max_value - min_value) + min_value
-    xlow_indices = torch.randperm(n_train + 50)[:n_train]
+    xlow_indices = torch.randperm(n_train + 100)[:n_train]
     xlow_indices = torch.sort(xlow_indices).values
     x_low = x_all[xlow_indices]
-    xhigh_indices = torch.randperm(n_test + 50)[:n_test]
+    # x_low = x_all[:300]
+    xhigh_indices = torch.randperm(n_test + 100)[:n_test]
     xhigh_indices = torch.sort(xhigh_indices).values
     x_high = x_all[xhigh_indices]
+    # x_high = x_all[300:600]
     x_test = x_all[num_points - n_train:]
+    # x_test = x_all[600:]
 
     data_name = data_name_with_fi[:-2]
     f_high_idx = int(data_name_with_fi[-1]) - 1

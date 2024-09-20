@@ -5,6 +5,7 @@ version 1.2 : 2024/1/6 add get_data_by_name and get_nonsubset_data
 version 1.3 : 2024/3/3 add normalize and denormalize
 '''
 import torch
+import warnings
 EPS = 1e-10
 class Normalizer:
     """
@@ -71,6 +72,92 @@ class Normalizer:
         mean = mean * self.y_std.expand_as(mean) + self.y_mean.expand_as(mean)
         var = var * (self.y_std ** 2).expand_as(var)
         return mean, var
+    
+class min_max_normalizer:
+    """
+    A class for performing min-max normalization on a given tensor.
+
+    Args:
+        tensor (Tensor): The input tensor to be normalized.
+        min_value (float, optional): The minimum value of the normalized range. Defaults to 0.
+        max_value (float, optional): The maximum value of the normalized range. Defaults to 1.
+    """
+
+    def __init__(self, tensor, min_value=0, max_value=1) -> None:
+        self.min_value = min_value
+        self.max_value = max_value
+        self.min = tensor.min(dim=0, keepdim=True).values
+        self.max = tensor.max(dim=0, keepdim=True).values
+    
+    def normalize(self, tensor):
+        """
+        Normalize the given tensor.
+
+        Args:
+            tensor (Tensor): The input tensor to be normalized.
+
+        Returns:
+            Tensor: The normalized tensor.
+        """
+        return (tensor - self.min) / (self.max - self.min) * (self.max_value - self.min_value) + self.min_value
+    
+    def denormalize(self, tensor):
+        """
+        Denormalize the given tensor.
+
+        Args:
+            tensor (Tensor): The input tensor to be denormalized.
+
+        Returns:
+            Tensor: The denormalized tensor.
+        """
+        return (tensor - self.min_value) / (self.max_value - self.min_value) * (self.max - self.min) + self.min
+
+class min_max_normalizer_2:
+    """
+    A class for performing min-max normalization on selected columns of a given tensor.
+
+    Args:
+        tensor (Tensor): The input tensor to be normalized.
+        columns (list of int, optional): The columns to be normalized. Defaults to [0, 1, 2].
+        min_value (float, optional): The minimum value of the normalized range. Defaults to 0.
+        max_value (float, optional): The maximum value of the normalized range. Defaults to 1.
+    """
+
+    def __init__(self, tensor, columns=[0, 1, 2], min_value=0, max_value=1) -> None:
+        self.columns = columns
+        self.min_value = min_value
+        self.max_value = max_value
+        self.min = tensor[:, columns].min(dim=0, keepdim=True).values  # 获取选定列的最小值
+        self.max = tensor[:, columns].max(dim=0, keepdim=True).values  # 获取选定列的最大值
+    
+    def normalize(self, tensor):
+        """
+        Normalize the specified columns of the given tensor.
+
+        Args:
+            tensor (Tensor): The input tensor to be normalized.
+
+        Returns:
+            Tensor: The normalized tensor.
+        """
+        tensor_copy = tensor.clone()  # 创建 tensor 的副本
+        tensor_copy[:, self.columns] = (tensor[:, self.columns] - self.min) / (self.max - self.min) * (self.max_value - self.min_value) + self.min_value
+        return tensor_copy
+    
+    def denormalize(self, tensor):
+        """
+        Denormalize the specified columns of the given tensor.
+
+        Args:
+            tensor (Tensor): The input tensor to be denormalized.
+
+        Returns:
+            Tensor: The denormalized tensor.
+        """
+        tensor_copy = tensor.clone()  # 创建 tensor 的副本
+        tensor_copy[:, self.columns] = (tensor[:, self.columns] - self.min_value) / (self.max_value - self.min_value) * (self.max - self.min) + self.min
+        return tensor_copy
 
 # TODO: doest data manager assume the low fidelity data always contains more data than the high fidelity data?
 class MultiFidelityDataManager:
@@ -134,7 +221,24 @@ class MultiFidelityDataManager:
         if fidelity_index not in self.normalizelayer and fidelity_index is not None:
             self.normalizelayer[fidelity_index] = Normalizer(x, y)
 
-    def get_data(self, fidelity_index, normal=True):
+    def refresh_filling_data(self, raw_fidelity_name, fidelity_index, x, y):
+        """
+        Refreshes the filling data for a given raw fidelity name.
+
+        Args:
+            raw_fidelity_name (str): The name of the raw fidelity.
+            fidelity_index (int): The fidelity index.
+            x (list): The X data.
+            y (list): The Y data.
+        """
+        if raw_fidelity_name not in self.data_dict:
+            self.data_dict[raw_fidelity_name] = {'fidelity_index': fidelity_index, 'X': x, 'Y': y}
+        else:
+            self.data_dict[raw_fidelity_name]['X'] = x
+            self.data_dict[raw_fidelity_name]['Y'] = y
+    
+    
+    def get_data(self, fidelity_index, normal=False):
         """
         Retrieves data from the data_dict.
 
@@ -152,9 +256,11 @@ class MultiFidelityDataManager:
                     return self.normalizelayer[fidelity_index].normalize(data['X'], data['Y'])
                 else:
                     return data['X'], data['Y']
+        
+        warnings.warn("Can't find the data with the fidelity index: {}".format(fidelity_index))
         return None, None
 
-    def get_data_by_name(self, raw_fidelity_name, normal=True):
+    def get_data_by_name(self, raw_fidelity_name, normal = False):
         """
         Retrieves data by fidelity name from the data_dict.
 
@@ -172,6 +278,7 @@ class MultiFidelityDataManager:
             else:
                 return self.data_dict[raw_fidelity_name]['X'], self.data_dict[raw_fidelity_name]['Y']
         else:
+            warnings.warn("Can't find the data with the fidelity name: {}".format(raw_fidelity_name))
             return None, None
 
     def get_overlap_input_data(self, fidelity_index1, fidelity_index2, normal=False):
@@ -250,7 +357,7 @@ class MultiFidelityDataManager:
             print("No unique data found")
             return None, None, None, None
 
-    def get_nonsubset_fill_data(self, model, fidelity_index1, fidelity_index2):
+    def get_nonsubset_fill_data(self, model, fidelity_index1, fidelity_index2, normal = False):
         """
         Generates filling data for non-subset data.
 
@@ -271,9 +378,10 @@ class MultiFidelityDataManager:
         subset_x1, subset_y1, subset_x2, subset_y2 = self.get_overlap_input_data(fidelity_index1, fidelity_index2)
         unique_x1, unique_y1, unique_x2, unique_y2 = self.get_unique_input_data(fidelity_index1, fidelity_index2)
 
-        _, subset_y1 = self.normalizelayer[fidelity_index1].normalize(subset_x1, subset_y1)
-        subset_x2, subset_y2 = self.normalizelayer[fidelity_index2].normalize(subset_x2, subset_y2)
-        unique_x2, unique_y2 = self.normalizelayer[fidelity_index2].normalize(unique_x2, unique_y2)
+        if normal == True:
+            _, subset_y1 = self.normalizelayer[fidelity_index1].normalize(subset_x1, subset_y1)
+            subset_x2, subset_y2 = self.normalizelayer[fidelity_index2].normalize(subset_x2, subset_y2)
+            unique_x2, unique_y2 = self.normalizelayer[fidelity_index2].normalize(unique_x2, unique_y2)
 
         ## full nonsubset: 
         if len(subset_x2) == 0:
@@ -281,24 +389,24 @@ class MultiFidelityDataManager:
             if(y_low_filling_var.shape[0] != y_low_filling_var.shape[1]): ## because hogp only diagonal elements returned
                 y_low_filling_var = torch.diag_embed(y_low_filling_var.squeeze())
             # y_high_var is zero because the outputs are observed
-            y_high_var = torch.zeros((unique_y2.shape[0], unique_y2.shape[0]))
+            y_high_var = torch.zeros((unique_y2.shape[0], unique_y2.shape[0])).to(y_low_filling_mean.device)
             return unique_x2, [y_low_filling_mean.reshape(-1, 1), y_low_filling_var], [unique_y2, y_high_var]
         ## full subset
         elif len(unique_x2) == 0:
-            y_low_var = torch.zeros((subset_y1.shape[0], subset_y1.shape[0]))
-            y_high_var = torch.zeros((subset_y2.shape[0], subset_y2.shape[0]))
+            y_low_var = torch.zeros((subset_y1.shape[0], subset_y1.shape[0])).to(subset_y1.device)
+            y_high_var = torch.zeros((subset_y2.shape[0], subset_y2.shape[0])).to(subset_y2.device)
             return subset_x2, [subset_y1, y_low_var], [subset_y2, y_high_var]
         else:
             y_low_filling_mean, y_low_filling_var = model.forward(self, unique_x2, to_fidelity=fidelity_index1)
             y_low_mean = torch.cat([subset_y1, y_low_filling_mean.reshape(-1, 1)], dim=0)
             if len(y_low_filling_mean.shape) == 0: ## if the y_low_filling_mean is a scalar
                 y_low_filling_mean = y_low_filling_mean.reshape(1) #do it to make the y_low_filling_mean.shape[0] code work
-            y_low_var = torch.zeros((subset_y1.shape[0] + y_low_filling_mean.shape[0], subset_y1.shape[0] + y_low_filling_mean.shape[0]))
+            y_low_var = torch.zeros((subset_y1.shape[0] + y_low_filling_mean.shape[0], subset_y1.shape[0] + y_low_filling_mean.shape[0])).to(y_low_filling_mean.device)
             if(y_low_filling_var.shape[0] != y_low_filling_var.shape[1]): ## because hogp only diagonal elements returned
                 y_low_filling_var = torch.diag_embed(y_low_filling_var.squeeze())
             y_low_var[-y_low_filling_var.shape[0]:, -y_low_filling_var.shape[1]:] = y_low_filling_var
             y_high_mean = torch.cat([subset_y2, unique_y2], dim=0)
-            y_high_var = torch.zeros((subset_y2.shape[0] + unique_y2.shape[0], subset_y2.shape[0] + unique_y2.shape[0]))
+            y_high_var = torch.zeros((subset_y2.shape[0] + unique_y2.shape[0], subset_y2.shape[0] + unique_y2.shape[0])).to(y_low_filling_mean.device)
             x = torch.cat([subset_x2, unique_x2], dim=0)
             return x, [y_low_mean, y_low_var], [y_high_mean, y_high_var]
 

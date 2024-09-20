@@ -28,8 +28,8 @@ class cigp(nn.Module):
             y_train = y_train[0]
         else:
             y_train_var = None
-        Sigma = self.kernel(x_train, x_train) + self.log_beta.exp().pow(-1) * torch.eye(x_train.size(0)) \
-            + JITTER * torch.eye(x_train.size(0))
+        Sigma = self.kernel(x_train, x_train) + self.log_beta.exp().pow(-1) * torch.eye(x_train.size(0)).to(x_train.device) \
+            + JITTER * torch.eye(x_train.size(0)).to(x_train.device)
         
         kx = self.kernel(x_train, x_test)
         L = torch.linalg.cholesky(Sigma)
@@ -55,9 +55,9 @@ class cigp(nn.Module):
             y_train_var = None
         y_num, y_dimension = y_train.shape
         Sigma = self.kernel(x_train, x_train) + self.log_beta.exp().pow(-1) * torch.eye(
-            x_train.size(0)) + JITTER * torch.eye(x_train.size(0))
+            x_train.size(0)).to(x_train.device) + JITTER * torch.eye(x_train.size(0)).to(x_train.device)
         if y_train_var is not None:
-            Sigma = Sigma + y_train_var.diag()* torch.eye(x_train.size(0))
+            Sigma = Sigma + y_train_var.diag()* torch.eye(x_train.size(0)).to(x_train.device)
         L = torch.linalg.cholesky(Sigma)
         #option 1 (use this if torch supports)
         Gamma,_ = torch.triangular_solve(y_train, L, upper = False)
@@ -66,7 +66,7 @@ class cigp(nn.Module):
 
         nll =  0.5 * (Gamma ** 2).sum() +  L.diag().log().sum() * y_dimension  \
             + 0.5 * y_num * torch.log(2 * torch.tensor(PI)) * y_dimension
-        return -nll
+        return nll
 
 
 if __name__ == "__main__":
@@ -85,7 +85,7 @@ if __name__ == "__main__":
     for i in range(100):
         startTime = time.time()
         optimizer.zero_grad()
-        loss = -model.negative_log_likelihood(xtr, ytr)
+        loss = model.negative_log_likelihood(xtr, ytr)
         loss.backward()
         optimizer.step()
         print('iter', i, 'nll:{:.5f}'.format(loss.item()))

@@ -267,6 +267,14 @@ class SquaredExponentialKernel(nn.Module):
             torch.Tensor: The covariance matrix.
 
         """
+        ## When encountering abnormal data or gradients causing parameter errors, parameter reset can achieve good training results
+        if torch.isnan(self.length_scale):
+            self.length_scale = nn.Parameter(torch.tensor([1.0])).to(x1.device)
+        if torch.isnan(self.signal_variance):
+            self.signal_variance = nn.Parameter(torch.tensor([1.0])).to(x1.device)
+        
+        x1 = x1.reshape(x1.shape[0], -1)
+        x2 = x2.reshape(x2.shape[0], -1)
 
         sqdist = torch.sum(x1**2, 1).reshape(-1, 1) + torch.sum(x2**2, 1) - 2 * torch.matmul(x1, x2.T)
         return self.signal_variance.exp().pow(2) * torch.exp(-0.5 * sqdist / self.length_scale.exp().pow(2))
@@ -347,3 +355,11 @@ class MaternKernel_scalarLengthScale(nn.Module):
         return self.signal_variance.pow(2) * torch.pow(1 + torch.sqrt(3 * sqdist) / self.length_scale.pow(2), -self.nu)
 
         
+if __name__ == '__main__':
+    import matplotlib.pyplot as plt
+    x = torch.linspace(0, 5, 50).view(-1, 1)
+    K = SumKernel(LinearKernel(1),SquaredExponentialKernel())(x, x)
+    plt.imshow(K.detach().numpy(), cmap='viridis', interpolation='nearest')
+    plt.title('Sum Kernel Covariance Matrix')
+    plt.colorbar()
+    plt.show()

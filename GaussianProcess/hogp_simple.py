@@ -1,6 +1,6 @@
 import sys
 import os
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..','..')))
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..',)))
 import numpy as np
 import torch
 import torch.nn as nn
@@ -26,9 +26,9 @@ class HOGP_simple(nn.Module):
         self.K = []
         self.K_eigen = []
         self.kernel_list = nn.ModuleList()
-        for _ in range(len(output_shape) + 1):
-            new_kernel = kernel
-            self.kernel_list.append(new_kernel)
+        for i in range(len(output_shape) + 1):
+            # new_kernel = kernel
+            self.kernel_list.append(kernel[i])
         self.grid = nn.ParameterList()
         for _value in output_shape:
             self.grid.append(nn.Parameter(torch.tensor(range(_value)).reshape(-1, 1).float()))
@@ -44,30 +44,36 @@ class HOGP_simple(nn.Module):
 
         
     def forward(self,x_train,x_test):
-        with torch.no_grad():
-            
-            K_star = self.kernel_list[0](x_test, x_train)
-            K_predict = [K_star] + self.K[1:]
 
-            predict_u = tensorly.tenalg.multi_mode_dot(self.g, K_predict)
-            n_dim = len(self.K_eigen) - 1
-            _init_value = torch.tensor([1.0]).reshape(*[1 for i in range(n_dim)]).to(x_train.device)
-            diag_K_dims = tucker_to_tensor(( _init_value, [K.diag().reshape(-1,1) for K in self.K[1:]]))
-            diag_K_dims = diag_K_dims.unsqueeze(0)
-            diag_K_x = self.kernel_list[0](x_test, x_test).diag()
-            for i in range(n_dim):
-                diag_K_x = diag_K_x.unsqueeze(-1)
-            diag_K = diag_K_x * diag_K_dims
+        ##calculate the mean    
+        K_star = self.kernel_list[0](x_test, x_train)
+        K_predict = [K_star] + self.K[1:]
 
-            S = self.A * self.A.pow(-1/2)
-            S_2 = S.pow(2)
-            eigen_vectors_x = K_star@self.K[0]
-            eigen_vectors_dims = [self.K_eigen[i+1].vector.pow(2) for i in range(n_dim)]
-            
-            eigen_vectors = [eigen_vectors_x] + eigen_vectors_dims
-            S_product = tensorly.tenalg.multi_mode_dot(S_2, eigen_vectors)
-            var_diag = diag_K + S_product
+        predict_u = tensorly.tenalg.multi_mode_dot(self.g, K_predict)
+
+        ##calculate the variance
+        n_dim = len(self.K_eigen) - 1
+        _init_value = torch.tensor([1.0]).reshape(*[1 for i in range(n_dim)]).to(x_train.device)
+        diag_K_dims = tucker_to_tensor(( _init_value, [K.diag().reshape(-1,1) for K in self.K[1:]]))
+        diag_K_dims = diag_K_dims.unsqueeze(0)
+        diag_K_x = self.kernel_list[0](x_test, x_test).diag()
+        for i in range(n_dim):
+            diag_K_x = diag_K_x.unsqueeze(-1)
+        diag_K = diag_K_x * diag_K_dims
+
+        S = self.A * self.A.pow(-1/2)
+        S_2 = S.pow(2)
+
+        # eigen_vectors_x = K_star@self.K[0]
+        eigen_vectors_x = (K_star@self.K[0].inverse()@self.K_eigen[0].vector).pow(2)
+        eigen_vectors_dims = [self.K_eigen[i+1].vector.pow(2) for i in range(n_dim)]
         
+        eigen_vectors = [eigen_vectors_x] + eigen_vectors_dims
+        S_product = tensorly.tenalg.multi_mode_dot(S_2, eigen_vectors)
+
+        #M
+        var_diag = diag_K + S_product
+
         return predict_u, var_diag
     
     def log_likelihood(self, x_train, y_train):
@@ -78,36 +84,43 @@ class HOGP_simple(nn.Module):
         else:
             y_train_var = None
         
+        #clear K
         self.K.clear()
         self.K_eigen.clear()
-        if y_train_var is not None:
-            self.K.append(self.kernel_list[0](x_train, x_train) + y_train_var)
-        else:
-            self.K.append(self.kernel_list[0](x_train, x_train))
+        # if y_train_var is not None:
+        #     self.K.append(self.kernel_list[0](x_train, x_train) + y_train_var.diag()* torch.eye(x_train.size(0)))
+        # else:
+        self.K.append(self.kernel_list[0](x_train, x_train))
         self.K_eigen.append(eigen_pairs(self.K[-1]))
 
+        # update grid
         for i in range(0, len(self.kernel_list)-1):
             _in = tensorly.tenalg.mode_dot(self.grid[i], self.mapping_vector[i], 0)
             self.K.append(self.kernel_list[i+1](_in, _in))
             self.K_eigen.append(eigen_pairs(self.K[-1]))
+        
+        #calculate A ,refer to paper formula 9
         _init_value = torch.tensor([1.0],  device=list(self.parameters())[0].device).reshape(*[1 for i in self.K])
         lambda_list = [eigen.value.reshape(-1, 1) for eigen in self.K_eigen]
         A = tucker_to_tensor((_init_value, lambda_list))
         A = A + self.noise_variance.pow(-1) * tensorly.ones(A.shape,  device = list(self.parameters())[0].device)
 
+        # if y_train_var is not None:
+        #     A = A + y_train_var
         T_1 = tensorly.tenalg.multi_mode_dot(y_train, [eigen.vector.T for eigen in self.K_eigen])
         T_2 = T_1 * A.pow(-1/2) 
         T_3 = tensorly.tenalg.multi_mode_dot(T_2, [eigen.vector for eigen in self.K_eigen]) 
         b = tensorly.tensor_to_vec(T_3)
+
+        #b = S.pow(-1/2)@vec(z)  g = S.pow(-1)@vec(z), Therefore, the following writing method is adopted
         g = tensorly.tenalg.multi_mode_dot(T_1 * A.pow(-1), [eigen.vector for eigen in self.K_eigen]) 
 
-        self.b = b
         self.A = A
         self.g = g
         nd = torch.prod(torch.tensor([value for value in self.A.shape]))
         loss = -1/2* nd * torch.log(torch.tensor(2 * math.pi, device=list(self.parameters())[0].device))
         loss += -1/2* torch.log(self.A).sum()
-        loss += -1/2* self.b.t() @ self.b
+        loss += -1/2* b.t() @ b
 
         loss = -loss/nd
         return loss
@@ -132,7 +145,7 @@ if __name__ == '__main__':
     ##
     x = np.load('assets\\MF_data\\Poisson_data\\input.npy')
     x = torch.tensor(x, dtype=torch.float32).to(device)
-    y = np.load('assets\\MF_data\\Poisson_data\\output_fidelity_2.npy')
+    y = np.load('assets\\MF_data\\Poisson_data\\output_fidelity_0.npy')
     y = torch.tensor(y, dtype=torch.float32).to(device)
 
     ## Standardization layer, currently using full dimensional standardization
@@ -140,17 +153,18 @@ if __name__ == '__main__':
     dnm_y = Normalize0_layer(y)
 
     #normalize the data
-    x=dnm_x.forward(x)
-    y=dnm_y.forward(y)
+    x = dnm_x.forward(x)
+    y = dnm_y.forward(y)
 
     xtr = x[:128, :]
     ytr = y[:128, :]
     xte = x[128:, :]
     yte = y[128:, :]
 
-    output_shape=ytr[0,...].shape
+    output_shape = ytr[0,...].shape
 
-    GPmodel=HOGP_simple(kernel = kernel.ARDKernel(1), noise_variance = 1.0, output_shape = output_shape)
+    kernel_list = [kernel.ARDKernel(1) for _ in range(len(output_shape) + 1)]
+    GPmodel=HOGP_simple(kernel = kernel_list, noise_variance = 1.0, output_shape = output_shape, learnable_grid = False, learnable_map = False)
 
     optimizer = torch.optim.Adam(GPmodel.parameters(), lr = 1e-2)
 
